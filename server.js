@@ -2,6 +2,7 @@
 //  RollArt SaaS — Node.js Backend
 //  Express + SQLite + JWT + bcrypt
 // ============================================================
+require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -408,9 +409,9 @@ app.delete('/api/skaters/:id', auth, (req, res) => {
 });
 
 // ============================================================
-//  KI-COACH — Claude API Integration
+//  KI-COACH — AI Integration
 // ============================================================
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+const KI_API_KEY = process.env.KI_API_KEY || '';
 
 const KI_SYSTEM_PROMPT = `Du bist der RollArt KI-Coach für Artistic Roller Skating (Rollkunstlauf) nach World Skate 2026 Regeln.
 Du analysierst Programm-Zusammensetzungen und gibst präzise Regelprüfungen, Optimierungsvorschläge und Trainingsempfehlungen.
@@ -451,8 +452,8 @@ Antworte IMMER auf Deutsch. Sei präzise und gib konkrete Verbesserungsvorschlä
 Verwende kurze, klare Sätze. Strukturiere deine Antwort mit Emojis als Aufzählungszeichen.`;
 
 app.post('/api/ki-coach', auth, async (req, res) => {
-  if (!ANTHROPIC_API_KEY) {
-    return res.status(503).json({ error: 'Kein Anthropic API-Key konfiguriert. Bitte ANTHROPIC_API_KEY als Umgebungsvariable setzen.' });
+  if (!KI_API_KEY) {
+    return res.status(503).json({ error: 'KI-Coach nicht konfiguriert. Bitte KI_API_KEY in der .env Datei setzen.' });
   }
 
   const { message, context } = req.body;
@@ -491,11 +492,11 @@ app.post('/api/ki-coach', auth, async (req, res) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
+        'x-api-key': KI_API_KEY,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5-20250929',
         max_tokens: 1024,
         system: KI_SYSTEM_PROMPT,
         messages: [
@@ -506,12 +507,12 @@ app.post('/api/ki-coach', auth, async (req, res) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('Claude API error:', response.status, errText);
-      return res.status(502).json({ error: `Claude API Fehler (${response.status})` });
+      console.error('KI API error:', response.status, errText);
+      return res.status(502).json({ error: `KI-Coach Fehler (${response.status})` });
     }
 
     const data = await response.json();
-    const reply = data.content?.[0]?.text || 'Keine Antwort von Claude erhalten.';
+    const reply = data.content?.[0]?.text || 'Keine Antwort erhalten.';
     res.json({ reply });
   } catch (err) {
     console.error('KI-Coach error:', err);
