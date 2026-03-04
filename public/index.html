@@ -1,0 +1,3032 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RollArt SaaS — Artistic Roller Skating 2026</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8faf9; }
+    select, input, button { font-family: inherit; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
+
+  <script type="text/babel">
+  const { useState, useMemo, useCallback, useEffect, createContext, useContext } = React;
+
+  // ============================================================
+  //  ELEMENT DATA — Official World Skate 2026 Values
+  // ============================================================
+
+  const JUMPS = [
+    { name:"Waltz",code:"1W",base:0.4,lt:0,ltlt:0,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.3},combo:0.41,comboLt:0,comboLtLt:0},
+    { name:"Toeloop",code:"1T",base:0.6,lt:0.42,ltlt:0.3,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.3},combo:0.61,comboLt:0.43,comboLtLt:0.31},
+    { name:"Salchow",code:"1S",base:0.6,lt:0.42,ltlt:0.3,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.3},combo:0.61,comboLt:0.43,comboLtLt:0.31},
+    { name:"Flip",code:"1F",base:0.8,lt:0.56,ltlt:0.4,goe:{3:0.4,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.4},combo:0.86,comboLt:0.6,comboLtLt:0.43},
+    { name:"Lutz",code:"1Lz",base:0.9,lt:0.63,ltlt:0.45,goe:{3:0.4,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.4},combo:0.96,comboLt:0.67,comboLtLt:0.48},
+    { name:"Loop",code:"1Lo",base:0.9,lt:0.63,ltlt:0.45,goe:{3:0.4,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.4},combo:0.96,comboLt:0.67,comboLtLt:0.48},
+    { name:"Thoren",code:"1Th",base:0.9,lt:0.63,ltlt:0.45,goe:{3:0.4,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.4},combo:0.96,comboLt:0.67,comboLtLt:0.48},
+    { name:"Axel",code:"1A",base:1.3,lt:0.91,ltlt:0.65,goe:{3:0.4,2:0.3,1:0.2,m1:-0.2,m2:-0.3,m3:-0.4},combo:1.4,comboLt:0.98,comboLtLt:0.7},
+    { name:"2 Toeloop",code:"2T",base:1.7,lt:1.19,ltlt:0.85,goe:{3:0.4,2:0.3,1:0.2,m1:-0.2,m2:-0.3,m3:-0.4},combo:1.85,comboLt:1.3,comboLtLt:0.93},
+    { name:"2 Salchow",code:"2S",base:1.7,lt:1.19,ltlt:0.85,goe:{3:0.4,2:0.3,1:0.2,m1:-0.2,m2:-0.3,m3:-0.4},combo:1.85,comboLt:1.3,comboLtLt:0.93},
+    { name:"2 Flip",code:"2F",base:2,lt:1.4,ltlt:1,goe:{3:0.5,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.5},combo:2.28,comboLt:1.6,comboLtLt:1.14},
+    { name:"2 Lutz",code:"2Lz",base:2.2,lt:1.54,ltlt:1.1,goe:{3:0.5,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.5},combo:2.51,comboLt:1.76,comboLtLt:1.25},
+    { name:"2 Loop",code:"2Lo",base:2.2,lt:1.54,ltlt:1.1,goe:{3:0.5,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.5},combo:2.51,comboLt:1.76,comboLtLt:1.25},
+    { name:"2 Thoren",code:"2Th",base:2.2,lt:1.54,ltlt:1.1,goe:{3:0.5,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.5},combo:2.51,comboLt:1.76,comboLtLt:1.25},
+    { name:"2 Axel",code:"2A",base:6.1,lt:4.88,ltlt:3.66,goe:{3:1.5,2:1.3,1:0.8,m1:-0.8,m2:-1.3,m3:-1.5},combo:7.02,comboLt:5.61,comboLtLt:4.21},
+    { name:"3 Toeloop",code:"3T",base:7,lt:5.6,ltlt:4.2,goe:{3:1.9,2:1.4,1:0.9,m1:-0.9,m2:-1.4,m3:-1.9},combo:8.12,comboLt:6.5,comboLtLt:4.87},
+    { name:"3 Salchow",code:"3S",base:7,lt:5.6,ltlt:4.2,goe:{3:1.9,2:1.4,1:0.9,m1:-0.9,m2:-1.4,m3:-1.9},combo:8.12,comboLt:6.5,comboLtLt:4.87},
+    { name:"3 Flip",code:"3F",base:8.3,lt:6.64,ltlt:4.98,goe:{3:2.3,2:1.6,1:1.0,m1:-1.0,m2:-1.5,m3:-2.0},combo:10.04,comboLt:8.03,comboLtLt:6.03},
+    { name:"3 Lutz",code:"3Lz",base:8.8,lt:7.04,ltlt:5.28,goe:{3:2.3,2:1.6,1:1.0,m1:-1.0,m2:-1.5,m3:-2.0},combo:10.65,comboLt:8.52,comboLtLt:6.39},
+    { name:"3 Loop",code:"3Lo",base:8.8,lt:7.04,ltlt:5.28,goe:{3:2.3,2:1.6,1:1.0,m1:-1.0,m2:-1.5,m3:-2.0},combo:10.65,comboLt:8.52,comboLtLt:6.39},
+    { name:"3 Thoren",code:"3Th",base:8.8,lt:7.04,ltlt:5.28,goe:{3:2.3,2:1.6,1:1.0,m1:-1.0,m2:-1.5,m3:-2.0},combo:10.65,comboLt:8.52,comboLtLt:6.39},
+    { name:"3 Axel",code:"3A",base:11.8,lt:9.44,ltlt:8.26,goe:{3:2.8,2:2.1,1:1.4,m1:-1.0,m2:-1.5,m3:-2.0},combo:14.4,comboLt:11.52,comboLtLt:10.08},
+    { name:"4 Salchow",code:"4S",base:13.4,lt:10.72,ltlt:9.38,goe:{3:2.8,2:2.1,1:1.4,m1:-1.4,m2:-2.1,m3:-2.8},combo:16.48,comboLt:13.19,comboLtLt:11.54},
+    { name:"4 Toeloop",code:"4T",base:13.4,lt:10.72,ltlt:9.38,goe:{3:2.8,2:2.1,1:1.4,m1:-1.4,m2:-2.1,m3:-2.8},combo:16.48,comboLt:13.19,comboLtLt:11.54},
+    { name:"4 Flip",code:"4F",base:15.8,lt:12.64,ltlt:11.06,goe:{3:3.0,2:2.3,1:1.6,m1:-1.6,m2:-2.3,m3:-3.0},combo:20.22,comboLt:16.18,comboLtLt:14.16},
+    { name:"4 Loop",code:"4Lo",base:16.4,lt:13.12,ltlt:11.48,goe:{3:3.0,2:2.3,1:1.6,m1:-1.6,m2:-2.3,m3:-3.0},combo:20.99,comboLt:16.79,comboLtLt:14.69},
+    { name:"4 Lutz",code:"4Lz",base:16.4,lt:13.12,ltlt:11.48,goe:{3:3.5,2:2.8,1:2.1,m1:-2.1,m2:-2.8,m3:-3.5},combo:20.99,comboLt:16.79,comboLtLt:14.69},
+    { name:"4 Thoren",code:"4Th",base:16.4,lt:13.12,ltlt:11.48,goe:{3:2.3,2:1.6,1:0.9,m1:-0.9,m2:-1.6,m3:-2.3},combo:20.99,comboLt:16.79,comboLtLt:14.69},
+    { name:"4 Axel",code:"4A",base:18.8,lt:15.04,ltlt:13.16,goe:{3:3.5,2:2.8,1:2.1,m1:-2.1,m2:-2.8,m3:-3.5},combo:24.44,comboLt:19.55,comboLtLt:17.11},
+  ];
+
+  // Individual spins (for SSp - Solo Spin)
+  const SOLO_SPINS = [
+    { name:"Upright Spin",code:"U",base:0.5,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:0}},
+    { name:"Sit Spin",code:"S",base:0.8,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:0}},
+    { name:"Camel Spin BD",code:"CBD",base:1.0,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-1}},
+    { name:"Camel Spin FD",code:"CFD",base:1.2,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Broken Spin",code:"Br",base:1.8,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-1}},
+    { name:"Heel Spin Back",code:"HBD",base:2.0,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-1}},
+    { name:"Heel Spin Fwd",code:"HFD",base:2.5,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-1}},
+    { name:"Inverted Spin",code:"In",base:2.8,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-1}},
+    { name:"Upright Spin B",code:"USpB",base:1.0,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Upright Spin 1",code:"USp1",base:1.5,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Upright Spin 2",code:"USp2",base:2.0,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Upright Spin 3",code:"USp3",base:2.4,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Upright Spin 4",code:"USp4",base:2.9,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+    { name:"Sit Spin B",code:"SSpB",base:1.3,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Sit Spin 1",code:"SSp1",base:1.8,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Sit Spin 2",code:"SSp2",base:2.3,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Sit Spin 3",code:"SSp3",base:2.8,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Sit Spin 4",code:"SSp4",base:3.3,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+    { name:"Camel Spin B",code:"CaSpB",base:1.5,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Camel Spin 1",code:"CaSp1",base:2.0,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Camel Spin 2",code:"CaSp2",base:2.5,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Camel Spin 3",code:"CaSp3",base:3.0,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Camel Spin 4",code:"CaSp4",base:3.5,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+  ];
+
+  // Combination spins (for CSp)
+  const COMBO_SPINS = [
+    { name:"Combo Spin B",code:"CSpB",base:1.7,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Combo Spin 1",code:"CSp1",base:2.3,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Combo Spin 2",code:"CSp2",base:2.8,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Combo Spin 3",code:"CSp3",base:3.4,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Combo Spin 4",code:"CSp4",base:4.0,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+  ];
+
+  const STEP_SEQUENCES = [
+    { name:"Step Seq. Base",code:"StB",base:1.8,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-1}},
+    { name:"Step Seq. 1",code:"St1",base:2.3,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-1}},
+    { name:"Step Seq. 2",code:"St2",base:3.3,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-1}},
+    { name:"Step Seq. 3",code:"St3",base:3.9,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-1}},
+    { name:"Step Seq. 4",code:"St4",base:4.4,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1}},
+  ];
+
+  const CHOREO_STEPS_FREE = [
+    { name:"Choreo Step B",code:"ChStB",base:2.0,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Choreo Step 1",code:"ChSt1",base:3.0,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+  ];
+  const CHOREO_STEPS_PAIRS = [
+    { name:"Choreo Step B",code:"ChStB",base:2.0,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+    { name:"Choreo Step 1",code:"ChSt1",base:3.0,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+  ];
+
+  // === PAIRS-ONLY ELEMENTS ===
+  // CLi = Combination Lift, SLi = Solo Lift
+  const ALL_LIFTS = [
+    { name:"Lift No Level",code:"NL",base:0,goe:{3:0,2:0,1:0,m1:0,m2:0,m3:0}},
+    // Low Militano Lift
+    { name:"Low Militano B",code:"LMB",base:1.2,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Low Militano 1",code:"LM1",base:1.5,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Low Militano 2",code:"LM2",base:1.7,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Low Militano 3",code:"LM3",base:1.9,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Low Militano 4",code:"LM4",base:2.1,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    // Axel Lift
+    { name:"Axel Lift B",code:"AxB",base:0.8,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.3}},
+    { name:"Axel Lift 1",code:"Ax1",base:1.0,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.3}},
+    { name:"Axel Lift 2",code:"Ax2",base:1.2,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Axel Lift 3",code:"Ax3",base:1.4,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Axel Lift 4",code:"Ax4",base:1.6,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    // Flip Lift
+    { name:"Flip Lift B",code:"FlB",base:0.9,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Flip Lift 1",code:"Fl1",base:1.2,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Flip Lift 2",code:"Fl2",base:1.4,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Flip Lift 3",code:"Fl3",base:1.6,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Flip Lift 4",code:"Fl4",base:1.8,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    // Low Press Lift
+    { name:"Low Press Lift B",code:"LPB",base:1.2,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Low Press Lift 1",code:"LP1",base:1.3,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Low Press Lift 2",code:"LP2",base:1.5,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Low Press Lift 3",code:"LP3",base:1.7,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Low Press Lift 4",code:"LP4",base:2.0,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    // Low Kennedy Lift
+    { name:"Low Kennedy Lift B",code:"LKB",base:1.1,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Low Kennedy Lift 1",code:"LK1",base:1.4,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Low Kennedy Lift 2",code:"LK2",base:1.6,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Low Kennedy Lift 3",code:"LK3",base:1.8,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Low Kennedy Lift 4",code:"LK4",base:2.0,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    // Airplane Lift
+    { name:"Airplane Lift B",code:"AirB",base:1.8,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Airplane Lift 1",code:"Air1",base:2.1,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Airplane Lift 2",code:"Air2",base:2.4,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Airplane Lift 3",code:"Air3",base:2.7,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Airplane Lift 4",code:"Air4",base:3.1,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    // Pancake Lift
+    { name:"Pancake Lift B",code:"PanB",base:2.3,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Pancake Lift 1",code:"Pan1",base:2.6,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Pancake Lift 2",code:"Pan2",base:2.9,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Pancake Lift 3",code:"Pan3",base:3.2,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Pancake Lift 4",code:"Pan4",base:3.6,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    // Press Lift
+    { name:"Press Lift B",code:"PrB",base:2.7,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Press Lift 1",code:"Pr1",base:3.0,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Press Lift 2",code:"Pr2",base:3.3,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Press Lift 3",code:"Pr3",base:3.6,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Press Lift 4",code:"Pr4",base:4.0,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    // Cartwheel Lift
+    { name:"Cartwheel Lift B",code:"CarB",base:4.1,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+    { name:"Cartwheel Lift 1",code:"Car1",base:4.4,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+    { name:"Cartwheel Lift 2",code:"Car2",base:4.8,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+    { name:"Cartwheel Lift 3",code:"Car3",base:5.2,goe:{3:1.5,2:1.0,1:0.5,m1:-0.5,m2:-1.0,m3:-1.5}},
+    { name:"Cartwheel Lift 4",code:"Car4",base:5.7,goe:{3:1.5,2:1.0,1:0.5,m1:-0.5,m2:-1.0,m3:-1.5}},
+    // Reversed Loop
+    { name:"Reversed Loop B",code:"RLoB",base:2.7,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Reversed Loop 1",code:"RLo1",base:3.0,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Reversed Loop 2",code:"RLo2",base:3.3,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Reversed Loop 3",code:"RLo3",base:3.6,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Reversed Loop 4",code:"RLo4",base:4.0,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+    // Pancake Twist Lift
+    { name:"Pancake Twist B",code:"PanTB",base:3.7,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Pancake Twist 1",code:"PanT1",base:4.0,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Pancake Twist 2",code:"PanT2",base:4.3,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+    { name:"Pancake Twist 3",code:"PanT3",base:4.6,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+    { name:"Pancake Twist 4",code:"PanT4",base:5.0,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+    // Kennedy Lift
+    { name:"Kennedy Lift B",code:"KenB",base:5.1,goe:{3:1.5,2:1.0,1:0.5,m1:-0.5,m2:-1.0,m3:-1.5}},
+    { name:"Kennedy Lift 1",code:"Ken1",base:5.4,goe:{3:1.5,2:1.0,1:0.5,m1:-0.5,m2:-1.0,m3:-1.5}},
+    { name:"Kennedy Lift 2",code:"Ken2",base:5.7,goe:{3:1.5,2:1.0,1:0.5,m1:-0.5,m2:-1.0,m3:-1.5}},
+    { name:"Kennedy Lift 3",code:"Ken3",base:6.0,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"Kennedy Lift 4",code:"Ken4",base:6.4,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    // Militano Lift
+    { name:"Militano Lift B",code:"MilB",base:5.5,goe:{3:1.5,2:1.0,1:0.5,m1:-0.5,m2:-1.0,m3:-1.5}},
+    { name:"Militano Lift 1",code:"Mil1",base:5.8,goe:{3:1.5,2:1.0,1:0.5,m1:-0.5,m2:-1.0,m3:-1.5}},
+    { name:"Militano Lift 2",code:"Mil2",base:6.1,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"Militano Lift 3",code:"Mil3",base:6.4,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"Militano Lift 4",code:"Mil4",base:6.8,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    // Reverse Militano Lift
+    { name:"Rev. Militano B",code:"RMilB",base:6.5,goe:{3:1.5,2:1.0,1:0.5,m1:-0.5,m2:-1.0,m3:-1.5}},
+    { name:"Rev. Militano 1",code:"RMil1",base:6.8,goe:{3:1.5,2:1.0,1:0.5,m1:-0.5,m2:-1.0,m3:-1.5}},
+    { name:"Rev. Militano 2",code:"RMil2",base:7.1,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"Rev. Militano 3",code:"RMil3",base:7.4,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"Rev. Militano 4",code:"RMil4",base:7.8,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    // Reverse Cartwheel Lift
+    { name:"Rev. Cartwheel B",code:"RevCB",base:6.3,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"Rev. Cartwheel 1",code:"RevC1",base:6.6,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"Rev. Cartwheel 2",code:"RevC2",base:7.0,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"Rev. Cartwheel 3",code:"RevC3",base:7.4,goe:{3:1.9,2:1.4,1:0.9,m1:-0.9,m2:-1.4,m3:-1.9}},
+    { name:"Rev. Cartwheel 4",code:"RevC4",base:7.9,goe:{3:1.9,2:1.4,1:0.9,m1:-0.9,m2:-1.4,m3:-1.9}},
+    // Spin Pancake Lift
+    { name:"Spin Pancake 1",code:"SpPan1",base:6.6,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"Spin Pancake 2",code:"SpPan2",base:6.9,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"Spin Pancake 3",code:"SpPan3",base:7.3,goe:{3:1.9,2:1.4,1:0.9,m1:-0.9,m2:-1.4,m3:-1.9}},
+    { name:"Spin Pancake 4",code:"SpPan4",base:7.7,goe:{3:1.9,2:1.4,1:0.9,m1:-0.9,m2:-1.4,m3:-1.9}},
+    { name:"Spin Pancake 5",code:"SpPan5",base:8.1,goe:{3:2.1,2:1.6,1:1.1,m1:-1.1,m2:-1.6,m3:-2.1}},
+  ];
+
+  const THROW_JUMPS = [
+    { name:"Throw Waltz",code:"1TW",base:0.4,lt:0,ltlt:0,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.3}},
+    { name:"Throw Toeloop",code:"1TT",base:0.9,lt:0.63,ltlt:0.36,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.3}},
+    { name:"Throw Salchow",code:"1TS",base:0.9,lt:0.63,ltlt:0.36,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.3}},
+    { name:"Throw Flip",code:"1TF",base:1.1,lt:0.77,ltlt:0.44,goe:{3:0.4,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.4}},
+    { name:"Throw Lutz",code:"1TLz",base:1.2,lt:0.84,ltlt:0.48,goe:{3:0.4,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.4}},
+    { name:"Throw 2 Toeloop",code:"2TT",base:1.9,lt:1.33,ltlt:0.76,goe:{3:0.4,2:0.3,1:0.2,m1:-0.2,m2:-0.3,m3:-0.4}},
+    { name:"Throw 2 Salchow",code:"2TS",base:1.9,lt:1.33,ltlt:0.76,goe:{3:0.4,2:0.3,1:0.2,m1:-0.2,m2:-0.3,m3:-0.4}},
+    { name:"Throw 2 Flip",code:"2TF",base:2.4,lt:1.68,ltlt:0.96,goe:{3:0.5,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.5}},
+    { name:"Throw 2 Lutz",code:"2TLz",base:2.6,lt:1.82,ltlt:1.04,goe:{3:0.5,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.5}},
+    { name:"Throw 2 Axel",code:"2TA",base:7.0,lt:5.6,ltlt:4.2,goe:{3:1.5,2:1.3,1:0.8,m1:-0.8,m2:-1.3,m3:-1.5}},
+    { name:"Throw 3 Toeloop",code:"3TT",base:8.0,lt:6.4,ltlt:4.8,goe:{3:1.9,2:1.4,1:0.9,m1:-0.9,m2:-1.4,m3:-1.9}},
+    { name:"Throw 3 Salchow",code:"3TS",base:8.0,lt:6.4,ltlt:4.8,goe:{3:1.9,2:1.4,1:0.9,m1:-0.9,m2:-1.4,m3:-1.9}},
+    { name:"Throw 3 Flip",code:"3TF",base:9.5,lt:7.6,ltlt:5.7,goe:{3:2.3,2:1.6,1:1.0,m1:-1.0,m2:-1.5,m3:-2.0}},
+    { name:"Throw 3 Lutz",code:"3TLz",base:10.0,lt:8.0,ltlt:6.0,goe:{3:2.3,2:1.6,1:1.0,m1:-1.0,m2:-1.5,m3:-2.0}},
+    { name:"Throw 3 Axel",code:"3TA",base:13.0,lt:10.4,ltlt:9.1,goe:{3:2.8,2:2.1,1:1.4,m1:-1.0,m2:-1.5,m3:-2.0}},
+    { name:"Throw 4 Salchow",code:"4TS",base:14.6,lt:11.68,ltlt:10.22,goe:{3:2.8,2:2.1,1:1.4,m1:-1.4,m2:-2.1,m3:-2.8}},
+    { name:"Throw 4 Toeloop",code:"4TT",base:14.6,lt:11.68,ltlt:10.22,goe:{3:2.8,2:2.1,1:1.4,m1:-1.4,m2:-2.1,m3:-2.8}},
+    { name:"Throw 4 Flip",code:"4TF",base:15.6,lt:12.48,ltlt:10.92,goe:{3:3.0,2:2,1:1,m1:-1,m2:-2,m3:-3}},
+  ];
+
+  const CONTACT_SPINS = [
+    { name:"Upr Back-Out",code:"UBO",base:0.6,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.3}},
+    { name:"Catch at Waist",code:"CW",base:1.4,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"FtF Sit Back In",code:"SBI",base:1.1,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"FtF Sit Back Out",code:"SBO",base:1.1,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Sit Hazel Camel",code:"SHC",base:1.0,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Sit Hazel",code:"SH",base:1.2,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Camel Kilian",code:"CK",base:1.5,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Camel Tango",code:"CT",base:1.8,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"Impossible Sit",code:"SIMP",base:5.5,goe:{3:1.5,2:1.0,1:0.5,m1:-0.5,m2:-1.0,m3:-1.5}},
+    { name:"Reverse Lay Over",code:"RLO",base:5.0,goe:{3:1.2,2:0.8,1:0.4,m1:-0.4,m2:-0.8,m3:-1.2}},
+    { name:"Impossible",code:"CIMP",base:3.5,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Lay Over Camel",code:"LOC",base:2.5,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+  ];
+
+  const DEATH_SPIRALS = [
+    { name:"Death Spiral B",code:"DSB",base:3.6,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Death Spiral 1",code:"DS1",base:4.1,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"Death Spiral 2",code:"DS2",base:5.1,goe:{3:1.5,2:1,1:0.5,m1:-0.5,m2:-1,m3:-1.5}},
+    { name:"Death Spiral 3",code:"DS3",base:5.7,goe:{3:1.5,2:1,1:0.5,m1:-0.5,m2:-1,m3:-1.5}},
+    { name:"Death Spiral 4",code:"DS4",base:6.3,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+  ];
+
+  const CAMEL_SPIRALS = [
+    { name:"Camel Spiral",code:"CS",base:1.5,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+  ];
+
+  const TWIST_LUTZ = [
+    { name:"1 Twist B",code:"1TwB",base:1.4,goe:{3:0.4,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.4}},
+    { name:"1 Twist 1",code:"1Tw1",base:1.7,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"1 Twist 2",code:"1Tw2",base:2.1,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    { name:"1 Twist 3",code:"1Tw3",base:2.6,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"1 Twist 4",code:"1Tw4",base:3.1,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"2 Twist B",code:"2TwB",base:2.8,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"2 Twist 1",code:"2Tw1",base:3.1,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"2 Twist 2",code:"2Tw2",base:3.4,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"2 Twist 3",code:"2Tw3",base:3.8,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"2 Twist 4",code:"2Tw4",base:4.2,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    { name:"3 Twist B",code:"3TwB",base:7,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"3 Twist 1",code:"3Tw1",base:7.3,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"3 Twist 2",code:"3Tw2",base:7.6,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"3 Twist 3",code:"3Tw3",base:8,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"3 Twist 4",code:"3Tw4",base:8.4,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    { name:"4 Twist B",code:"4TwB",base:8.2,goe:{3:2.1,2:1.4,1:0.7,m1:-0.7,m2:-1.4,m3:-2.1}},
+    { name:"4 Twist 1",code:"4Tw1",base:8.5,goe:{3:2.1,2:1.4,1:0.7,m1:-0.7,m2:-1.4,m3:-2.1}},
+    { name:"4 Twist 2",code:"4Tw2",base:8.8,goe:{3:2.1,2:1.4,1:0.7,m1:-0.7,m2:-1.4,m3:-2.1}},
+    { name:"4 Twist 3",code:"4Tw3",base:9.1,goe:{3:3,2:2,1:1,m1:-1,m2:-2,m3:-3}},
+    { name:"4 Twist 4",code:"4Tw4",base:9.6,goe:{3:3,2:2,1:1,m1:-1,m2:-2,m3:-3}},
+  ];
+
+  // ============================================================
+  //  ELEMENT TYPE DEFINITIONS (match official Content Sheet)
+  // ============================================================
+  const ELEMENT_TYPES_FREE = [
+    { code:"CoJ", label:"Combination Jump", data:JUMPS, isCombo:true, hasRotation:true },
+    { code:"SJu", label:"Solo Jump",        data:JUMPS, isCombo:false, hasRotation:true },
+    { code:"CSp", label:"Combination Spin",  data:SOLO_SPINS, isCombo:true, hasRotation:false },
+    { code:"SSp", label:"Solo Spin",         data:SOLO_SPINS, isCombo:false, hasRotation:false },
+    { code:"FoSq",label:"Footwork Sequence", data:STEP_SEQUENCES, isCombo:false, hasRotation:false },
+    { code:"ChSt",label:"Choreo Step Seq.",  data:CHOREO_STEPS_FREE, isCombo:false, hasRotation:false },
+  ];
+
+  const ELEMENT_TYPES_PAIRS = [
+    { code:"CoJ", label:"Combination Jump",  data:JUMPS, isCombo:true, hasRotation:true },
+    { code:"SJu", label:"Solo Jump",         data:JUMPS, isCombo:false, hasRotation:true },
+    { code:"CSp", label:"Combination Spin",   data:SOLO_SPINS, isCombo:true, hasRotation:false },
+    { code:"SSp", label:"Solo Spin",          data:SOLO_SPINS, isCombo:false, hasRotation:false },
+    { code:"FoSq",label:"Footwork Sequence",  data:STEP_SEQUENCES, isCombo:false, hasRotation:false },
+    { code:"ChSt",label:"Choreo Step Seq.",   data:CHOREO_STEPS_PAIRS, isCombo:false, hasRotation:false },
+    { code:"CLi", label:"Combination Lift",   data:ALL_LIFTS, isCombo:true, hasRotation:false },
+    { code:"SLi", label:"Solo Lift",          data:ALL_LIFTS, isCombo:false, hasRotation:false },
+    { code:"CtSp",label:"Contact Spin",       data:CONTACT_SPINS, isCombo:true, hasRotation:false },
+    { code:"DS",  label:"Death Spiral",       data:DEATH_SPIRALS, isCombo:false, hasRotation:false },
+    { code:"CS",  label:"Camel Spiral",       data:CAMEL_SPIRALS, isCombo:false, hasRotation:false },
+    { code:"Tw",  label:"Twist",              data:TWIST_LUTZ, isCombo:false, hasRotation:false },
+    { code:"Tj",  label:"Throw Jump",         data:THROW_JUMPS, isCombo:false, hasRotation:true },
+  ];
+
+  const SEGMENT_DEFS = {
+    "sp":   { label:"Short Program", rows:7 },
+    "fp9":  { label:"Free Program 9", rows:9 },
+    "fp12": { label:"Free Program 12", rows:12 },
+    "psp":  { label:"Pairs Short Program", rows:8 },
+    "pfp":  { label:"Pairs Free Program", rows:13 },
+  };
+
+  // ============================================================
+  //  BONUS DEFINITIONS (Training Simulator)
+  // ============================================================
+  const JUMP_BONUSES = [
+    {id:"halfProg",label:"Nach halber Programmlänge",pct:0.10,cat:"jump"},
+    {id:"lutzNoEdge",label:"Lutz No Edge (70%)",pct:-0.30,cat:"jump",isOverride:true},
+    {id:"saved",label:"Gerettete Kombi (50%)",pct:-0.50,cat:"jump",isOverride:true},
+  ];
+  const COMBO_JUMP_BONUSES = [
+    {id:"dd",label:"Doppel+Doppel (+10%)",pct:0.10,cat:"combo"},
+    {id:"dt",label:"Doppel+Dreifach (+20%)",pct:0.20,cat:"combo"},
+    {id:"tt",label:"Dreifach+Dreifach (+30%)",pct:0.30,cat:"combo"},
+  ];
+  const SPIN_POS_BONUSES = [
+    {id:"UB",label:"Biellmann (+80%)",pct:0.80},{id:"UBH",label:"Biellmann Heel (+40%)",pct:0.40},
+    {id:"US",label:"Split (+40%)",pct:0.40},{id:"UT",label:"Torso (+50%)",pct:0.50},
+    {id:"UL",label:"Layback (+30%)",pct:0.30},{id:"UF",label:"Forward (+20%)",pct:0.20},
+    {id:"UH",label:"Heel (+20%)",pct:0.20},{id:"SS_pos",label:"Sit Sideways (+60%)",pct:0.60},
+    {id:"ST",label:"Sit Twist (+40%)",pct:0.40},{id:"SF",label:"Sit Forward (+50%)",pct:0.50},
+    {id:"SB_pos",label:"Sit Behind (+20%)",pct:0.20},{id:"CF_pos",label:"Camel Forward (+40%)",pct:0.40},
+    {id:"CS_pos",label:"Camel Sideways (+60%)",pct:0.60},{id:"CL",label:"Camel Layover (+20%)",pct:0.20},
+    {id:"BF",label:"Broken Forward (+40%)",pct:0.40},{id:"BS",label:"Broken Sideways (+60%)",pct:0.60},
+    {id:"HF",label:"Heel Forward (+40%)",pct:0.40},{id:"HS",label:"Heel Sideways (+60%)",pct:0.60},
+    {id:"HL",label:"Heel Layover (+20%)",pct:0.20},{id:"IB",label:"Inverted Bryant (+25%)",pct:0.25},
+    {id:"SV",label:"Standard Variation (+20%)",pct:0.20},
+  ];
+  const SPIN_VAR_BONUSES = [
+    {id:"DE",label:"Difficult Entry (+15%)",pct:0.15},{id:"DC",label:"Difficult Change (+15%)",pct:0.15},
+    {id:"SBC",label:"Sit Betw. Camel (+15%)",pct:0.15},{id:"R6",label:"Revolutions 6+ (+20%)",pct:0.20},
+    {id:"R4",label:"Rev. 4+ inv. (+20%)",pct:0.20},{id:"BD",label:"Both Directions (+15%)",pct:0.15},
+    {id:"DF_var",label:"Different Feet (+20%)",pct:0.20},
+  ];
+  const ALL_BONUSES = [...JUMP_BONUSES,...COMBO_JUMP_BONUSES,...SPIN_POS_BONUSES,...SPIN_VAR_BONUSES];
+
+  // ============================================================
+  //  HELPERS
+  // ============================================================
+  const GOE_KEYS=["3","2","1","m1","m2","m3"];
+  const GOE_LABELS=["+3","+2","+1","-1","-2","-3"];
+  const GOE_COLORS=["#16a34a","#22c55e","#86efac","#fca5a5","#ef4444","#dc2626"];
+
+  const getBase = (el, isCombo, rotation) => {
+    if (!el) return 0;
+    if (isCombo && el.combo !== undefined) {
+      if (rotation==="lt") return el.comboLt||0;
+      if (rotation==="ltlt") return el.comboLtLt||0;
+      return el.combo;
+    }
+    if (el.lt !== undefined) {
+      if (rotation==="lt") return el.lt||0;
+      if (rotation==="ltlt") return el.ltlt||0;
+    }
+    return el.base;
+  };
+  const getGoe = (el, gi) => {
+    if (!el||gi===null||gi===undefined) return 0;
+    return Object.values(el.goe)[gi]||0;
+  };
+
+  // Per-judge GOE: convert integer GOE (-3..+3) to point value
+  const getGoePoints = (el, goeInt) => {
+    if (!el || goeInt===0 || goeInt===null || goeInt===undefined) return 0;
+    if (goeInt>0) return el.goe[goeInt]||0;
+    return el.goe["m"+Math.abs(goeInt)]||0;
+  };
+
+  // Calculate averaged GOE from judge scores (trimmed mean for 5 judges)
+  const calcJudgeGoe = (el, judgeScores, jCount) => {
+    if (!el || !judgeScores) return 0;
+    const scores = judgeScores.slice(0, jCount);
+    if (scores.every(g=>g===0)) return 0;
+    const points = scores.map(g => getGoePoints(el, g));
+    if (jCount===5) {
+      const sorted = [...points].sort((a,b)=>a-b);
+      const trimmed = sorted.slice(1,4);
+      return Math.round((trimmed.reduce((s,v)=>s+v,0)/3)*100)/100;
+    }
+    return Math.round((points.reduce((s,v)=>s+v,0)/jCount)*100)/100;
+  };
+
+  // Calculate averaged PCS from judge scores (trimmed mean for 5)
+  const calcPcsAvg = (scores, jCount) => {
+    const s = scores.slice(0, jCount);
+    if (s.every(v=>v===0)) return 0;
+    if (jCount===5) {
+      const sorted = [...s].sort((a,b)=>a-b);
+      return Math.round((sorted.slice(1,4).reduce((a,v)=>a+v,0)/3)*100)/100;
+    }
+    return Math.round((s.reduce((a,v)=>a+v,0)/jCount)*100)/100;
+  };
+
+  // Program Component definitions
+  const PCS_COMPONENTS = [
+    { key:"skating", label:"Skating Skills" },
+    { key:"transitions", label:"Transitions/Linking Footwork" },
+    { key:"performance", label:"Performance/Execution" },
+    { key:"choreography", label:"Choreography/Composition" },
+  ];
+
+  // PCS factor per segment
+  const PCS_FACTORS = {
+    "sp":0.8, "fp9":1.2, "fp12":1.6, "psp":0.8, "pfp":1.2,
+  };
+
+  // ============================================================
+  //  COMPUTE ROW SCORE (handles combos)
+  // ============================================================
+  const computeRow = (row, types, jCount) => {
+    const typeDef = types.find(t=>t.code===row.typeCode);
+    if (!typeDef) return { base:0, goeVal:0, score:0, mainEl:null, typeDef:null };
+
+    // No Value → everything is 0
+    if (row.nv) {
+      if (typeDef.isCombo) {
+        const subs = row.comboEls || [];
+        const bestEl = subs.reduce((best, sub) => {
+          const el = typeDef.data.find(e=>e.code===sub.code);
+          return el && (!best || el.base > best.base) ? el : best;
+        }, null);
+        return { base:0, goeVal:0, score:0, mainEl:bestEl, typeDef };
+      }
+      const el = typeDef.data.find(e=>e.code===row.elCode);
+      return { base:0, goeVal:0, score:0, mainEl:el||null, typeDef };
+    }
+
+    // Downgrade factor: DG halves the base value
+    const dgFactor = row.dg ? 0.5 : 1;
+
+    if (typeDef.isCombo) {
+      const subs = row.comboEls || [];
+      const hasComboValues = typeDef.data.some(e=>e.combo!==undefined);
+      let totalBase = 0;
+      let totalGoe = 0;
+      let bestEl = null;
+      let bestBase = 0;
+      subs.forEach(sub => {
+        const el = typeDef.data.find(e=>e.code===sub.code);
+        if (!el) return;
+        if (!sub.nv) {
+          const b = hasComboValues ? getBase(el, true, sub.rotation) : el.base;
+          totalBase += b;
+          // Per-element GOE
+          const subGoe = calcJudgeGoe(el, sub.judgeGoe||[0,0,0,0,0], jCount);
+          totalGoe += subGoe;
+        }
+        const refBase = hasComboValues ? getBase(el, true, "normal") : el.base;
+        if (!sub.nv && (!bestEl || refBase > bestBase)) { bestEl = el; bestBase = refBase; }
+      });
+      totalBase = Math.round(totalBase * dgFactor * 100) / 100;
+      totalGoe = Math.round(totalGoe * 100) / 100;
+      return { base:totalBase, goeVal:totalGoe, score:totalBase+totalGoe, mainEl:bestEl, typeDef };
+    } else {
+      const el = typeDef.data.find(e=>e.code===row.elCode);
+      if (!el) return { base:0, goeVal:0, score:0, mainEl:null, typeDef };
+      const base = Math.round(getBase(el, false, row.rotation) * dgFactor * 100) / 100;
+      const goeVal = calcJudgeGoe(el, row.judgeGoe, jCount);
+      return { base, goeVal, score:base+goeVal, mainEl:el, typeDef };
+    }
+  };
+
+  // ============================================================
+  //  ELEMENT ROW
+  // ============================================================
+  const SEL = { padding:"5px 6px", borderRadius:5, border:"1px solid #d1d5db", fontSize:12, background:"white", cursor:"pointer" };
+  const BTN = (active, color) => ({
+    padding:"2px 7px", borderRadius:4, border:active?`2px solid ${color}`:"1px solid #d1d5db",
+    background:active?color:"#f9fafb", color:active?"white":"#9ca3af",
+    fontSize:10, fontWeight:600, cursor:"pointer", lineHeight:1.3,
+  });
+
+  // Sub-row for a single element inside a combo (jumps or lifts)
+  function ComboSubRow({ idx, sub, data, hasComboValues, hasRotation, onChange, onRemove, judgeCount }) {
+    const el = data.find(e=>e.code===sub.code);
+    const isJumpCombo = hasComboValues && el && el.combo !== undefined;
+    const rawBase = el ? (isJumpCombo ? getBase(el, true, sub.rotation) : el.base) : 0;
+    const base = sub.nv ? 0 : rawBase;
+    const showRot = hasRotation && el && (el.comboLt>0 || el.lt>0);
+    const subGoe = el && !sub.nv ? calcJudgeGoe(el, sub.judgeGoe||[0,0,0,0,0], judgeCount) : 0;
+
+    return (
+      <div style={{ display:"flex", gap:4, alignItems:"center", padding:"3px 0", opacity:sub.nv?0.5:1, flexWrap:"wrap" }}>
+        <span style={{ fontSize:10, color:"#6b7280", width:18, textAlign:"right" }}>{idx+1}.</span>
+        <select value={sub.code} onChange={e=>onChange({...sub,code:e.target.value,rotation:"normal",judgeGoe:[0,0,0,0,0]})} style={{...SEL, flex:1, minWidth:120, fontSize:11}}>
+          <option value="">-- Element --</option>
+          {data.map(e=><option key={e.code} value={e.code}>{e.code} - {e.name} ({isJumpCombo && e.combo !== undefined ? "C:"+e.combo : e.base})</option>)}
+        </select>
+        {showRot ? (
+          <div style={{display:"flex",gap:1}}>
+            <button onClick={()=>onChange({...sub,rotation:"normal"})} style={BTN(sub.rotation==="normal","#6b7280")}>N</button>
+            <button onClick={()=>onChange({...sub,rotation:"lt"})} style={BTN(sub.rotation==="lt","#f59e0b")}>&lt;</button>
+            <button onClick={()=>onChange({...sub,rotation:"ltlt"})} style={BTN(sub.rotation==="ltlt","#ef4444")}>&lt;&lt;</button>
+          </div>
+        ) : null}
+        {el && <button onClick={()=>onChange({...sub, nv:!sub.nv})} style={{...BTN(sub.nv,"#dc2626"), fontSize:9, minWidth:22, padding:"2px 3px"}}>NV</button>}
+        <span style={{ fontSize:11, fontWeight:700, color:sub.nv?"#dc2626":"#059669", minWidth:40, textAlign:"right",
+          textDecoration:sub.nv?"line-through":"none" }}>{el?base.toFixed(2):"-"}</span>
+        {/* Per-judge GOE for this sub-element */}
+        {el && !sub.nv && (
+          <div style={{display:"flex",gap:2,alignItems:"center",marginLeft:4}}>
+            <span style={{fontSize:9,color:"#9ca3af",fontWeight:600}}>QOE:</span>
+            {Array.from({length:judgeCount}).map((_,ji)=>{
+              const jg = sub.judgeGoe||[0,0,0,0,0];
+              return <select key={ji} value={jg[ji]||0} onChange={e=>{
+                const ng=[...(sub.judgeGoe||[0,0,0,0,0])];
+                ng[ji]=parseInt(e.target.value);
+                onChange({...sub,judgeGoe:ng});
+              }} style={{...SEL,width:36,fontSize:10,padding:"2px 0",textAlign:"center",
+                color:jg[ji]>0?"#059669":jg[ji]<0?"#dc2626":"#6b7280",fontWeight:600}}>
+                {[-3,-2,-1,0,1,2,3].map(v=><option key={v} value={v}>{v>0?"+"+v:v}</option>)}
+              </select>;
+            })}
+            <span style={{fontSize:10,fontWeight:700,color:subGoe>=0?"#059669":"#dc2626",minWidth:35,textAlign:"right"}}>
+              {(subGoe>=0?"+":"")+subGoe.toFixed(2)}
+            </span>
+          </div>
+        )}
+        <button onClick={onRemove} style={{ background:"#fee2e2", color:"#dc2626", border:"none", borderRadius:3, padding:"1px 5px", fontSize:10, fontWeight:700, cursor:"pointer" }}>x</button>
+      </div>
+    );
+  }
+
+  function ElementRow({ num, row, types, onChange, judgeCount }) {
+    const { base, goeVal, score, mainEl, typeDef } = computeRow(row, types, judgeCount);
+    const isCombo = typeDef?.isCombo;
+
+    // For non-combo: rotation display
+    const el = !isCombo && typeDef ? typeDef.data.find(e=>e.code===row.elCode) : null;
+    const showRotation = !isCombo && typeDef?.hasRotation && el && (el.lt!==undefined && el.lt>0);
+    const hasElements = isCombo ? (row.comboEls||[]).some(s=>s.code) : !!el;
+    const hasScore = isCombo ? !!typeDef : !!el;
+
+    // Add/update combo sub-elements
+    const updateSub = (i, sub) => {
+      const subs = [...(row.comboEls||[])];
+      subs[i] = sub;
+      onChange({...row, comboEls:subs});
+    };
+    const addSub = () => {
+      const subs = [...(row.comboEls||[])];
+      if (subs.length < 5) { subs.push({code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0]}); onChange({...row, comboEls:subs}); }
+    };
+    const removeSub = (i) => {
+      const subs = (row.comboEls||[]).filter((_,j)=>j!==i);
+      onChange({...row, comboEls:subs});
+    };
+
+    return (
+      <tr style={{ borderBottom:"1px solid #e5e7eb", background: hasScore ? "white" : "#fafafa", verticalAlign:"top" }}>
+        <td style={{ padding:"8px 6px", fontWeight:700, color:"#059669", fontSize:15, textAlign:"center", width:32 }}>{num}</td>
+
+        {/* Type Code */}
+        <td style={{ padding:"8px 4px" }}>
+          <select value={row.typeCode} onChange={e=>{
+            const newType = types.find(t=>t.code===e.target.value);
+            const nr = { typeCode:e.target.value, elCode:"", judgeGoe:[0,0,0,0,0], rotation:"normal", comboEls:[], nv:false, dg:false };
+            if (newType?.isCombo) nr.comboEls = [{code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0]},{code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0]}];
+            onChange(nr);
+          }} style={{...SEL, width:"100%", minWidth:90, fontWeight:600}}>
+            <option value="">---</option>
+            {types.map(t=><option key={t.code} value={t.code}>{t.code} - {t.label}</option>)}
+          </select>
+        </td>
+
+        {/* Element / Combo sub-elements */}
+        <td style={{ padding:"8px 4px" }} colSpan={isCombo ? 2 : 1}>
+          {isCombo ? (
+            <div>
+              {(row.comboEls||[]).map((sub,i) => (
+                <ComboSubRow key={i} idx={i} sub={sub} data={typeDef.data}
+                  hasComboValues={typeDef.data.some(e=>e.combo!==undefined)}
+                  hasRotation={!!typeDef.hasRotation}
+                  onChange={s=>updateSub(i,s)} onRemove={()=>removeSub(i)}
+                  judgeCount={judgeCount} />
+              ))}
+              {(row.comboEls||[]).length < 5 && (
+                <button onClick={addSub} style={{ marginTop:2, padding:"2px 8px", borderRadius:3, border:"1px dashed #059669", background:"#f0fdf4", color:"#059669", fontSize:10, fontWeight:600, cursor:"pointer" }}>
+                  + Element hinzufügen
+                </button>
+              )}
+            </div>
+          ) : (
+            <select value={row.elCode} onChange={e=>onChange({...row, elCode:e.target.value, judgeGoe:[0,0,0,0,0]})} disabled={!typeDef} style={{...SEL, width:"100%", minWidth:150}}>
+              <option value="">-- Element --</option>
+              {typeDef && typeDef.data.map(e=><option key={e.code} value={e.code}>{e.code} - {e.name} ({e.base})</option>)}
+            </select>
+          )}
+        </td>
+
+        {/* Rotation (non-combo only) */}
+        {!isCombo && (
+          <td style={{ padding:"8px 4px", textAlign:"center", whiteSpace:"nowrap" }}>
+            {showRotation ? (
+              <div style={{ display:"flex", gap:2, justifyContent:"center" }}>
+                <button onClick={()=>onChange({...row, rotation:"normal"})} style={BTN(row.rotation==="normal","#6b7280")}>N</button>
+                <button onClick={()=>onChange({...row, rotation:"lt"})} style={BTN(row.rotation==="lt","#f59e0b")}>&lt;</button>
+                <button onClick={()=>onChange({...row, rotation:"ltlt"})} style={BTN(row.rotation==="ltlt","#ef4444")}>&lt;&lt;</button>
+              </div>
+            ) : <span style={{color:"#d1d5db",fontSize:11}}>-</span>}
+          </td>
+        )}
+
+        {/* Base */}
+        <td style={{ padding:"8px 6px", fontWeight:700, fontSize:13, color:"#059669", textAlign:"right", width:60 }}>
+          {hasElements ? base.toFixed(2) : "-"}
+        </td>
+
+        {/* Per-judge GOE */}
+        {Array.from({length:judgeCount}).map((_,ji)=>(
+          <td key={ji} style={{ padding:"8px 2px", textAlign:"center", width:38 }}>
+            {isCombo && hasScore ? (
+              <span style={{color:"#9ca3af",fontSize:8,lineHeight:1}}>&#8593;</span>
+            ) : hasScore ? (
+              <select value={(row.judgeGoe||[])[ji]||0} onChange={e=>{
+                const jg=[...(row.judgeGoe||[0,0,0,0,0])];
+                jg[ji]=parseInt(e.target.value);
+                onChange({...row, judgeGoe:jg});
+              }} style={{...SEL, width:42, fontSize:11, padding:"3px 1px", textAlign:"center",
+                color:(row.judgeGoe||[])[ji]>0?"#059669":(row.judgeGoe||[])[ji]<0?"#dc2626":"#6b7280",
+                fontWeight:600}}>
+                {[-3,-2,-1,0,1,2,3].map(v=><option key={v} value={v}>{v>0?"+"+v:v}</option>)}
+              </select>
+            ) : <span style={{color:"#d1d5db",fontSize:10}}>-</span>}
+          </td>
+        ))}
+
+        {/* GOE value (averaged) */}
+        <td style={{ padding:"8px 4px", fontSize:11, color:goeVal>=0?"#059669":"#dc2626", fontWeight:700, textAlign:"right", width:50 }}>
+          {hasElements ? (goeVal>=0?"+":"")+goeVal.toFixed(2) : ""}
+        </td>
+
+        {/* NV / DG */}
+        <td style={{ padding:"8px 4px", textAlign:"center", whiteSpace:"nowrap" }}>
+          {hasScore ? (
+            <div style={{ display:"flex", gap:2, justifyContent:"center" }}>
+              <button onClick={()=>onChange({...row, nv:!row.nv, dg:row.nv?row.dg:false})}
+                style={{...BTN(row.nv,"#dc2626"), fontSize:9, minWidth:24, padding:"2px 4px"}}>NV</button>
+              <button onClick={()=>onChange({...row, dg:!row.dg, nv:row.dg?row.nv:false})}
+                style={{...BTN(row.dg,"#f59e0b"), fontSize:9, minWidth:24, padding:"2px 4px"}}>DG</button>
+            </div>
+          ) : <span style={{color:"#d1d5db",fontSize:10}}>-</span>}
+        </td>
+
+        {/* Score */}
+        <td style={{ padding:"8px 8px", fontWeight:800, fontSize:15, color:row.nv?"#dc2626":hasElements?(score>=0?"#059669":"#dc2626"):"#d1d5db", textAlign:"right", width:65,
+          textDecoration:row.nv?"line-through":"none", opacity:row.nv?0.5:1 }}>
+          {hasElements ? score.toFixed(2) : "-"}
+        </td>
+      </tr>
+    );
+  }
+
+  // ============================================================
+  //  OFFICIAL CONTENT SHEETS (World Skate 2026)
+  // ============================================================
+  const FREE_CODES=["CoJ","SJu","CSp","SSp","FoSq","ChSt"];
+  const PAIRS_CODES=["CoJ","SJu","CSp","SSp","FoSq","ChSt","CLi","SLi","CtSp","DS","CS","Tw","Tj"];
+  const SHEET_TYPES = {
+    "sp_fp": { title:"FREESKATE SHORT & FREE CONTENT 2026", short:"SP+FP", sections:[
+      {label:"SHORT PROGRAM",music:true,rows:7,codes:FREE_CODES},
+      {label:"FREE PROGRAM",music:true,rows:9,codes:FREE_CODES},
+    ]},
+    "sp": { title:"SHORT PROGRAM CONTENT SHEET 2026", short:"SP", sections:[
+      {label:"SHORT PROGRAM",music:true,rows:7,codes:FREE_CODES},
+    ]},
+    "fp9": { title:"FREE PROGRAM CONTENT SHEET 2026", short:"FP 9", sections:[
+      {label:"FREE PROGRAM (9 Elements)",music:true,rows:9,codes:FREE_CODES},
+    ]},
+    "fp12": { title:"FREE PROGRAM CONTENT SHEET 2026", short:"FP 12", sections:[
+      {label:"FREE PROGRAM (12 Elements)",music:true,rows:12,codes:FREE_CODES},
+    ]},
+    "pairs_sp_fp": { title:"PAIRS SHORT & FREE CONTENT 2026", short:"Pairs SP+FP", sections:[
+      {label:"SHORT PROGRAM (Pairs)",music:true,rows:8,codes:PAIRS_CODES},
+      {label:"FREE PROGRAM (Pairs)",music:true,rows:13,codes:PAIRS_CODES},
+    ]},
+    "pairs_sp": { title:"PAIRS SHORT PROGRAM CONTENT SHEET 2026", short:"Pairs SP", sections:[
+      {label:"SHORT PROGRAM (Pairs)",music:true,rows:8,codes:PAIRS_CODES},
+    ]},
+    "pairs_fp": { title:"PAIRS FREE PROGRAM CONTENT SHEET 2026", short:"Pairs FP", sections:[
+      {label:"FREE PROGRAM (Pairs)",music:true,rows:13,codes:PAIRS_CODES},
+    ]},
+  };
+
+  const CODE_LABELS = {CoJ:"Combination Jump",SJu:"Solo Jump",CSp:"Combination Spin",SSp:"Solo Spin",
+    FoSq:"Footwork Sequence",ChSt:"Choreo Step Seq.",CLi:"Combination Lift",SLi:"Solo Lift",
+    CtSp:"Contact Spin",DS:"Death Spiral",CS:"Camel Spiral",Tw:"Twist",Tj:"Throw Jump"};
+
+  function OfficialSheetSection({section,sIdx,data,onChange}){
+    const sec=data[sIdx]||{music:"",elements:Array.from({length:section.rows},()=>({time:"",code:"",notes:"",performed:""}))};
+    const updateEl=(i,field,val)=>{
+      const nSec={...sec,elements:sec.elements.map((el,j)=>j===i?{...el,[field]:val}:el)};
+      onChange(sIdx,nSec);
+    };
+    const B="1px solid #000";
+    const inputS={border:"none",outline:"none",width:"100%",fontSize:14,fontFamily:"Arial,sans-serif",padding:"2px 4px",background:"transparent"};
+    const selS={border:"none",outline:"none",fontSize:14,fontFamily:"Arial,sans-serif",background:"transparent",cursor:"pointer",width:"100%",padding:"2px",fontWeight:700};
+
+    return(
+      <div style={{marginBottom:16}}>
+        {/* Gray section bar */}
+        <div style={{background:"#e8e8e8",border:B,padding:"8px 12px",textAlign:"center",fontWeight:800,fontSize:14,fontFamily:"Arial,sans-serif",letterSpacing:1}}>
+          ELEMENTS {section.label.toUpperCase()}
+        </div>
+        {/* Sub-headers: DECLARED | ELEMENT PERFORMED */}
+        <table style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
+          <colgroup><col style={{width:36}}/><col style={{width:65}}/><col style={{width:65}}/><col/><col style={{width:110}}/></colgroup>
+          <thead>
+            <tr>
+              <th colSpan={3} style={{border:B,background:"#f5f5f5",padding:"4px",fontSize:11,fontWeight:700,textAlign:"center",fontFamily:"Arial,sans-serif"}}>DECLARED</th>
+              <th style={{border:B,background:"#f5f5f5",padding:"4px",fontSize:11,fontWeight:700,textAlign:"center",fontFamily:"Arial,sans-serif"}}>ELEMENT PERFORMED</th>
+              <th style={{border:B,background:"#f5f5f5",padding:"4px",fontSize:11,fontWeight:700,textAlign:"center",fontFamily:"Arial,sans-serif"}}></th>
+            </tr>
+            <tr>
+              <th style={{border:B,padding:"4px 6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif"}}>#</th>
+              <th style={{border:B,padding:"4px 6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif"}}>Time</th>
+              <th style={{border:B,padding:"4px 6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif"}}>Code</th>
+              <th style={{border:B,padding:"4px 6px",fontSize:11,fontFamily:"Arial,sans-serif",color:"#666"}}>(Filled by Tech Panel)</th>
+              <th style={{border:B,padding:"4px 6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif"}}>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sec.elements.map((el,i)=>(
+              <tr key={i}>
+                <td style={{border:B,padding:"10px 6px",textAlign:"center",fontWeight:700,fontSize:15,fontFamily:"Arial,sans-serif"}}>{i+1}</td>
+                <td style={{border:B,padding:"10px 6px",textAlign:"center",fontFamily:"Arial,sans-serif"}}>
+                  <input value={el.time||""} onChange={e=>updateEl(i,"time",e.target.value)}
+                    placeholder="_:__" maxLength={5} style={{...inputS,textAlign:"center",fontWeight:700}}/>
+                </td>
+                <td style={{border:B,padding:"10px 6px",fontFamily:"Arial,sans-serif"}}>
+                  <select value={el.code||""} onChange={e=>updateEl(i,"code",e.target.value)} style={selS}>
+                    <option value="">----</option>
+                    {section.codes.map(c=><option key={c} value={c}>{c}</option>)}
+                  </select>
+                </td>
+                <td style={{border:B,padding:"10px 6px",fontFamily:"Arial,sans-serif",minHeight:40}}></td>
+                <td style={{border:B,padding:"10px 6px",fontFamily:"Arial,sans-serif"}}>
+                  <input value={el.notes||""} onChange={e=>updateEl(i,"notes",e.target.value)} style={inputS}/>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  function OfficialSheets(){
+    const [sheetType,setSheetType]=useState("sp_fp");
+    const [name,setName]=useState("");
+    const [category,setCategory]=useState("");
+    const [federation,setFederation]=useState("");
+    const [choreography,setChoreography]=useState("");
+    const sheet=SHEET_TYPES[sheetType];
+
+    // Per-section data
+    const initSections=useCallback((st)=>{
+      return SHEET_TYPES[st].sections.map(sec=>({music:"",elements:Array.from({length:sec.rows},()=>({time:"",code:"",notes:"",performed:""}))}));
+    },[]);
+    const [sections,setSections]=useState(initSections("sp_fp"));
+
+    const changeSheet=(st)=>{setSheetType(st);setSections(initSections(st));};
+    const updateSection=(sIdx,data)=>{setSections(prev=>prev.map((s,i)=>i===sIdx?data:s));};
+
+    // jsPDF-based PDF generation matching original World Skate template exactly
+    const exportPDF=()=>{
+      const {jsPDF}=window.jspdf;
+      const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
+      const pw=210,ph=297;
+      const mx=15,mxr=pw-15; // margins
+      const cw=mxr-mx; // content width
+      const lw=0.35; // line width
+      let y=0;
+
+      // Helpers
+      const setLine=()=>{doc.setDrawColor(0,0,0);doc.setLineWidth(lw);};
+      const rect=(x,yy,w,h,opts={})=>{
+        if(opts.fill){doc.setFillColor(opts.fill);doc.rect(x,yy,w,h,"F");}
+        setLine();doc.rect(x,yy,w,h);
+      };
+      const rectNoBorder=(x,yy,w,h,fill)=>{doc.setFillColor(fill);doc.rect(x,yy,w,h,"F");};
+      const txt=(str,x,yy,opts={})=>{
+        doc.setFont("helvetica",opts.bold?"bold":"normal");
+        doc.setFontSize(opts.size||10);
+        doc.setTextColor(opts.color||"#000000");
+        if(opts.align==="center")doc.text(str,x,yy,{align:"center"});
+        else if(opts.align==="right")doc.text(str,x,yy,{align:"right"});
+        else doc.text(str,x,yy);
+      };
+
+      const drawPage=(startSecIdx,endSecIdx,isNewPage)=>{
+        if(isNewPage){doc.addPage();}
+        y=14;
+
+        // === HEADER: World Skate logo text (top-left) + big bold title (center-right) ===
+        // Green "WORLD SKATE" logo text
+        doc.setFont("helvetica","bold");
+        doc.setFontSize(10);
+        doc.setTextColor(100,180,70); // green
+        doc.text("WORLD",mx+2,y);
+        doc.text("SKATE",mx+2,y+4);
+        // Small circle hint for logo
+        doc.setDrawColor(100,180,70);doc.setLineWidth(0.6);
+        doc.circle(mx-1,y+1,3.5);
+        doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
+
+        // Title — big bold, centered in the right portion
+        const titleX=mx+50+(cw-50)/2;
+        const titleText=sheet.title.replace(" 2026","").toUpperCase();
+        txt(titleText,titleX,y+2,{bold:true,size:20,align:"center"});
+        y+=14;
+
+        // === INFO TABLE: 4 rows — label | value ===
+        const labelW=55;
+        const valW=cw-labelW;
+        const infoH=8;
+        const infoRows=[
+          {label:"COMPETITORS NAME",val:name},
+          {label:"CATEGORY",val:category},
+          {label:"Representing",val:federation},
+          {label:"CHOREOGRAPHY",val:choreography},
+        ];
+        infoRows.forEach(inf=>{
+          rect(mx,y,labelW,infoH);
+          rect(mx+labelW,y,valW,infoH);
+          txt(inf.label,mx+3,y+5.5,{bold:true,size:10});
+          txt(inf.val||"",mx+labelW+3,y+5.5,{size:11});
+          y+=infoH;
+        });
+        y+=4;
+
+        // === SECTIONS ===
+        for(let si=startSecIdx;si<=endSecIdx;si++){
+          const sec=sheet.sections[si];
+          const d=sections[si];
+          if(!sec)continue;
+
+          // Estimate height needed for this section
+          const rh=sec.rows<=9?16:12; // tall rows for <=9 elements, shorter for 12+
+          const estH=10+8+8+sec.rows*rh+6;
+          if(y+estH>ph-15){doc.addPage();y=14;}
+
+          // Gray section bar: "ELEMENTS FREE PROGRAM"
+          const barH=9;
+          rectNoBorder(mx,y,cw,barH,"#e0e0e0");
+          setLine();doc.rect(mx,y,cw,barH);
+          txt("ELEMENTS "+sec.label.toUpperCase(),mx+cw/2,y+6.2,{bold:true,size:11,align:"center"});
+          y+=barH;
+
+          // Sub-header row: DECLARED | ELEMENT PERFORMED
+          // Column widths: # | Time | Code | (Filled by Tech Panel) | Notes
+          const colNum=15, colTime=22, colCode=22, colNotes=35;
+          const colPerformed=cw-colNum-colTime-colCode-colNotes;
+          const declW=colNum+colTime+colCode;
+          const subH=7;
+
+          // DECLARED header (spans 3 cols)
+          rect(mx,y,declW,subH);
+          txt("DECLARED",mx+declW/2,y+5,{bold:true,size:9,align:"center"});
+          // ELEMENT PERFORMED header (big middle)
+          rect(mx+declW,y,colPerformed,subH);
+          txt("ELEMENT PERFORMED",mx+declW+colPerformed/2,y+5,{bold:true,size:9,align:"center"});
+          // Notes header (empty in sub-header row)
+          rect(mx+declW+colPerformed,y,colNotes,subH);
+          y+=subH;
+
+          // Column header row: # | Time | Code | (Filled by Tech Panel) | Notes
+          const colHdrH=7;
+          let cx=mx;
+          const cols=[
+            {w:colNum,label:"#",bold:true},
+            {w:colTime,label:"Time",bold:true},
+            {w:colCode,label:"Code",bold:true},
+            {w:colPerformed,label:"(Filled by Tech Panel)",bold:false,size:9,color:"#444444"},
+            {w:colNotes,label:"Notes",bold:true},
+          ];
+          cols.forEach(c=>{
+            rect(cx,y,c.w,colHdrH);
+            txt(c.label,cx+c.w/2,y+5,{bold:c.bold,size:c.size||10,align:"center",color:c.color});
+            cx+=c.w;
+          });
+          y+=colHdrH;
+
+          // Element rows — tall like original
+          const elems=d?.elements||[];
+          elems.forEach((el,i)=>{
+            // Page break check
+            if(y+rh>ph-12){doc.addPage();y=14;}
+            cx=mx;
+            // # column
+            rect(cx,y,colNum,rh);
+            txt(String(i+1),cx+colNum/2,y+rh/2+2,{bold:true,size:12,align:"center"});
+            cx+=colNum;
+            // Time column
+            rect(cx,y,colTime,rh);
+            const timeVal=el.time||"_:__";
+            txt(timeVal,cx+colTime/2,y+rh/2+2,{bold:true,size:11,align:"center"});
+            cx+=colTime;
+            // Code column
+            rect(cx,y,colCode,rh);
+            const codeVal=el.code||"----";
+            txt(codeVal,cx+4,y+rh/2+2,{bold:true,size:11});
+            cx+=colCode;
+            // (Filled by Tech Panel) — empty
+            rect(cx,y,colPerformed,rh);
+            cx+=colPerformed;
+            // Notes column
+            rect(cx,y,colNotes,rh);
+            if(el.notes)txt(el.notes,cx+3,y+rh/2+2,{size:9});
+            cx+=colNotes;
+
+            y+=rh;
+          });
+          y+=5;
+        }
+      };
+
+      // Determine if we need multiple pages for multi-section sheets (SP+FP)
+      if(sheet.sections.length===1){
+        drawPage(0,0,false);
+      } else {
+        // For combined sheets: try to fit first section, then second on new page if needed
+        drawPage(0,0,false);
+        // Second section on new page
+        drawPage(1,sheet.sections.length-1,true);
+      }
+
+      // Auto-download
+      const fn=`${(name||"content").replace(/\s+/g,"_")}_${sheetType}_content.pdf`;
+      doc.save(fn);
+    };
+
+    // Save as TXT
+    const saveTxt=()=>{
+      const lines=[sheet.title,"",`Name: ${name}`,`Category: ${category}`,`Federation: ${federation}`,`Choreography: ${choreography}`,""];
+      sheet.sections.forEach((sec,si)=>{
+        const d=sections[si];
+        lines.push(`=== ${sec.label} ===`);
+        if(d?.music)lines.push(`Music: ${d.music}`);
+        lines.push("Nr | Time  | Code | Notes");
+        lines.push("-".repeat(50));
+        (d?.elements||[]).forEach((el,i)=>{
+          lines.push(`${String(i+1).padStart(2)} | ${(el.time||"").padEnd(5)} | ${(el.code||"").padEnd(4)} | ${el.notes||""}`);
+        });
+        lines.push("");
+      });
+      const blob=new Blob([lines.join("\n")],{type:"text/plain"});
+      const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+      a.download=`${name||"content"}_${sheetType}.txt`;a.click();
+    };
+
+    // Restore from TXT
+    const restoreTxt=(e)=>{
+      const file=e.target.files?.[0];if(!file)return;e.target.value="";
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        const text=ev.target.result;
+        const nm=text.match(/Name:\s*(.+)/);if(nm)setName(nm[1].trim());
+        const ct=text.match(/Category:\s*(.+)/);if(ct)setCategory(ct[1].trim());
+        const fd=text.match(/Federation:\s*(.+)/);if(fd)setFederation(fd[1].trim());
+        const ch=text.match(/Choreography:\s*(.+)/);if(ch)setChoreography(ch[1].trim());
+        // Parse sections
+        const secBlocks=text.split(/===\s*(.+?)\s*===/);
+        const newSections=[...sections];
+        let secIdx=0;
+        for(let b=1;b<secBlocks.length;b+=2){
+          if(secIdx>=newSections.length)break;
+          const block=secBlocks[b+1]||"";
+          const mm=block.match(/Music:\s*(.+)/);
+          if(mm)newSections[secIdx]={...newSections[secIdx],music:mm[1].trim()};
+          const lines=block.split("\n").filter(l=>l.match(/^\s*\d+\s*\|/));
+          const els=[...newSections[secIdx].elements];
+          lines.forEach((line,i)=>{
+            if(i>=els.length)return;
+            const parts=line.split("|").map(p=>p.trim());
+            if(parts.length>=3){
+              els[i]={...els[i],time:parts[1]||"",code:parts[2]||"",notes:parts[3]||""};
+            }
+          });
+          newSections[secIdx]={...newSections[secIdx],elements:els};
+          secIdx++;
+        }
+        setSections(newSections);
+      };
+      reader.readAsText(file);
+    };
+
+    const codes=sheet.sections[0].codes;
+
+    return(
+      <div style={{padding:"16px 20px",maxWidth:900,margin:"0 auto"}}>
+        {/* Sheet type selector */}
+        <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+          {Object.entries(SHEET_TYPES).map(([k,v])=>(
+            <button key={k} onClick={()=>changeSheet(k)} style={{padding:"7px 16px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+              background:sheetType===k?"#1a1a2e":"#e5e7eb",color:sheetType===k?"white":"#374151"}}>{v.short||v.title.replace(" 2026","")}</button>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+          <button onClick={exportPDF} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#dc2626",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>Als PDF drucken</button>
+          <button onClick={saveTxt} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#059669",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>Speichern (TXT)</button>
+          <label style={{padding:"6px 14px",borderRadius:5,border:"1px solid #059669",background:"#f0fdf4",color:"#059669",fontWeight:600,fontSize:11,cursor:"pointer"}}>
+            Laden (TXT)
+            <input type="file" accept=".txt" onChange={restoreTxt} style={{display:"none"}}/>
+          </label>
+          <button onClick={()=>{setName("");setCategory("");setFederation("");setChoreography("");setSections(initSections(sheetType));}} style={{padding:"6px 14px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Löschen</button>
+        </div>
+
+        {/* Official Sheet — matching original sk8info template */}
+        <div id="official-sheet-print" style={{background:"white",border:"1px solid #ccc",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.12)",maxWidth:820,margin:"0 auto"}}>
+          {/* Header: Logo area + Title */}
+          <div style={{display:"flex",alignItems:"center",padding:"12px 16px 8px",gap:16,borderBottom:"1px solid #ddd",background:"#fafafa"}}>
+            <div style={{minWidth:60,textAlign:"center"}}>
+              <div style={{fontSize:9,fontWeight:800,lineHeight:1,color:"#7ab648",fontFamily:"Arial,sans-serif"}}>WORLD</div>
+              <div style={{fontSize:9,fontWeight:800,lineHeight:1,color:"#7ab648",fontFamily:"Arial,sans-serif"}}>SKATE</div>
+            </div>
+            <h2 style={{margin:0,fontSize:24,fontWeight:900,fontFamily:"Arial,sans-serif",color:"#000",flex:1,textAlign:"center"}}>
+              {sheet.title.replace(" 2026","")}
+            </h2>
+          </div>
+
+          {/* Competitor Info — 4 rows like original */}
+          <table style={{width:"100%",borderCollapse:"collapse",fontFamily:"Arial,sans-serif"}}>
+            <tbody>
+              {[
+                {label:"COMPETITORS NAME",val:name,set:setName,ph:"Name"},
+                {label:"CATEGORY",val:category,set:setCategory,ph:"z.B. Schüler D, Cadet..."},
+                {label:"Representing",val:federation,set:setFederation,ph:"Verein / Verband"},
+                {label:"CHOREOGRAPHY",val:choreography,set:setChoreography,ph:"Musik / Choreographie"},
+              ].map((inf,i)=>(
+                <tr key={i}>
+                  <td style={{border:"1px solid #000",padding:"6px 10px",fontWeight:700,fontSize:12,width:200,background:"#fff",fontFamily:"Arial,sans-serif"}}>{inf.label}</td>
+                  <td style={{border:"1px solid #000",padding:"6px 10px"}}>
+                    <input value={inf.val} onChange={e=>inf.set(e.target.value)} placeholder={inf.ph}
+                      style={{border:"none",outline:"none",width:"100%",fontSize:14,fontFamily:"Arial,sans-serif",padding:0,background:"transparent"}}/>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Sections */}
+          <div style={{padding:"12px 0 0"}}>
+            {sheet.sections.map((sec,si)=>(
+              <OfficialSheetSection key={si} section={sec} sIdx={si} data={sections} onChange={updateSection}/>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
+  //  KI-COACH — Automated Analysis & Optimization
+  // ============================================================
+
+  // Rule requirements per segment
+  const SEGMENT_RULES = {
+    "sp": {
+      label:"Short Program",
+      required:[
+        {type:"SJu",min:1,max:2,desc:"1-2 Solo-Sprünge"},
+        {type:"CoJ",min:1,max:1,desc:"1 Kombination"},
+        {type:"SSp",min:1,max:1,desc:"1 Solo-Spin"},
+        {type:"CSp",min:1,max:1,desc:"1 Kombinations-Spin"},
+        {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge"},
+        {type:"ChSt",min:0,max:1,desc:"0-1 Choreo-Sequenz"},
+      ],
+      maxTotal:7,
+      maxJumps:3,maxSpins:2,maxSequences:2,
+    },
+    "fp9": {
+      label:"Free Program 9",
+      required:[
+        {type:"SJu",min:1,max:4,desc:"1-4 Solo-Sprünge"},
+        {type:"CoJ",min:1,max:3,desc:"1-3 Kombinationen"},
+        {type:"SSp",min:1,max:2,desc:"1-2 Solo-Spins"},
+        {type:"CSp",min:1,max:2,desc:"1-2 Kombinations-Spins"},
+        {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge"},
+        {type:"ChSt",min:0,max:1,desc:"0-1 Choreo-Sequenz"},
+      ],
+      maxTotal:9,
+      maxJumps:7,maxSpins:4,maxSequences:2,
+    },
+    "fp12": {
+      label:"Free Program 12",
+      required:[
+        {type:"SJu",min:2,max:5,desc:"2-5 Solo-Sprünge"},
+        {type:"CoJ",min:2,max:4,desc:"2-4 Kombinationen"},
+        {type:"SSp",min:1,max:2,desc:"1-2 Solo-Spins"},
+        {type:"CSp",min:1,max:2,desc:"1-2 Kombinations-Spins"},
+        {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge"},
+        {type:"ChSt",min:0,max:1,desc:"0-1 Choreo-Sequenz"},
+      ],
+      maxTotal:12,
+      maxJumps:9,maxSpins:4,maxSequences:2,
+    },
+    "psp": {
+      label:"Pairs Short Program",
+      required:[
+        {type:"SJu",min:1,max:1,desc:"1 Solo-Sprung"},
+        {type:"CoJ",min:1,max:1,desc:"1 Kombination"},
+        {type:"SSp",min:0,max:1,desc:"0-1 Solo-Spin"},
+        {type:"CSp",min:0,max:1,desc:"0-1 Kombinations-Spin"},
+        {type:"CtSp",min:0,max:1,desc:"0-1 Contact Spin"},
+        {type:"SLi",min:0,max:1,desc:"0-1 Solo Lift"},
+        {type:"FoSq",min:0,max:1,desc:"0-1 Schrittfolge"},
+        {type:"DS",min:0,max:1,desc:"0-1 Death Spiral"},
+      ],
+      maxTotal:8,
+      maxJumps:3,maxSpins:3,maxSequences:2,
+    },
+    "pfp": {
+      label:"Pairs Free Program",
+      required:[
+        {type:"SJu",min:1,max:3,desc:"1-3 Solo-Sprünge"},
+        {type:"CoJ",min:1,max:3,desc:"1-3 Kombinationen"},
+        {type:"SSp",min:0,max:2,desc:"0-2 Solo-Spins"},
+        {type:"CSp",min:0,max:2,desc:"0-2 Kombinations-Spins"},
+        {type:"CtSp",min:0,max:1,desc:"0-1 Contact Spin"},
+        {type:"CLi",min:0,max:2,desc:"0-2 Combination Lifts"},
+        {type:"SLi",min:0,max:2,desc:"0-2 Solo Lifts"},
+        {type:"FoSq",min:0,max:1,desc:"0-1 Schrittfolge"},
+        {type:"DS",min:0,max:1,desc:"0-1 Death Spiral"},
+        {type:"Tw",min:0,max:1,desc:"0-1 Twist"},
+        {type:"Tj",min:0,max:2,desc:"0-2 Throw Jumps"},
+      ],
+      maxTotal:13,
+      maxJumps:7,maxSpins:4,maxSequences:2,
+    },
+  };
+
+  function KiCoach({rows,types,segment,judgeCount,elements,tes,pcsTotal,bonusTotal,pcs}){
+    const [open,setOpen]=useState(true);
+    const [tab,setTab]=useState("rules"); // rules, optimize, training
+
+    const rules=SEGMENT_RULES[segment]||SEGMENT_RULES["fp9"];
+    const isPairs=segment==="psp"||segment==="pfp";
+    const pcsFactor=PCS_FACTORS[segment]||1.0;
+
+    // Count elements by type
+    const typeCounts={};
+    rows.forEach(r=>{if(r.typeCode)typeCounts[r.typeCode]=(typeCounts[r.typeCode]||0)+1;});
+    const filledRows=rows.filter(r=>{
+      const td=types.find(t=>t.code===r.typeCode);
+      if(td?.isCombo)return(r.comboEls||[]).some(s=>s.code);
+      return!!r.elCode;
+    });
+
+    // ---- RULE COMPLIANCE ----
+    const ruleChecks=useMemo(()=>{
+      const checks=[];
+      // Check each required element type
+      (rules.required||[]).forEach(req=>{
+        const count=typeCounts[req.type]||0;
+        if(count<req.min){
+          checks.push({type:"error",msg:`${req.desc}: nur ${count} vorhanden (min. ${req.min})`,icon:"\u274C"});
+        }else if(count>req.max){
+          checks.push({type:"warning",msg:`${req.desc}: ${count} vorhanden (max. ${req.max} erlaubt)`,icon:"\u26A0\uFE0F"});
+        }else{
+          checks.push({type:"ok",msg:`${req.desc}: ${count} \u2714`,icon:"\u2705"});
+        }
+      });
+      // Total elements
+      const total=Object.values(typeCounts).reduce((s,v)=>s+v,0);
+      if(total>rules.maxTotal){
+        checks.push({type:"error",msg:`Zu viele Elemente: ${total}/${rules.maxTotal}`,icon:"\u274C"});
+      }
+      // Check for NV elements
+      const nvCount=rows.filter(r=>r.nv).length;
+      if(nvCount>0)checks.push({type:"warning",msg:`${nvCount} Element(e) als NV markiert (0 Punkte)`,icon:"\u26A0\uFE0F"});
+      // Check for empty slots
+      const emptySlots=rows.filter(r=>!r.typeCode).length;
+      if(emptySlots>0)checks.push({type:"warning",msg:`${emptySlots} leere Slots \u2014 Punkte verschenkt!`,icon:"\u26A0\uFE0F"});
+      // Check for DG
+      const dgCount=rows.filter(r=>r.dg).length;
+      if(dgCount>0)checks.push({type:"warning",msg:`${dgCount} Element(e) als DG (downgrade) markiert`,icon:"\u26A0\uFE0F"});
+      return checks;
+    },[rows,typeCounts,rules]);
+
+    const errorCount=ruleChecks.filter(c=>c.type==="error").length;
+    const warnCount=ruleChecks.filter(c=>c.type==="warning").length;
+    const isCompliant=errorCount===0;
+
+    // ---- SCORE OPTIMIZATION ----
+    const optimizations=useMemo(()=>{
+      const tips=[];
+
+      // 1. Check for missing bonuses on eligible elements
+      rows.forEach((r,i)=>{
+        if(r.nv||!r.typeCode)return;
+        const td=types.find(t=>t.code===r.typeCode);
+        if(!td)return;
+        const isJump=r.typeCode==="CoJ"||r.typeCode==="SJu";
+        const isSpin=r.typeCode==="CSp"||r.typeCode==="SSp";
+        const bonuses=r.bonuses||[];
+        const el=elements[i];
+        if(!el||el.rawBase===0)return;
+
+        if(isJump&&bonuses.length===0){
+          tips.push({priority:2,msg:`Element ${i+1} (${r.typeCode}): Kein Bonus aktiv \u2014 Pr\u00fcfe ob "Nach halber Programml\u00e4nge" (+10%) anwendbar`,points:Math.round(el.rawBase*0.10*100)/100});
+        }
+        if(r.typeCode==="CoJ"&&bonuses.length===0){
+          // Check if combo qualifies for combo bonus
+          const subs=r.comboEls||[];
+          const hasDouble=subs.some(s=>s.code&&s.code.startsWith("2"));
+          const hasTriple=subs.some(s=>s.code&&s.code.startsWith("3"));
+          if(hasDouble&&!hasTriple){
+            tips.push({priority:1,msg:`Element ${i+1} (CoJ): Doppel+Doppel-Bonus (+10%) m\u00F6glich`,points:Math.round(el.rawBase*0.10*100)/100});
+          }
+          if(hasTriple){
+            tips.push({priority:1,msg:`Element ${i+1} (CoJ): Dreifach-Kombi-Bonus (+20-30%) verf\u00FCgbar!`,points:Math.round(el.rawBase*0.20*100)/100});
+          }
+        }
+        if(isSpin&&bonuses.length===0){
+          tips.push({priority:2,msg:`Element ${i+1} (${r.typeCode}): Keine schwierigen Positionen/Variationen ausgew\u00E4hlt \u2014 bis zu +80% m\u00F6glich`,points:Math.round(el.rawBase*0.40*100)/100});
+        }
+      });
+
+      // 2. Check for under-rotated elements
+      rows.forEach((r,i)=>{
+        if(r.rotation==="lt"||r.rotation==="ltlt"){
+          const el=elements[i];
+          if(!el)return;
+          const td=types.find(t=>t.code===r.typeCode);
+          const elDef=td?.data.find(e=>e.code===r.elCode);
+          if(elDef){
+            const fullBase=getBase(elDef,false,"normal");
+            const loss=Math.round((fullBase-el.rawBase)*100)/100;
+            tips.push({priority:1,msg:`Element ${i+1}: Unterrotiert (${r.rotation==="lt"?"<":"<<"}) \u2014 ${loss.toFixed(2)} Punkte Verlust`,points:loss});
+          }
+        }
+      });
+
+      // 3. Check for low-value elements that could be upgraded
+      rows.forEach((r,i)=>{
+        if(!r.elCode||r.nv)return;
+        const td=types.find(t=>t.code===r.typeCode);
+        if(!td||td.isCombo)return;
+        const el=td.data.find(e=>e.code===r.elCode);
+        if(!el)return;
+        const idx=td.data.indexOf(el);
+        if(idx<td.data.length-1){
+          const next=td.data[idx+1];
+          const diff=Math.round((next.base-el.base)*100)/100;
+          if(diff>=0.3){
+            tips.push({priority:3,msg:`Element ${i+1}: Upgrade ${el.code}\u2192${next.code} bringt +${diff.toFixed(2)} Basispunkte`,points:diff});
+          }
+        }
+      });
+
+      // 4. Check element placement (after half program for bonus)
+      const halfIdx=Math.floor(rows.length/2);
+      const jumpsBefore=rows.slice(0,halfIdx).filter(r=>r.typeCode==="CoJ"||r.typeCode==="SJu").length;
+      const jumpsAfter=rows.slice(halfIdx).filter(r=>r.typeCode==="CoJ"||r.typeCode==="SJu").length;
+      if(jumpsBefore>jumpsAfter+1&&jumpsAfter>0){
+        tips.push({priority:2,msg:`Tipp: Mehr Spr\u00FCnge in die 2. Programmh\u00E4lfte legen f\u00FCr den +10% Bonus`,points:0});
+      }
+
+      // 5. Check negative GOE elements
+      const negGoeEls=elements.filter((el,i)=>el&&el.goeVal<-0.3&&!rows[i].nv);
+      if(negGoeEls.length>0){
+        const totalNeg=Math.round(negGoeEls.reduce((s,e)=>s+e.goeVal,0)*100)/100;
+        tips.push({priority:1,msg:`${negGoeEls.length} Element(e) mit negativem QOE \u2014 insgesamt ${totalNeg.toFixed(2)} Punkte Verlust durch Ausf\u00FChrung`,points:Math.abs(totalNeg)});
+      }
+
+      // 6. PCS potential
+      const pcsComps=PCS_COMPONENTS.map(comp=>{
+        const avg=calcPcsAvg(pcs[comp.key],judgeCount);
+        return{key:comp.key,label:comp.label,avg};
+      });
+      const lowest=pcsComps.reduce((min,c)=>c.avg<min.avg?c:min,pcsComps[0]);
+      if(lowest&&lowest.avg<pcsComps.reduce((sum,c)=>sum+c.avg,0)/pcsComps.length-0.5){
+        tips.push({priority:2,msg:`PCS: "${lowest.label}" ist am schw\u00E4chsten (${lowest.avg.toFixed(2)}) \u2014 gezieltes Training empfohlen`,points:Math.round((1-lowest.avg/10)*pcsFactor*100)/100});
+      }
+
+      // Sort by points desc
+      tips.sort((a,b)=>b.points-a.points);
+      return tips;
+    },[rows,types,elements,pcs,judgeCount]);
+
+    const totalPotential=optimizations.reduce((s,t)=>s+t.points,0);
+
+    // ---- TRAINING TIPS ----
+    const trainingTips=useMemo(()=>{
+      const tips=[];
+      if(filledRows.length===0)return tips;
+
+      // Categorize elements
+      const jumpEls=[], spinEls=[], seqEls=[];
+      rows.forEach((r,i)=>{
+        if(!r.typeCode||r.nv)return;
+        const el=elements[i];
+        if(!el||el.rawBase===0)return;
+        if(r.typeCode==="CoJ"||r.typeCode==="SJu")jumpEls.push({row:r,el,idx:i});
+        else if(r.typeCode==="CSp"||r.typeCode==="SSp")spinEls.push({row:r,el,idx:i});
+        else seqEls.push({row:r,el,idx:i});
+      });
+
+      // Jump analysis
+      if(jumpEls.length>0){
+        const avgJumpGoe=jumpEls.reduce((s,j)=>s+j.el.goeVal,0)/jumpEls.length;
+        const avgJumpPct=jumpEls.reduce((s,j)=>s+(j.el.rawBase>0?j.el.finalScore/j.el.rawBase:0),0)/jumpEls.length*100;
+        if(avgJumpGoe<0)tips.push({cat:"jump",icon:"\u26F8\uFE0F",title:"Spr\u00FCnge: Qualit\u00E4t verbessern",
+          desc:`Durchschnittliches QOE: ${avgJumpGoe.toFixed(2)}. Fokus auf saubere Landungen und H\u00F6he.`,
+          pct:Math.round(avgJumpPct)});
+        else if(avgJumpGoe>=0&&avgJumpGoe<0.5)tips.push({cat:"jump",icon:"\u26F8\uFE0F",title:"Spr\u00FCnge: Gutes Niveau",
+          desc:`QOE \u00F8 ${avgJumpGoe.toFixed(2)} \u2014 Arbeite an Auslauf-Positionen und kreativen Ein-/Ausg\u00E4ngen f\u00FCr h\u00F6heres QOE.`,
+          pct:Math.round(avgJumpPct)});
+        else tips.push({cat:"jump",icon:"\u26F8\uFE0F",title:"Spr\u00FCnge: Exzellent!",
+          desc:`QOE \u00F8 ${avgJumpGoe.toFixed(2)} \u2014 Top-Niveau! N\u00E4chster Schritt: h\u00F6here Schwierigkeit oder mehr Boni.`,
+          pct:Math.round(avgJumpPct)});
+
+        // Under-rotation focus
+        const underRot=jumpEls.filter(j=>j.row.rotation==="lt"||j.row.rotation==="ltlt");
+        if(underRot.length>0){
+          tips.push({cat:"jump",icon:"\uD83D\uDD04",title:"Rotations-Training",
+            desc:`${underRot.length} Sprung/Spr\u00FCnge unterrotiert. Fokus auf vollst\u00E4ndige Rotation vor dem Landen.`,
+            pct:Math.round((1-underRot.length/jumpEls.length)*100)});
+        }
+      }
+
+      // Spin analysis
+      if(spinEls.length>0){
+        const avgSpinGoe=spinEls.reduce((s,j)=>s+j.el.goeVal,0)/spinEls.length;
+        const hasBonuses=spinEls.some(s=>(s.row.bonuses||[]).length>0);
+        const bonusCount=spinEls.reduce((s,j)=>s+(j.row.bonuses||[]).length,0);
+        tips.push({cat:"spin",icon:"\uD83C\uDF00",title:`Spins: QOE \u00F8 ${avgSpinGoe.toFixed(2)}`,
+          desc:avgSpinGoe<0
+            ?`Negative QOE \u2014 arbeite an Zentrierung, Geschwindigkeit und klaren Positionen.`
+            :`${hasBonuses?bonusCount+" Boni aktiv":"Keine schwierigen Positionen"} \u2014 ${hasBonuses?"Pr\u00FCfe ob weitere Variationen m\u00F6glich":"F\u00FCge schwierige Positionen hinzu (+20-80%)!"}.`,
+          pct:Math.round((avgSpinGoe+1.5)/3*100)});
+      }
+
+      // Overall score distribution
+      const tesShare=tes/(tes+pcsTotal||1)*100;
+      if(tesShare>70){
+        tips.push({cat:"balance",icon:"\u2696\uFE0F",title:"Programmbalance: TES-lastig",
+          desc:`TES ${Math.round(tesShare)}% vs PCS ${Math.round(100-tesShare)}% \u2014 Arbeite mehr an Skating Skills und Interpretation.`,
+          pct:Math.round(100-tesShare)});
+      }else if(tesShare<40&&filledRows.length>=3){
+        tips.push({cat:"balance",icon:"\u2696\uFE0F",title:"Programmbalance: PCS-lastig",
+          desc:`TES nur ${Math.round(tesShare)}% \u2014 Erh\u00F6he die technische Schwierigkeit f\u00FCr mehr Punkte.`,
+          pct:Math.round(tesShare)});
+      }
+
+      // Fall/deduction awareness
+      const nvEls=rows.filter(r=>r.nv).length;
+      if(nvEls>0){
+        tips.push({cat:"focus",icon:"\uD83C\uDFAF",title:"Fokus: NV-Elemente eliminieren",
+          desc:`${nvEls} Element(e) als NV \u2014 jedes NV-Element bedeutet 0 Punkte. Durch saubere Ausf\u00FChrung ersetzen.`,
+          pct:0});
+      }
+
+      return tips;
+    },[rows,elements,tes,pcsTotal,filledRows,pcs,judgeCount]);
+
+    const tabStyle=(t)=>({padding:"5px 12px",borderRadius:"6px 6px 0 0",border:"none",fontSize:11,fontWeight:700,cursor:"pointer",
+      background:tab===t?"white":"transparent",color:tab===t?"#065f46":"#9ca3af",
+      borderBottom:tab===t?"2px solid #059669":"2px solid transparent"});
+
+    const statusColor=errorCount>0?"#dc2626":warnCount>0?"#f59e0b":"#059669";
+    const statusText=errorCount>0?`${errorCount} Fehler`:warnCount>0?`${warnCount} Hinweise`:"Alles OK";
+
+    return(
+      <div style={{background:"white",borderRadius:12,border:"2px solid #a78bfa",overflow:"hidden",marginTop:12}}>
+        {/* Header */}
+        <div onClick={()=>setOpen(!open)} style={{background:"linear-gradient(135deg,#7c3aed,#a78bfa)",padding:"10px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:18}}>{"\uD83E\uDD16"}</span>
+          <span style={{color:"white",fontWeight:800,fontSize:14,flex:1}}>KI-Coach</span>
+          <span style={{background:statusColor,color:"white",borderRadius:10,padding:"2px 8px",fontSize:10,fontWeight:700}}>{statusText}</span>
+          <span style={{color:"white",fontSize:12}}>{open?"\u25B2":"\u25BC"}</span>
+        </div>
+
+        {open&&(
+          <div>
+            {/* Tabs */}
+            <div style={{display:"flex",gap:0,borderBottom:"1px solid #e5e7eb",padding:"0 8px",background:"#faf5ff"}}>
+              <button onClick={()=>setTab("rules")} style={tabStyle("rules")}>
+                Regelcheck {errorCount>0&&<span style={{background:"#dc2626",color:"white",borderRadius:8,padding:"0 5px",fontSize:9,marginLeft:3}}>{errorCount}</span>}
+              </button>
+              <button onClick={()=>setTab("optimize")} style={tabStyle("optimize")}>
+                Optimierung {optimizations.length>0&&<span style={{background:"#f59e0b",color:"white",borderRadius:8,padding:"0 5px",fontSize:9,marginLeft:3}}>{optimizations.length}</span>}
+              </button>
+              <button onClick={()=>setTab("training")} style={tabStyle("training")}>
+                Training
+              </button>
+            </div>
+
+            <div style={{padding:12,maxHeight:400,overflowY:"auto"}}>
+              {/* RULES TAB */}
+              {tab==="rules"&&(
+                <div>
+                  <div style={{fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:8}}>Regelkonformit\u00E4t \u2014 {rules.label}</div>
+                  {ruleChecks.map((c,i)=>(
+                    <div key={i} style={{display:"flex",gap:6,alignItems:"flex-start",padding:"4px 0",borderBottom:"1px solid #f3f4f6",fontSize:11}}>
+                      <span style={{fontSize:13,lineHeight:1}}>{c.icon}</span>
+                      <span style={{color:c.type==="error"?"#dc2626":c.type==="warning"?"#92400e":"#065f46",fontWeight:c.type==="ok"?400:600}}>{c.msg}</span>
+                    </div>
+                  ))}
+                  {isCompliant&&<div style={{marginTop:8,padding:"6px 10px",background:"#f0fdf4",borderRadius:6,fontSize:11,color:"#065f46",fontWeight:600}}>
+                    {"\u2705"} Programm ist regelkonform!
+                  </div>}
+                </div>
+              )}
+
+              {/* OPTIMIZATION TAB */}
+              {tab==="optimize"&&(
+                <div>
+                  {optimizations.length===0?(
+                    <div style={{fontSize:11,color:"#9ca3af",fontStyle:"italic",padding:8}}>Keine Optimierungsvorschl\u00E4ge \u2014 alle Elemente sind gut konfiguriert!</div>
+                  ):(
+                    <div>
+                      <div style={{fontSize:11,fontWeight:700,color:"#92400e",marginBottom:8}}>
+                        {optimizations.length} Vorschl\u00E4ge \u2014 Potenzial: +{totalPotential.toFixed(2)} Punkte
+                      </div>
+                      {optimizations.map((tip,i)=>(
+                        <div key={i} style={{padding:"6px 8px",marginBottom:4,borderRadius:6,
+                          background:tip.priority===1?"#fef2f2":tip.priority===2?"#fffbeb":"#f0fdf4",
+                          border:`1px solid ${tip.priority===1?"#fca5a5":tip.priority===2?"#fde68a":"#86efac"}`,fontSize:11}}>
+                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                            <span style={{color:"#374151",flex:1}}>{tip.msg}</span>
+                            {tip.points>0&&<span style={{fontWeight:800,color:"#059669",fontSize:12,whiteSpace:"nowrap",marginLeft:6}}>+{tip.points.toFixed(2)}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TRAINING TAB */}
+              {tab==="training"&&(
+                <div>
+                  {trainingTips.length===0?(
+                    <div style={{fontSize:11,color:"#9ca3af",fontStyle:"italic",padding:8}}>F\u00FClle Elemente aus, um Trainingstipps zu erhalten.</div>
+                  ):trainingTips.map((tip,i)=>(
+                    <div key={i} style={{padding:"8px 10px",marginBottom:6,borderRadius:8,background:"#faf5ff",border:"1px solid #ddd6fe"}}>
+                      <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:3}}>
+                        <span style={{fontSize:15}}>{tip.icon}</span>
+                        <span style={{fontWeight:700,fontSize:12,color:"#374151"}}>{tip.title}</span>
+                        {tip.pct!==undefined&&(
+                          <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:4}}>
+                            <div style={{width:40,height:6,background:"#e5e7eb",borderRadius:3,overflow:"hidden"}}>
+                              <div style={{width:`${Math.max(0,Math.min(tip.pct,100))}%`,height:"100%",
+                                background:tip.pct>=80?"#059669":tip.pct>=50?"#f59e0b":"#dc2626",borderRadius:3}}/>
+                            </div>
+                            <span style={{fontSize:9,fontWeight:700,color:"#6b7280"}}>{tip.pct}%</span>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{fontSize:11,color:"#6b7280",lineHeight:1.4}}>{tip.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============================================================
+  //  TRAINING SIMULATOR
+  // ============================================================
+  function SimBonusPill({active,label,onClick}){
+    return <button onClick={onClick} style={{padding:"3px 8px",borderRadius:10,border:active?"2px solid #059669":"1px solid #d1d5db",
+      background:active?"#059669":"white",color:active?"white":"#374151",fontSize:10,fontWeight:600,cursor:"pointer",lineHeight:1.4,
+      transition:"all .15s"}}>{label}</button>;
+  }
+
+  function SimElementCard({num,row,types,judgeCount,onChange,onRemove,totalRows}){
+    const typeDef=types.find(t=>t.code===row.typeCode);
+    const isCombo=typeDef?.isCombo;
+    const isSpin=row.typeCode==="CSp"||row.typeCode==="SSp";
+    const isJump=row.typeCode==="CoJ"||row.typeCode==="SJu";
+
+    // Compute base score (reuse computeRow)
+    const computed=computeRow(row,types,judgeCount);
+    const rawBase=computed.base;
+
+    // Calculate bonus multiplier
+    const bonuses=row.bonuses||[];
+    let bonusPct=0;
+    let hasOverride=false;
+    let overrideFactor=1;
+    bonuses.forEach(bid=>{
+      const b=ALL_BONUSES.find(x=>x.id===bid);
+      if(!b)return;
+      if(b.isOverride){hasOverride=true;overrideFactor=1+b.pct;}
+      else bonusPct+=b.pct;
+    });
+    const adjBase=hasOverride?Math.round(rawBase*overrideFactor*100)/100:Math.round(rawBase*(1+bonusPct)*100)/100;
+    const bonusPoints=Math.round((adjBase-rawBase)*100)/100;
+    const finalScore=Math.round((adjBase+computed.goeVal)*100)/100;
+
+    // Which bonuses are applicable?
+    let applicableBonuses=[];
+    if(isJump){
+      applicableBonuses=[...JUMP_BONUSES];
+      if(isCombo)applicableBonuses=[...applicableBonuses,...COMBO_JUMP_BONUSES];
+    }
+    if(isSpin)applicableBonuses=[...SPIN_POS_BONUSES,...SPIN_VAR_BONUSES];
+
+    const toggleBonus=(bid)=>{
+      const cur=row.bonuses||[];
+      const nb=cur.includes(bid)?cur.filter(x=>x!==bid):[...cur,bid];
+      onChange({...row,bonuses:nb});
+    };
+
+    // combo sub-element handlers
+    const updateSub=(i,sub)=>{const subs=[...(row.comboEls||[])];subs[i]=sub;onChange({...row,comboEls:subs});};
+    const addSub=()=>{const subs=[...(row.comboEls||[])];if(subs.length<5){subs.push({code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0]});onChange({...row,comboEls:subs});}};
+    const removeSub=(i)=>{onChange({...row,comboEls:(row.comboEls||[]).filter((_,j)=>j!==i)});};
+
+    const el=!isCombo&&typeDef?typeDef.data.find(e=>e.code===row.elCode):null;
+    const showRot=!isCombo&&typeDef?.hasRotation&&el&&(el.lt!==undefined&&el.lt>0);
+    const hasElements=isCombo?(row.comboEls||[]).some(s=>s.code):!!el;
+
+    const cardBg=row.nv?"#fef2f2":bonuses.length>0?"#f0fdf4":"white";
+    const borderColor=row.nv?"#fca5a5":bonuses.length>0?"#86efac":"#e5e7eb";
+
+    return(
+      <div style={{background:cardBg,borderRadius:10,border:`2px solid ${borderColor}`,padding:12,marginBottom:8,
+        boxShadow:"0 1px 3px rgba(0,0,0,.06)",opacity:row.nv?0.6:1}}>
+        {/* Header row */}
+        <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
+          <span style={{background:"#059669",color:"white",borderRadius:6,padding:"2px 8px",fontSize:13,fontWeight:800,minWidth:28,textAlign:"center"}}>{num}</span>
+          <select value={row.typeCode} onChange={e=>{
+            const newType=types.find(t=>t.code===e.target.value);
+            const nr={typeCode:e.target.value,elCode:"",judgeGoe:[0,0,0,0,0],rotation:"normal",comboEls:[],nv:false,dg:false,bonuses:[]};
+            if(newType?.isCombo)nr.comboEls=[{code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0]},{code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0]}];
+            onChange(nr);
+          }} style={{...SEL,fontWeight:700,minWidth:100}}>
+            <option value="">-- Typ --</option>
+            {types.map(t=><option key={t.code} value={t.code}>{t.code} - {t.label}</option>)}
+          </select>
+
+          {!isCombo&&typeDef&&(
+            <select value={row.elCode} onChange={e=>onChange({...row,elCode:e.target.value,judgeGoe:[0,0,0,0,0]})} style={{...SEL,flex:1,minWidth:160}}>
+              <option value="">-- Element --</option>
+              {typeDef.data.map(e=><option key={e.code} value={e.code}>{e.code} - {e.name} ({e.base})</option>)}
+            </select>
+          )}
+
+          {showRot&&(
+            <div style={{display:"flex",gap:2}}>
+              <button onClick={()=>onChange({...row,rotation:"normal"})} style={BTN(row.rotation==="normal","#6b7280")}>N</button>
+              <button onClick={()=>onChange({...row,rotation:"lt"})} style={BTN(row.rotation==="lt","#f59e0b")}>&lt;</button>
+              <button onClick={()=>onChange({...row,rotation:"ltlt"})} style={BTN(row.rotation==="ltlt","#ef4444")}>&lt;&lt;</button>
+            </div>
+          )}
+
+          <div style={{display:"flex",gap:2,marginLeft:"auto"}}>
+            <button onClick={()=>onChange({...row,nv:!row.nv})} style={{...BTN(row.nv,"#dc2626"),fontSize:10,padding:"2px 6px"}}>NV</button>
+            <button onClick={()=>onChange({...row,dg:!row.dg})} style={{...BTN(row.dg,"#f59e0b"),fontSize:10,padding:"2px 6px"}}>DG</button>
+            {totalRows>1&&<button onClick={onRemove} style={{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:4,padding:"2px 6px",fontSize:10,fontWeight:700,cursor:"pointer"}}>x</button>}
+          </div>
+        </div>
+
+        {/* Combo sub-elements */}
+        {isCombo&&typeDef&&(
+          <div style={{marginBottom:8,paddingLeft:10,borderLeft:"3px solid #86efac"}}>
+            {(row.comboEls||[]).map((sub,i)=>(
+              <ComboSubRow key={i} idx={i} sub={sub} data={typeDef.data}
+                hasComboValues={typeDef.data.some(e=>e.combo!==undefined)}
+                hasRotation={!!typeDef.hasRotation}
+                onChange={s=>updateSub(i,s)} onRemove={()=>removeSub(i)}
+                judgeCount={judgeCount}/>
+            ))}
+            {(row.comboEls||[]).length<5&&(
+              <button onClick={addSub} style={{marginTop:2,padding:"2px 8px",borderRadius:3,border:"1px dashed #059669",background:"#f0fdf4",color:"#059669",fontSize:10,fontWeight:600,cursor:"pointer"}}>+ Element</button>
+            )}
+          </div>
+        )}
+
+        {/* Non-combo judge GOE */}
+        {!isCombo&&hasElements&&!row.nv&&(
+          <div style={{display:"flex",gap:4,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
+            <span style={{fontSize:10,fontWeight:700,color:"#6b7280"}}>QOE:</span>
+            {Array.from({length:judgeCount}).map((_,ji)=>{
+              const jg=row.judgeGoe||[0,0,0,0,0];
+              return <select key={ji} value={jg[ji]||0} onChange={e=>{
+                const ng=[...(row.judgeGoe||[0,0,0,0,0])];ng[ji]=parseInt(e.target.value);
+                onChange({...row,judgeGoe:ng});
+              }} style={{...SEL,width:40,fontSize:11,padding:"3px 1px",textAlign:"center",
+                color:jg[ji]>0?"#059669":jg[ji]<0?"#dc2626":"#6b7280",fontWeight:600}}>
+                {[-3,-2,-1,0,1,2,3].map(v=><option key={v} value={v}>{v>0?"+"+v:v}</option>)}
+              </select>;
+            })}
+            <span style={{fontSize:11,fontWeight:700,color:computed.goeVal>=0?"#059669":"#dc2626"}}>
+              {(computed.goeVal>=0?"+":"")+computed.goeVal.toFixed(2)}
+            </span>
+          </div>
+        )}
+
+        {/* Bonus pills */}
+        {applicableBonuses.length>0&&hasElements&&!row.nv&&(
+          <div style={{marginBottom:8}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#065f46",marginBottom:3}}>
+              {isSpin?"Positionen & Variationen:":"Bonus:"}
+            </div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
+              {applicableBonuses.map(b=>(
+                <SimBonusPill key={b.id} active={bonuses.includes(b.id)} label={b.label} onClick={()=>toggleBonus(b.id)}/>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Score line */}
+        {hasElements&&(
+          <div style={{display:"flex",gap:8,alignItems:"center",padding:"6px 8px",background:"#f8faf9",borderRadius:6,flexWrap:"wrap"}}>
+            <span style={{fontSize:11,color:"#6b7280"}}>Base: <strong style={{color:"#374151"}}>{rawBase.toFixed(2)}</strong></span>
+            {bonusPoints!==0&&<span style={{fontSize:11,color:bonusPoints>0?"#059669":"#dc2626",fontWeight:700}}>
+              Bonus: {bonusPoints>0?"+":""}{bonusPoints.toFixed(2)}
+            </span>}
+            {bonusPoints!==0&&<span style={{fontSize:11,color:"#374151"}}>Adj: <strong>{adjBase.toFixed(2)}</strong></span>}
+            <span style={{fontSize:11,color:"#6b7280"}}>QOE: <strong style={{color:computed.goeVal>=0?"#059669":"#dc2626"}}>{(computed.goeVal>=0?"+":"")+computed.goeVal.toFixed(2)}</strong></span>
+            <span style={{marginLeft:"auto",fontSize:16,fontWeight:800,color:row.nv?"#dc2626":"#059669"}}>
+              {row.nv?"0.00":finalScore.toFixed(2)}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  function TrainingSimulator({importData,onImportDone}){
+    const [segment,setSegment]=useState("fp9");
+    const [skater,setSkater]=useState("");
+    const [cat,setCat]=useState("");
+    const [music,setMusic]=useState("");
+    const [judgeCount,setJudgeCount]=useState(3);
+    const [importMsg,setImportMsg]=useState("");
+
+    const isPairs=segment==="psp"||segment==="pfp";
+    const segDef=SEGMENT_DEFS[segment];
+    const types=isPairs?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE;
+    const pcsFactor=PCS_FACTORS[segment]||1.0;
+
+    const emptyRow=()=>({typeCode:"",elCode:"",judgeGoe:[0,0,0,0,0],rotation:"normal",comboEls:[],nv:false,dg:false,bonuses:[]});
+    const emptyPcs=()=>({skating:[0,0,0,0,0],transitions:[0,0,0,0,0],performance:[0,0,0,0,0],choreography:[0,0,0,0,0]});
+    const [rows,setRows]=useState(Array.from({length:segDef.rows},emptyRow));
+    const [pcs,setPcs]=useState(emptyPcs());
+    const [deductions,setDeductions]=useState(0);
+    const [extraPoints,setExtraPoints]=useState(0);
+
+    // Import from Content Sheet
+    React.useEffect(()=>{
+      if(!importData)return;
+      setSegment(importData.segment);
+      setSkater(importData.skater||"");
+      setCat(importData.cat||"");
+      setMusic(importData.music||"");
+      setJudgeCount(importData.judgeCount||3);
+      // Convert rows: add bonuses:[] field
+      const imported=importData.rows.map(r=>({...r,bonuses:r.bonuses||[],
+        comboEls:(r.comboEls||[]).map(s=>({...s,judgeGoe:s.judgeGoe||[0,0,0,0,0]}))}));
+      setRows(imported);
+      if(importData.pcs)setPcs(importData.pcs);
+      if(importData.deductions!==undefined)setDeductions(importData.deductions);
+      if(importData.extraPoints!==undefined)setExtraPoints(importData.extraPoints);
+      const filled=imported.filter(r=>{
+        const td=(importData.segment==="psp"||importData.segment==="pfp"?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE).find(t=>t.code===r.typeCode);
+        if(td?.isCombo)return(r.comboEls||[]).some(s=>s.code);
+        return!!r.elCode;
+      }).length;
+      setImportMsg(`${filled} Elemente aus Content Sheet geladen`);
+      if(onImportDone)onImportDone();
+      setTimeout(()=>setImportMsg(""),4000);
+    },[importData]);
+
+    const changeSegment=(s)=>{setSegment(s);setRows(Array.from({length:SEGMENT_DEFS[s].rows},emptyRow));setPcs(emptyPcs());setDeductions(0);setExtraPoints(0);};
+    const updateRow=useCallback((i,data)=>{setRows(prev=>prev.map((r,j)=>j===i?data:r));},[]);
+    const addRow=()=>setRows(prev=>[...prev,emptyRow()]);
+    const removeRow=(i)=>setRows(prev=>prev.filter((_,j)=>j!==i));
+    const clearAll=()=>{setRows(Array.from({length:segDef.rows},emptyRow));setPcs(emptyPcs());setDeductions(0);setExtraPoints(0);};
+
+    // Compute TES with bonuses
+    const {tes,bonusTotal,elements}=useMemo(()=>{
+      let tes=0,bonusTotal=0;
+      const elements=rows.map(row=>{
+        const computed=computeRow(row,types,judgeCount);
+        const rawBase=computed.base;
+        const bonuses=row.bonuses||[];
+        let bonusPct=0,hasOverride=false,overrideFactor=1;
+        bonuses.forEach(bid=>{const b=ALL_BONUSES.find(x=>x.id===bid);if(!b)return;if(b.isOverride){hasOverride=true;overrideFactor=1+b.pct;}else bonusPct+=b.pct;});
+        const adjBase=row.nv?0:hasOverride?Math.round(rawBase*overrideFactor*100)/100:Math.round(rawBase*(1+bonusPct)*100)/100;
+        const bp=Math.round((adjBase-rawBase)*100)/100;
+        const finalScore=row.nv?0:Math.round((adjBase+computed.goeVal)*100)/100;
+        bonusTotal+=bp;
+        tes+=finalScore;
+        return{rawBase,adjBase,bp,goeVal:computed.goeVal,finalScore,typeDef:computed.typeDef};
+      });
+      return{tes:Math.round(tes*100)/100,bonusTotal:Math.round(bonusTotal*100)/100,elements};
+    },[rows,types,judgeCount]);
+
+    // PCS
+    const pcsTotal=useMemo(()=>{
+      return PCS_COMPONENTS.reduce((sum,comp)=>{
+        const avg=calcPcsAvg(pcs[comp.key],judgeCount);
+        return sum+avg*pcsFactor;
+      },0);
+    },[pcs,judgeCount,pcsFactor]);
+
+    const totalScore=Math.round((tes+pcsTotal-deductions+extraPoints)*100)/100;
+
+    // Bonus summary
+    const bonusSummary=useMemo(()=>{
+      const map={};
+      rows.forEach(r=>(r.bonuses||[]).forEach(bid=>{
+        const b=ALL_BONUSES.find(x=>x.id===bid);
+        if(b){if(!map[bid])map[bid]={...b,count:0,total:0};map[bid].count++;}
+      }));
+      // Calculate totals from elements
+      rows.forEach((r,i)=>{
+        const el=elements[i];
+        if(!el)return;
+        (r.bonuses||[]).forEach(bid=>{
+          if(map[bid])map[bid].total+=el.bp/(r.bonuses||[]).length;
+        });
+      });
+      return Object.values(map);
+    },[rows,elements]);
+
+    const filled=rows.filter(r=>{
+      const td=types.find(t=>t.code===r.typeCode);
+      if(td?.isCombo)return(r.comboEls||[]).some(s=>s.code);
+      return!!r.elCode;
+    }).length;
+
+    return(
+      <div style={{padding:"16px 20px",maxWidth:1200,margin:"0 auto"}}>
+        {/* Segment + Judges */}
+        <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+          {Object.entries(SEGMENT_DEFS).map(([k,v])=>(
+            <button key={k} onClick={()=>changeSegment(k)} style={{padding:"6px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",
+              background:segment===k?"#059669":"#e5e7eb",color:segment===k?"white":"#374151"}}>{v.label}</button>
+          ))}
+          <span style={{marginLeft:"auto",fontSize:11,color:"#6b7280"}}>Judges:</span>
+          {[3,5].map(n=>(
+            <button key={n} onClick={()=>setJudgeCount(n)} style={{padding:"5px 12px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+              background:judgeCount===n?"#059669":"#e5e7eb",color:judgeCount===n?"white":"#374151"}}>{n}</button>
+          ))}
+        </div>
+
+        {/* Info */}
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+          <input placeholder="Name" value={skater} onChange={e=>setSkater(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
+          <input placeholder="Kategorie" value={cat} onChange={e=>setCat(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
+          <input placeholder="Musik" value={music} onChange={e=>setMusic(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
+        </div>
+
+        {/* Actions */}
+        <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+          <label style={{padding:"6px 12px",borderRadius:5,border:"1px solid #7c3aed",background:"#f5f3ff",color:"#7c3aed",fontWeight:600,fontSize:11,cursor:"pointer"}}>
+            Content Sheet laden (PDF/TXT)
+            <input type="file" accept=".pdf,.txt" onChange={e=>{
+              // Reuse the same upload logic by simulating through a hidden content sheet
+              const file=e.target.files?.[0];if(!file)return;e.target.value="";
+              const typeMap={};const curTypes=isPairs?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE;
+              curTypes.forEach(t=>{typeMap[t.code.toLowerCase()]=t.code;});
+              const fuzzy={...typeMap,col:"CoJ",c0j:"CoJ",siu:"SJu",fosg:"FoSq",fos:"FoSq",cli:"CLi",sli:"SLi",ctsp:"CtSp",tlj:"Tj",twlz:"Tw"};
+              if(file.name.toLowerCase().endsWith(".pdf")){
+                setImportMsg("PDF wird geladen...");
+                (async()=>{try{
+                  const ab=await file.arrayBuffer();
+                  const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+                  let text="";let textItems=0;
+                  for(let p=1;p<=pdf.numPages;p++){
+                    const page=await pdf.getPage(p);const content=await page.getTextContent();textItems+=content.items.length;
+                    const byY={};content.items.forEach(it=>{const y=Math.round(it.transform[5]);if(!byY[y])byY[y]=[];byY[y].push({t:it.str,x:it.transform[4]});});
+                    Object.keys(byY).sort((a,b)=>b-a).forEach(y=>{text+=byY[y].sort((a,b)=>a.x-b.x).map(i=>i.t).join(" ")+"\n";});
+                  }
+                  if(textItems<5){
+                    setImportMsg("Bild-PDF erkannt, OCR läuft...");text="";
+                    for(let p=1;p<=pdf.numPages;p++){
+                      const pg=await pdf.getPage(p);const vp=pg.getViewport({scale:3});
+                      const canvas=document.createElement("canvas");canvas.width=vp.width;canvas.height=vp.height;
+                      const ctx=canvas.getContext("2d");await pg.render({canvasContext:ctx,viewport:vp}).promise;
+                      const res=await Tesseract.recognize(canvas,"eng",{logger:m=>{if(m.status==="recognizing text")setImportMsg(`OCR: ${Math.round((m.progress||0)*100)}%`);}});
+                      text+=res.data.text+"\n";
+                    }
+                  }
+                  const nm=text.match(/(?:COMPETITORS?\s*NAME|NAME)\s*[=_|]*\s*(.+?)(?:\n|$)/im);
+                  const cm=text.match(/CATEGORY\s+(.+?)(?:\n|$)/im);
+                  if(nm)setSkater(nm[1].trim().replace(/^[=_|]+\s*/,''));
+                  if(cm)setCat(cm[1].trim());
+                  const newRows=[];
+                  text.split("\n").forEach(line=>{
+                    const t=line.trim();if(!t)return;
+                    if(/ELEMENT|DECLARED|PERFORMED|Filled|Panel|Notes|Time|Code|PROGRAM|CONTENT|SHEET|WORLD|SKATE|COMPETITOR|CATEGORY/i.test(t))return;
+                    const rm=t.match(/^(\d{1,2})\b/);if(!rm)return;
+                    const words=t.substring(rm[0].length).trim().split(/\s+/);
+                    for(const w of words){const c=w.replace(/[^A-Za-z0-9]/g,'');if(c.length<2||c.length>6)continue;
+                      const tc=fuzzy[c.toLowerCase()];if(tc){newRows.push({...emptyRow(),typeCode:tc});break;}}
+                  });
+                  if(newRows.length>0){while(newRows.length<segDef.rows)newRows.push(emptyRow());setRows(newRows);
+                    setImportMsg(`${newRows.filter(r=>r.typeCode).length} Elemente aus PDF geladen`);
+                  }else{setImportMsg("Keine Elemente erkannt");}
+                  setTimeout(()=>setImportMsg(""),5000);
+                }catch(err){setImportMsg("Fehler: "+err.message);}})();
+              }else{
+                const reader=new FileReader();
+                reader.onload=ev=>{
+                  const codes=ev.target.result.split("\n").map(l=>l.trim()).filter(l=>l);
+                  const newRows=[];const allData=curTypes.flatMap(t=>t.data.map(e=>({...e,typeCode:t.code})));
+                  codes.forEach(code=>{const found=allData.find(e=>e.code===code);
+                    if(found)newRows.push({...emptyRow(),typeCode:found.typeCode,elCode:found.code});});
+                  while(newRows.length<segDef.rows)newRows.push(emptyRow());setRows(newRows);
+                  setImportMsg(`${newRows.filter(r=>r.elCode).length} Elemente geladen`);
+                  setTimeout(()=>setImportMsg(""),5000);
+                };reader.readAsText(file);
+              }
+            }} style={{display:"none"}}/>
+          </label>
+          <button onClick={addRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #059669",background:"#f0fdf4",color:"#059669",fontWeight:600,fontSize:11,cursor:"pointer"}}>+ Element</button>
+          <button onClick={clearAll} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Alles löschen</button>
+          {importMsg&&<span style={{fontSize:11,color:"#059669",fontWeight:600,background:"#f0fdf4",padding:"4px 10px",borderRadius:5,border:"1px solid #86efac"}}>{importMsg}</span>}
+          <div style={{marginLeft:"auto",fontSize:11,color:"#6b7280"}}>{filled} / {rows.length} Elemente</div>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:16,alignItems:"start"}}>
+          {/* Element cards */}
+          <div>
+            <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:800,color:"#065f46"}}>Programm-Elemente</h3>
+            {rows.map((r,i)=>(
+              <SimElementCard key={i} num={i+1} row={r} types={types} judgeCount={judgeCount}
+                onChange={d=>updateRow(i,d)} onRemove={()=>removeRow(i)} totalRows={rows.length}/>
+            ))}
+
+            {/* PCS */}
+            <div style={{background:"white",borderRadius:10,border:"2px solid #93c5fd",padding:12,marginTop:16}}>
+              <h3 style={{margin:"0 0 8px",fontSize:14,fontWeight:800,color:"#1e40af"}}>Program Components (Faktor {pcsFactor.toFixed(1)})</h3>
+              {PCS_COMPONENTS.map(comp=>{
+                const avg=calcPcsAvg(pcs[comp.key],judgeCount);
+                const sc=Math.round(avg*pcsFactor*100)/100;
+                return(
+                  <div key={comp.key} style={{display:"flex",gap:6,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
+                    <span style={{fontSize:11,fontWeight:600,minWidth:170}}>{comp.label}</span>
+                    {Array.from({length:judgeCount}).map((_,ji)=>(
+                      <select key={ji} value={pcs[comp.key][ji]} onChange={e=>{
+                        const np={...pcs};np[comp.key]=[...np[comp.key]];np[comp.key][ji]=parseFloat(e.target.value);setPcs(np);
+                      }} style={{...SEL,width:48,fontSize:11,padding:"3px 1px",textAlign:"center"}}>
+                        {Array.from({length:41},(_,i)=>i*0.25).map(v=><option key={v} value={v}>{v.toFixed(2)}</option>)}
+                      </select>
+                    ))}
+                    <span style={{fontSize:11,fontWeight:700,color:"#3b82f6",minWidth:40,textAlign:"right"}}>{avg.toFixed(2)}</span>
+                    <span style={{fontSize:13,fontWeight:800,color:"#3b82f6",minWidth:50,textAlign:"right"}}>{sc.toFixed(2)}</span>
+                  </div>
+                );
+              })}
+              <div style={{borderTop:"2px solid #93c5fd",marginTop:6,paddingTop:6,textAlign:"right",fontSize:16,fontWeight:800,color:"#1e40af"}}>
+                PCS: {pcsTotal.toFixed(2)}
+              </div>
+            </div>
+
+            {/* Deductions */}
+            <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:12,marginTop:12}}>
+              <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:12,fontWeight:700,color:"#dc2626"}}>Abzüge:</span>
+                  <button onClick={()=>setDeductions(d=>Math.round((d+0.5)*100)/100)} style={{padding:"2px 6px",borderRadius:3,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:700,fontSize:11,cursor:"pointer"}}>+0.5</button>
+                  <input type="number" min="0" step="0.1" value={deductions} onChange={e=>setDeductions(parseFloat(e.target.value)||0)}
+                    style={{width:50,padding:"4px",borderRadius:4,border:"2px solid #fca5a5",fontSize:13,fontWeight:800,textAlign:"center",color:"#dc2626"}}/>
+                  <button onClick={()=>setDeductions(0)} style={{padding:"2px 6px",borderRadius:3,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
+                </div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{fontSize:12,fontWeight:700,color:"#059669"}}>Extra:</span>
+                  <button onClick={()=>setExtraPoints(d=>Math.round((d+0.5)*100)/100)} style={{padding:"2px 6px",borderRadius:3,border:"1px solid #86efac",background:"#f0fdf4",color:"#059669",fontWeight:700,fontSize:11,cursor:"pointer"}}>+0.5</button>
+                  <input type="number" min="0" step="0.1" value={extraPoints} onChange={e=>setExtraPoints(parseFloat(e.target.value)||0)}
+                    style={{width:50,padding:"4px",borderRadius:4,border:"2px solid #86efac",fontSize:13,fontWeight:800,textAlign:"center",color:"#059669"}}/>
+                  <button onClick={()=>setExtraPoints(0)} style={{padding:"2px 6px",borderRadius:3,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar summary */}
+          <div style={{position:"sticky",top:16}}>
+            {/* Score card */}
+            <div style={{background:"linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)",borderRadius:12,padding:16,color:"white",marginBottom:12}}>
+              <div style={{fontSize:10,fontWeight:600,opacity:.8,letterSpacing:1,textTransform:"uppercase"}}>Total Score</div>
+              <div style={{fontSize:38,fontWeight:800,lineHeight:1.1}}>{totalScore.toFixed(2)}</div>
+              <div style={{fontSize:10,opacity:.75,marginTop:4}}>TES {tes.toFixed(2)} + PCS {pcsTotal.toFixed(2)}</div>
+              {deductions>0&&<div style={{fontSize:10,opacity:.75}}>- Abzüge {deductions.toFixed(2)}</div>}
+              {extraPoints>0&&<div style={{fontSize:10,opacity:.75}}>+ Extra {extraPoints.toFixed(2)}</div>}
+            </div>
+
+            {/* TES breakdown */}
+            <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:12,marginBottom:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#065f46",marginBottom:6}}>TES Aufschlüsselung</div>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
+                <span style={{color:"#6b7280"}}>Basiswerte:</span>
+                <span style={{fontWeight:700}}>{(tes-bonusTotal-elements.reduce((s,e)=>s+e.goeVal,0)).toFixed(2)}</span>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
+                <span style={{color:"#059669"}}>Bonus-Punkte:</span>
+                <span style={{fontWeight:700,color:"#059669"}}>{bonusTotal>0?"+":""}{bonusTotal.toFixed(2)}</span>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
+                <span style={{color:elements.reduce((s,e)=>s+e.goeVal,0)>=0?"#059669":"#dc2626"}}>QOE gesamt:</span>
+                <span style={{fontWeight:700,color:elements.reduce((s,e)=>s+e.goeVal,0)>=0?"#059669":"#dc2626"}}>
+                  {elements.reduce((s,e)=>s+e.goeVal,0)>=0?"+":""}{elements.reduce((s,e)=>s+e.goeVal,0).toFixed(2)}
+                </span>
+              </div>
+              <div style={{borderTop:"2px solid #059669",paddingTop:4,display:"flex",justifyContent:"space-between",fontSize:13,fontWeight:800,color:"#059669"}}>
+                <span>TES:</span><span>{tes.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Bonus summary */}
+            <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#065f46",marginBottom:6}}>Aktive Boni</div>
+              {bonusSummary.length===0?(
+                <div style={{fontSize:11,color:"#9ca3af",fontStyle:"italic"}}>Keine Boni ausgewählt</div>
+              ):bonusSummary.map((b,i)=>(
+                <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,padding:"3px 0",borderBottom:"1px solid #f3f4f6"}}>
+                  <span style={{color:"#374151"}}>{b.label}</span>
+                  <span style={{fontWeight:700,color:"#059669"}}>{b.count}x</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Element quality */}
+            <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:12,marginTop:12}}>
+              <div style={{fontSize:12,fontWeight:700,color:"#065f46",marginBottom:6}}>Element-Qualität</div>
+              {elements.map((el,i)=>{
+                if(!el.typeDef)return null;
+                const pct=el.rawBase>0?Math.round((el.finalScore/el.rawBase)*100):0;
+                const color=pct>=120?"#059669":pct>=100?"#22c55e":pct>=80?"#f59e0b":"#dc2626";
+                return(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:4,marginBottom:3}}>
+                    <span style={{fontSize:9,color:"#6b7280",width:14,textAlign:"right"}}>{i+1}</span>
+                    <div style={{flex:1,background:"#f3f4f6",borderRadius:3,height:8,overflow:"hidden"}}>
+                      <div style={{width:`${Math.min(pct,150)}%`,height:"100%",background:color,borderRadius:3,transition:"width .3s"}}/>
+                    </div>
+                    <span style={{fontSize:9,fontWeight:700,color,minWidth:28,textAlign:"right"}}>{pct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* KI-Coach */}
+            <KiCoach rows={rows} types={types} segment={segment} judgeCount={judgeCount}
+              elements={elements} tes={tes} pcsTotal={pcsTotal} bonusTotal={bonusTotal} pcs={pcs}/>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
+  //  AUTH SYSTEM
+  // ============================================================
+  const API_BASE = window.location.origin;
+
+  const api = async (endpoint, opts = {}) => {
+    const token = localStorage.getItem('rollart_token');
+    const headers = { 'Content-Type': 'application/json', ...opts.headers };
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const res = await fetch(API_BASE + endpoint, { ...opts, headers });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Fehler');
+    return data;
+  };
+
+  const AuthContext = createContext(null);
+  const useAuth = () => useContext(AuthContext);
+
+  function AuthProvider({ children }) {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+      const token = localStorage.getItem('rollart_token');
+      if (!token) { setLoading(false); return; }
+      api('/api/me').then(d => setUser(d.user)).catch(() => {
+        localStorage.removeItem('rollart_token');
+      }).finally(() => setLoading(false));
+    }, []);
+
+    const login = async (email, password) => {
+      const d = await api('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+      localStorage.setItem('rollart_token', d.token);
+      setUser(d.user);
+      return d.user;
+    };
+
+    const register = async (data) => {
+      const d = await api('/api/register', { method: 'POST', body: JSON.stringify(data) });
+      localStorage.setItem('rollart_token', d.token);
+      setUser(d.user);
+      return d.user;
+    };
+
+    const logout = () => {
+      localStorage.removeItem('rollart_token');
+      setUser(null);
+    };
+
+    const updateProfile = async (data) => {
+      const d = await api('/api/me', { method: 'PUT', body: JSON.stringify(data) });
+      setUser(d.user);
+      return d.user;
+    };
+
+    const changePassword = async (currentPassword, newPassword) => {
+      await api('/api/me/password', { method: 'PUT', body: JSON.stringify({ currentPassword, newPassword }) });
+    };
+
+    if (loading) return React.createElement('div', {
+      style: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh',
+        background: 'linear-gradient(135deg,#065f46,#059669)', color: 'white', fontSize: 18, fontWeight: 600 }
+    }, 'RollArt wird geladen...');
+
+    return React.createElement(AuthContext.Provider, { value: { user, login, register, logout, updateProfile, changePassword } }, children);
+  }
+
+  // ============================================================
+  //  LOGIN / REGISTER SCREEN
+  // ============================================================
+  function LoginScreen() {
+    const { login, register } = useAuth();
+    const [mode, setMode] = useState("login"); // login | register
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [name, setName] = useState("");
+    const [verein, setVerein] = useState("");
+    const [kategorie, setKategorie] = useState("");
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setError("");
+      setLoading(true);
+      try {
+        if (mode === "login") {
+          await login(email, password);
+        } else {
+          await register({ email, password, name, verein, kategorie });
+        }
+      } catch (err) {
+        setError(err.message);
+      }
+      setLoading(false);
+    };
+
+    const inputStyle = {
+      width: "100%", padding: "10px 14px", borderRadius: 8, border: "2px solid #d1d5db",
+      fontSize: 14, fontFamily: "inherit", outline: "none", transition: "border .2s",
+    };
+    const labelStyle = { display: "block", fontSize: 12, fontWeight: 600, color: "#374151", marginBottom: 4 };
+
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+        background: "linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)", padding: 20 }}>
+        <div style={{ background: "white", borderRadius: 16, padding: 32, width: "100%", maxWidth: 420,
+          boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
+          {/* Logo */}
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 3, color: "#059669", textTransform: "uppercase" }}>World Skate</div>
+            <h1 style={{ margin: "4px 0", fontSize: 28, fontWeight: 800, color: "#065f46" }}>RollArt 2026</h1>
+            <p style={{ fontSize: 12, color: "#6b7280" }}>Artistic Roller Skating Scoring Platform</p>
+          </div>
+
+          {/* Tabs */}
+          <div style={{ display: "flex", marginBottom: 20, borderRadius: 8, overflow: "hidden", border: "2px solid #059669" }}>
+            <button onClick={() => { setMode("login"); setError(""); }}
+              style={{ flex: 1, padding: "10px", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                background: mode === "login" ? "#059669" : "white", color: mode === "login" ? "white" : "#059669" }}>
+              Anmelden
+            </button>
+            <button onClick={() => { setMode("register"); setError(""); }}
+              style={{ flex: 1, padding: "10px", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                background: mode === "register" ? "#059669" : "white", color: mode === "register" ? "white" : "#059669" }}>
+              Registrieren
+            </button>
+          </div>
+
+          {error && (
+            <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 8, padding: "8px 12px",
+              marginBottom: 16, fontSize: 12, color: "#dc2626", fontWeight: 600 }}>{error}</div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            {mode === "register" && (
+              <div style={{ marginBottom: 14 }}>
+                <label style={labelStyle}>Name *</label>
+                <input value={name} onChange={e => setName(e.target.value)} placeholder="Vor- und Nachname"
+                  required style={inputStyle} />
+              </div>
+            )}
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Email *</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="deine@email.de"
+                required style={inputStyle} />
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Passwort *</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)}
+                placeholder={mode === "register" ? "Mind. 6 Zeichen" : "Passwort"}
+                required minLength={mode === "register" ? 6 : 1} style={inputStyle} />
+            </div>
+
+            {mode === "register" && (
+              <>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={labelStyle}>Verein / Club</label>
+                  <input value={verein} onChange={e => setVerein(e.target.value)} placeholder="z.B. RRV Eppingen"
+                    style={inputStyle} />
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={labelStyle}>Kategorie</label>
+                  <input value={kategorie} onChange={e => setKategorie(e.target.value)} placeholder="z.B. Cadet, Junior, Senior..."
+                    style={inputStyle} />
+                </div>
+              </>
+            )}
+
+            <button type="submit" disabled={loading}
+              style={{ width: "100%", padding: "12px", borderRadius: 8, border: "none",
+                background: loading ? "#9ca3af" : "linear-gradient(135deg,#065f46,#059669)",
+                color: "white", fontSize: 15, fontWeight: 700, cursor: loading ? "wait" : "pointer",
+                marginTop: 8, transition: "all .2s" }}>
+              {loading ? "Bitte warten..." : mode === "login" ? "Anmelden" : "Konto erstellen"}
+            </button>
+          </form>
+
+          <p style={{ textAlign: "center", marginTop: 16, fontSize: 11, color: "#9ca3af" }}>
+            {mode === "login" ? "Noch kein Konto?" : "Bereits registriert?"}
+            {" "}
+            <span onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}
+              style={{ color: "#059669", fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>
+              {mode === "login" ? "Jetzt registrieren" : "Jetzt anmelden"}
+            </span>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
+  //  PROFILE SCREEN
+  // ============================================================
+  function ProfileScreen({ onClose }) {
+    const { user, updateProfile, changePassword, logout } = useAuth();
+    const [name, setName] = useState(user?.name || "");
+    const [verein, setVerein] = useState(user?.verein || "");
+    const [kategorie, setKategorie] = useState(user?.kategorie || "");
+    const [msg, setMsg] = useState("");
+    const [error, setError] = useState("");
+    const [saving, setSaving] = useState(false);
+
+    // Password change
+    const [showPwChange, setShowPwChange] = useState(false);
+    const [curPw, setCurPw] = useState("");
+    const [newPw, setNewPw] = useState("");
+    const [pwMsg, setPwMsg] = useState("");
+    const [pwError, setPwError] = useState("");
+
+    const handleSave = async () => {
+      setMsg(""); setError(""); setSaving(true);
+      try {
+        await updateProfile({ name, verein, kategorie });
+        setMsg("Profil gespeichert!");
+        setTimeout(() => setMsg(""), 3000);
+      } catch (err) { setError(err.message); }
+      setSaving(false);
+    };
+
+    const handlePwChange = async () => {
+      setPwMsg(""); setPwError("");
+      try {
+        await changePassword(curPw, newPw);
+        setPwMsg("Passwort geaendert!");
+        setCurPw(""); setNewPw(""); setShowPwChange(false);
+        setTimeout(() => setPwMsg(""), 3000);
+      } catch (err) { setPwError(err.message); }
+    };
+
+    const inputStyle = {
+      width: "100%", padding: "8px 12px", borderRadius: 6, border: "2px solid #d1d5db",
+      fontSize: 13, fontFamily: "inherit", outline: "none",
+    };
+    const labelStyle = { display: "block", fontSize: 11, fontWeight: 600, color: "#374151", marginBottom: 3 };
+
+    return (
+      <div style={{ padding: "20px", maxWidth: 500, margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#065f46" }}>Mein Profil</h2>
+          <button onClick={onClose} style={{ padding: "5px 12px", borderRadius: 6, border: "none",
+            background: "#e5e7eb", color: "#374151", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>Zurueck</button>
+        </div>
+
+        {/* User info badge */}
+        <div style={{ background: "linear-gradient(135deg,#065f46,#059669)", borderRadius: 12, padding: 16,
+          color: "white", marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,.2)",
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800 }}>
+            {(user?.name || "?")[0].toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700 }}>{user?.name}</div>
+            <div style={{ fontSize: 11, opacity: 0.8 }}>{user?.email}</div>
+            <div style={{ fontSize: 10, opacity: 0.6 }}>Mitglied seit {new Date(user?.created_at).toLocaleDateString("de-DE")}</div>
+          </div>
+        </div>
+
+        {/* Profile form */}
+        <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e7eb", padding: 20, marginBottom: 16 }}>
+          <h3 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700, color: "#374151" }}>Profildaten</h3>
+
+          {error && <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 6,
+            padding: "6px 10px", marginBottom: 12, fontSize: 11, color: "#dc2626" }}>{error}</div>}
+          {msg && <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6,
+            padding: "6px 10px", marginBottom: 12, fontSize: 11, color: "#059669", fontWeight: 600 }}>{msg}</div>}
+
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>Name</label>
+            <input value={name} onChange={e => setName(e.target.value)} style={inputStyle} />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>Email</label>
+            <input value={user?.email || ""} disabled style={{ ...inputStyle, background: "#f3f4f6", color: "#9ca3af" }} />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={labelStyle}>Verein / Club</label>
+            <input value={verein} onChange={e => setVerein(e.target.value)} placeholder="z.B. RRV Eppingen" style={inputStyle} />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>Kategorie</label>
+            <input value={kategorie} onChange={e => setKategorie(e.target.value)} placeholder="z.B. Cadet, Junior, Senior..." style={inputStyle} />
+          </div>
+          <button onClick={handleSave} disabled={saving}
+            style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: "#059669",
+              color: "white", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            {saving ? "Speichern..." : "Profil speichern"}
+          </button>
+        </div>
+
+        {/* Password change */}
+        <div style={{ background: "white", borderRadius: 12, border: "1px solid #e5e7eb", padding: 20, marginBottom: 16 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#374151" }}>Passwort</h3>
+            <button onClick={() => setShowPwChange(!showPwChange)}
+              style={{ padding: "4px 10px", borderRadius: 5, border: "1px solid #d1d5db", background: "#f9fafb",
+                color: "#374151", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>
+              {showPwChange ? "Abbrechen" : "Passwort aendern"}
+            </button>
+          </div>
+          {pwMsg && <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 6,
+            padding: "6px 10px", marginTop: 10, fontSize: 11, color: "#059669", fontWeight: 600 }}>{pwMsg}</div>}
+          {showPwChange && (
+            <div style={{ marginTop: 12 }}>
+              {pwError && <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 6,
+                padding: "6px 10px", marginBottom: 10, fontSize: 11, color: "#dc2626" }}>{pwError}</div>}
+              <div style={{ marginBottom: 10 }}>
+                <label style={labelStyle}>Aktuelles Passwort</label>
+                <input type="password" value={curPw} onChange={e => setCurPw(e.target.value)} style={inputStyle} />
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <label style={labelStyle}>Neues Passwort (min. 6 Zeichen)</label>
+                <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} minLength={6} style={inputStyle} />
+              </div>
+              <button onClick={handlePwChange}
+                style={{ padding: "6px 14px", borderRadius: 5, border: "none", background: "#f59e0b",
+                  color: "white", fontWeight: 700, fontSize: 12, cursor: "pointer" }}>Passwort aendern</button>
+            </div>
+          )}
+        </div>
+
+        {/* Logout / Danger zone */}
+        <div style={{ background: "#fef2f2", borderRadius: 12, border: "1px solid #fca5a5", padding: 16 }}>
+          <button onClick={logout}
+            style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: "#dc2626",
+              color: "white", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Abmelden</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
+  //  MAIN DASHBOARD
+  // ============================================================
+  function App() {
+    const authCtx = useAuth();
+    const [page, setPage] = useState("content"); // "content", "official", "training", "profile"
+    const [simImport, setSimImport] = useState(null);
+    const [segment, setSegment] = useState("fp9");
+    const [skater, setSkater] = useState("");
+    const [cat, setCat] = useState("");
+    const [music, setMusic] = useState("");
+    const [uploadMsg, setUploadMsg] = useState("");
+    const [judgeCount, setJudgeCount] = useState(3);
+
+    // Program Components: each component has scores for up to 5 judges
+    const emptyPcs = () => ({
+      skating:[0,0,0,0,0], transitions:[0,0,0,0,0],
+      performance:[0,0,0,0,0], choreography:[0,0,0,0,0],
+    });
+    const [pcs, setPcs] = useState(emptyPcs());
+    const [deductions, setDeductions] = useState(0);
+    const [extraPoints, setExtraPoints] = useState(0);
+    const [showGlossar, setShowGlossar] = useState(false);
+    const [showPenalties, setShowPenalties] = useState(false);
+
+    const isPairs = segment==="psp"||segment==="pfp";
+    const segDef = SEGMENT_DEFS[segment];
+    const types = isPairs ? ELEMENT_TYPES_PAIRS : ELEMENT_TYPES_FREE;
+
+    const emptyRow = () => ({ typeCode:"", elCode:"", judgeGoe:[0,0,0,0,0], rotation:"normal", comboEls:[], nv:false, dg:false });
+    const [rows, setRows] = useState(Array.from({length:segDef.rows}, emptyRow));
+
+    const changeSegment = (s) => {
+      setSegment(s);
+      setRows(Array.from({length:SEGMENT_DEFS[s].rows}, emptyRow));
+      setPcs(emptyPcs());
+      setDeductions(0);
+      setExtraPoints(0);
+    };
+
+    const updateRow = useCallback((i, data) => {
+      setRows(prev => prev.map((r,j)=>j===i?data:r));
+    }, []);
+
+    const addRow = () => setRows(prev=>[...prev, emptyRow()]);
+    const removeRow = () => rows.length>1 && setRows(prev=>prev.slice(0,-1));
+    const clearAll = () => { setRows(Array.from({length:segDef.rows}, emptyRow)); setPcs(emptyPcs()); setDeductions(0); setExtraPoints(0); };
+
+    // Compute TES using computeRow (handles combos)
+    const tes = useMemo(() => {
+      return rows.reduce((sum,row) => {
+        const { score } = computeRow(row, types, judgeCount);
+        return sum + score;
+      }, 0);
+    }, [rows, types, judgeCount]);
+
+    const filled = rows.filter(r => {
+      const td = types.find(t=>t.code===r.typeCode);
+      if (td?.isCombo) return (r.comboEls||[]).some(s=>s.code);
+      return !!r.elCode;
+    }).length;
+
+    // Compute PCS
+    const pcsFactor = PCS_FACTORS[segment] || 1.0;
+    const pcsTotal = useMemo(() => {
+      return PCS_COMPONENTS.reduce((sum, comp) => {
+        const avg = calcPcsAvg(pcs[comp.key], judgeCount);
+        return sum + avg * pcsFactor;
+      }, 0);
+    }, [pcs, judgeCount, pcsFactor]);
+
+    // Total Score
+    const totalScore = Math.round((tes + pcsTotal - deductions + extraPoints) * 100) / 100;
+
+    // === PDF Content Sheet Upload with OCR ===
+    const handleUpload = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      e.target.value = "";
+
+      const typeMap = {};
+      types.forEach(t => { typeMap[t.code.toLowerCase()] = t.code; });
+      // fuzzy OCR variants
+      const fuzzy = {...typeMap, col:"CoJ",c0j:"CoJ",siu:"SJu",fosg:"FoSq",fos:"FoSq",
+        cli:"CLi",sli:"SLi",ctsp:"CtSp",tlj:"Tj",twlz:"Tw"};
+
+      if (file.name.toLowerCase().endsWith(".pdf")) {
+        setUploadMsg("PDF wird geladen...");
+        try {
+          const ab = await file.arrayBuffer();
+          const pdf = await pdfjsLib.getDocument({data:ab}).promise;
+          let text = "";
+          let textItems = 0;
+          for (let p=1;p<=pdf.numPages;p++) {
+            const page = await pdf.getPage(p);
+            const content = await page.getTextContent();
+            textItems += content.items.length;
+            const byY={};
+            content.items.forEach(it=>{const y=Math.round(it.transform[5]);if(!byY[y])byY[y]=[];byY[y].push({t:it.str,x:it.transform[4]});});
+            Object.keys(byY).sort((a,b)=>b-a).forEach(y=>{
+              text += byY[y].sort((a,b)=>a.x-b.x).map(i=>i.t).join(" ")+"\n";
+            });
+          }
+          // If image PDF, use OCR
+          if (textItems < 5) {
+            setUploadMsg("Bild-PDF erkannt, OCR läuft...");
+            text = "";
+            for (let p=1;p<=pdf.numPages;p++) {
+              const page = await pdf.getPage(p);
+              const vp = page.getViewport({scale:3});
+              const canvas = document.createElement("canvas");
+              canvas.width=vp.width; canvas.height=vp.height;
+              const ctx=canvas.getContext("2d");
+              await page.render({canvasContext:ctx,viewport:vp}).promise;
+              // Remove table lines
+              const id=ctx.getImageData(0,0,canvas.width,canvas.height);
+              const d=id.data; const w=canvas.width; const h=canvas.height;
+              const g=new Uint8Array(w*h);
+              for(let i=0;i<w*h;i++) g[i]=Math.round(.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2]);
+              const mask=new Uint8Array(w*h);
+              const minH=Math.floor(w*.15), minV=Math.floor(h*.05);
+              for(let y=0;y<h;y++){let s=-1;for(let x=0;x<=w;x++){const dk=x<w&&g[y*w+x]<120;if(dk&&s===-1)s=x;if(!dk&&s!==-1){if(x-s>minH)for(let r=s;r<x;r++)mask[y*w+r]=1;s=-1;}}}
+              for(let x=0;x<w;x++){let s=-1;for(let y=0;y<=h;y++){const dk=y<h&&g[y*w+x]<120;if(dk&&s===-1)s=y;if(!dk&&s!==-1){if(y-s>minV)for(let r=s;r<y;r++)mask[r*w+x]=1;s=-1;}}}
+              for(let i=0;i<w*h;i++)if(mask[i]){d[i*4]=255;d[i*4+1]=255;d[i*4+2]=255;}
+              ctx.putImageData(id,0,0);
+              const res = await Tesseract.recognize(canvas,"eng",{
+                logger:m=>{if(m.status==="recognizing text")setUploadMsg(`OCR: ${Math.round((m.progress||0)*100)}%`);}
+              });
+              text += res.data.text+"\n";
+            }
+          }
+          // Parse
+          const nm=text.match(/(?:COMPETITORS?\s*NAME|NAME)\s*[=_|]*\s*(.+?)(?:\n|$)/im);
+          const cm=text.match(/CATEGORY\s+(.+?)(?:\n|$)/im);
+          if(nm)setSkater(nm[1].trim().replace(/^[=_|]+\s*/,''));
+          if(cm)setCat(cm[1].trim());
+
+          const newRows=[];
+          text.split("\n").forEach(line=>{
+            const t=line.trim();
+            if(!t)return;
+            if(/ELEMENT|DECLARED|PERFORMED|Filled|Panel|Notes|Time|Code|PROGRAM|CONTENT|SHEET|WORLD|SKATE|COMPETITOR|CATEGORY|Representing|CHOREOGRAPHY/i.test(t))return;
+            const rm=t.match(/^(\d{1,2})\b/);
+            if(!rm)return;
+            const words=t.substring(rm[0].length).trim().split(/\s+/);
+            for(const w of words){
+              const c=w.replace(/[^A-Za-z0-9]/g,'');
+              if(c.length<2||c.length>6)continue;
+              const tc=fuzzy[c.toLowerCase()];
+              if(tc){newRows.push({...emptyRow(),typeCode:tc});break;}
+            }
+          });
+          if(newRows.length>0){
+            while(newRows.length<segDef.rows)newRows.push(emptyRow());
+            setRows(newRows);
+            setUploadMsg(`${newRows.filter(r=>r.typeCode).length} Elemente geladen`);
+          } else { setUploadMsg("Keine Elemente erkannt"); }
+        } catch(err) { setUploadMsg("Fehler: "+err.message); }
+      } else {
+        // TXT: direct element codes
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const codes = ev.target.result.split("\n").map(l=>l.trim()).filter(l=>l);
+          const newRows = [];
+          const allData = types.flatMap(t=>t.data.map(e=>({...e,typeCode:t.code})));
+          codes.forEach(code => {
+            const found = allData.find(e=>e.code===code);
+            if(found) newRows.push({typeCode:found.typeCode, elCode:found.code, judgeGoe:[0,0,0,0,0], rotation:"normal", comboEls:[], nv:false, dg:false});
+          });
+          while(newRows.length<segDef.rows)newRows.push(emptyRow());
+          setRows(newRows);
+          setUploadMsg(`${newRows.filter(r=>r.elCode).length} Elemente geladen`);
+        };
+        reader.readAsText(file);
+      }
+    };
+
+    // Export
+    const exportTxt = () => {
+      const jCols = Array.from({length:judgeCount},(_,i)=>"J"+(i+1)).join("  ");
+      const lines = [`Skater: ${skater||"-"}`,`Kategorie: ${cat||"-"}`,`Segment: ${segDef.label}`,
+        `Musik: ${music||"-"}`,`Judges: ${judgeCount}`,`Datum: ${new Date().toLocaleDateString("de-DE")}`,"",
+        "=== TECHNICAL ELEMENT SCORE ===","",
+        `Nr | Typ  | Element              | Base  | ${jCols} | QOE   | NV/DG | Score`,"-".repeat(85)];
+      rows.forEach((r,i)=>{
+        const { base:b, goeVal:g, score:s, typeDef:td } = computeRow(r, types, judgeCount);
+        if (!td) return;
+        const flag = r.nv?"NV":r.dg?"DG":"  ";
+        let jScores;
+        if (td.isCombo) {
+          jScores = "per El.";
+        } else {
+          jScores = (r.judgeGoe||[]).slice(0,judgeCount).map(v=>(v>=0?"+"+v:""+v).padStart(3)).join(" ");
+        }
+        let elName = "";
+        if (td.isCombo) {
+          elName = (r.comboEls||[]).filter(sub=>sub.code).map(sub=>{
+            const el=td.data.find(e=>e.code===sub.code);
+            const subJ = (sub.judgeGoe||[]).slice(0,judgeCount).map(v=>(v>=0?"+"+v:""+v)).join(",");
+            return el ? el.code+(sub.nv?"(NV)":"")+(sub.rotation!=="normal"?`(${sub.rotation})`:"")+`[${subJ}]` : "";
+          }).join("+");
+        } else {
+          const el = td.data.find(e=>e.code===r.elCode);
+          if (el) elName = el.code+" "+el.name;
+        }
+        if (elName) lines.push(`${String(i+1).padStart(2)} | ${(r.typeCode||"").padEnd(4)} | ${elName.padEnd(20)} | ${b.toFixed(2).padStart(5)} | ${jScores} | ${(g>=0?"+":"")+g.toFixed(2).padStart(5)} | ${flag.padEnd(5)} | ${s.toFixed(2).padStart(6)}`);
+      });
+      lines.push("-".repeat(85));
+      lines.push(`TES: ${tes.toFixed(2)}`);
+      lines.push("");
+      lines.push("=== PROGRAM COMPONENT SCORE ===");
+      lines.push(`Faktor: ${pcsFactor.toFixed(1)}`);
+      PCS_COMPONENTS.forEach(comp=>{
+        const avg = calcPcsAvg(pcs[comp.key], judgeCount);
+        const sc = Math.round(avg*pcsFactor*100)/100;
+        const jScores = pcs[comp.key].slice(0,judgeCount).map(v=>v.toFixed(2).padStart(5)).join(" ");
+        lines.push(`${comp.label.padEnd(30)} | ${jScores} | Avg: ${avg.toFixed(2)} | Score: ${sc.toFixed(2)}`);
+      });
+      lines.push(`PCS: ${pcsTotal.toFixed(2)}`);
+      lines.push("");
+      if (deductions>0) lines.push(`Abzüge: -${deductions.toFixed(2)}`);
+      if (extraPoints>0) lines.push(`Extra: +${extraPoints.toFixed(2)}`);
+      lines.push(`\nTOTAL SCORE: ${totalScore.toFixed(2)}`);
+      const blob = new Blob([lines.join("\n")],{type:"text/plain"});
+      const a = document.createElement("a"); a.href=URL.createObjectURL(blob);
+      a.download=`${skater||"programm"}_${segDef.label.replace(/\s/g,"_")}.txt`; a.click();
+    };
+
+    // ============================================================
+    //  RENDER
+    // ============================================================
+    const hdr = { padding:"8px 4px", fontSize:10, fontWeight:700, color:"#065f46", textTransform:"uppercase", letterSpacing:0.5 };
+
+    return (
+      <div style={{ background:"#f8faf9", minHeight:"100vh" }}>
+        {/* HEADER */}
+        <div style={{ background:"linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)", padding:"16px 20px 12px", color:"white" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8 }}>
+            <div>
+              <div style={{fontSize:10,fontWeight:600,opacity:.8,letterSpacing:2,textTransform:"uppercase"}}>World Skate</div>
+              <h1 style={{margin:0,fontSize:22,fontWeight:800}}>RollArt 2026</h1>
+              {/* PAGE TABS */}
+              <div style={{display:"flex",gap:4,marginTop:6}}>
+                <button onClick={()=>setPage("content")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+                  background:page==="content"?"white":"rgba(255,255,255,.2)",color:page==="content"?"#059669":"white"}}>Wertung</button>
+                <button onClick={()=>setPage("official")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+                  background:page==="official"?"white":"rgba(255,255,255,.2)",color:page==="official"?"#059669":"white"}}>Official Sheets</button>
+                <button onClick={()=>setPage("training")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+                  background:page==="training"?"white":"rgba(255,255,255,.2)",color:page==="training"?"#059669":"white"}}>Training Simulator</button>
+              </div>
+            </div>
+            {/* User menu */}
+            {authCtx?.user && (
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <button onClick={()=>setPage("profile")} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",
+                  borderRadius:8,border:"2px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.1)",color:"white",
+                  cursor:"pointer",fontSize:12,fontWeight:600}}>
+                  <span style={{width:24,height:24,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",
+                    alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800}}>
+                    {(authCtx.user.name||"?")[0].toUpperCase()}
+                  </span>
+                  {authCtx.user.name}
+                </button>
+              </div>
+            )}
+            {page==="content"&&<div style={{textAlign:"right"}}>
+              <div style={{fontSize:10,opacity:.8}}>Total Score</div>
+              <div style={{fontSize:34,fontWeight:800,lineHeight:1}}>{totalScore.toFixed(2)}</div>
+              <div style={{fontSize:10,opacity:.7}}>TES {tes.toFixed(2)} + PCS {pcsTotal.toFixed(2)}{deductions>0?" - Ded "+deductions.toFixed(2):""}{extraPoints>0?" + Extra "+extraPoints.toFixed(2):""}</div>
+            </div>}
+          </div>
+
+          {/* Segment selector + Judge count (only for content sheet) */}
+          {page==="content"&&<div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap",alignItems:"center"}}>
+            {Object.entries(SEGMENT_DEFS).map(([k,v])=>(
+              <button key={k} onClick={()=>changeSegment(k)} style={{
+                padding:"6px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",
+                background:segment===k?"white":"rgba(255,255,255,.15)",
+                color:segment===k?"#059669":"white",
+              }}>{v.label} ({v.rows})</button>
+            ))}
+            <span style={{marginLeft:"auto",fontSize:11,opacity:.8}}>Judges:</span>
+            {[3,5].map(n=>(
+              <button key={n} onClick={()=>setJudgeCount(n)} style={{
+                padding:"5px 12px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+                background:judgeCount===n?"white":"rgba(255,255,255,.2)",
+                color:judgeCount===n?"#059669":"white",
+              }}>{n}</button>
+            ))}
+          </div>}
+        </div>
+
+        {/* TRAINING SIMULATOR PAGE */}
+        {page==="training"&&<TrainingSimulator importData={simImport} onImportDone={()=>setSimImport(null)}/>}
+
+        {/* PROFILE PAGE */}
+        {page==="profile"&&<ProfileScreen onClose={()=>setPage("content")}/>}
+
+        {/* OFFICIAL SHEETS PAGE */}
+        {page==="official"&&<OfficialSheets/>}
+
+        {/* CONTENT SHEET PAGE */}
+        {page==="content"&&<div style={{padding:"16px 20px",maxWidth:1150,margin:"0 auto"}}>
+
+          {/* Info fields */}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+            <input placeholder="Name" value={skater} onChange={e=>setSkater(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
+            <input placeholder="Kategorie" value={cat} onChange={e=>setCat(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
+            <input placeholder="Musik / Choreographie" value={music} onChange={e=>setMusic(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
+          </div>
+
+          {/* Actions */}
+          <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+            <label style={{padding:"6px 12px",borderRadius:5,border:"1px solid #059669",background:"#f0fdf4",color:"#059669",fontWeight:600,fontSize:11,cursor:"pointer"}}>
+              Content Sheet (PDF/TXT)
+              <input type="file" accept=".pdf,.txt" onChange={handleUpload} style={{display:"none"}}/>
+            </label>
+            <button onClick={exportTxt} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#059669",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>Exportieren</button>
+            <button onClick={()=>{
+              setSimImport({segment,skater,cat,music,judgeCount,rows:rows.map(r=>({...r})),pcs:{...pcs,skating:[...pcs.skating],transitions:[...pcs.transitions],performance:[...pcs.performance],choreography:[...pcs.choreography]},deductions,extraPoints,_ts:Date.now()});
+              setPage("training");
+            }} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#7c3aed",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
+              &#9654; An Simulator senden
+            </button>
+            <button onClick={addRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>+ Zeile</button>
+            <button onClick={removeRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>- Zeile</button>
+            <button onClick={clearAll} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Löschen</button>
+            <button onClick={()=>setShowGlossar(g=>!g)} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #6b7280",background:showGlossar?"#374151":"white",color:showGlossar?"white":"#374151",fontWeight:600,fontSize:11,cursor:"pointer"}}>Glossar & Regeln</button>
+            {uploadMsg && <span style={{fontSize:11,color:"#059669",fontWeight:500}}>{uploadMsg}</span>}
+          </div>
+
+          {showGlossar && (
+  <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16,marginBottom:16}}>
+    <h3 style={{margin:"0 0 12px",fontSize:16,fontWeight:800,color:"#065f46"}}>Glossar & Regeln (RollArt 2026)</h3>
+
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,fontSize:12}}>
+      <div>
+        <h4 style={{margin:"0 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Bewertungssystem</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["QOE","Quality of the Element – Qualitätsbewertung pro Element durch jeden Judge (+3 bis -3)"],
+              ["TE","Technical Value of Element – Basiswert des technischen Elements"],
+              ["TES / TC","Technical Element Score – Summe aller Elementwerte inkl. QOE"],
+              ["TVP","Technical Value of Program – Gesamttechnischer Wert (TC + AI - PE)"],
+              ["AI / PCS","Artistic Impression / Program Components – Skating Skills, Transitions, Performance, Choreography"],
+              ["PE","Penalization – Abzüge die vom TVP abgezogen werden"],
+              ["NV","No Value – Element erhält keinen Wert"],
+              ["DG","Downgrade – Element wird herabgestuft (halber Basiswert)"],
+            ].map(([k,v])=>(
+              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"4px 6px",fontWeight:700,color:"#065f46",whiteSpace:"nowrap",verticalAlign:"top"}}>{k}</td>
+                <td style={{padding:"4px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>QOE Richtlinien</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["0","Grundeigenschaften des Elements erreicht"],
+              ["+1","1–2 Features erfüllt"],
+              ["+2","3–4 Features erfüllt"],
+              ["+3","5–6 Features erfüllt"],
+              ["-1 bis -3","Fehler bei der Ausführung (siehe Neg. QOE Tabelle)"],
+            ].map(([k,v])=>(
+              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"3px 6px",fontWeight:700,color:k.startsWith("-")?"#dc2626":"#059669",whiteSpace:"nowrap",width:70}}>{k}</td>
+                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Bei mehr als 3 Judges: höchste & niedrigste QOE werden gestrichen (Trimmed Mean). Bei 3 oder weniger: einfacher Durchschnitt. Ergebnis auf 2 Dezimalstellen gerundet.</p>
+
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Rotation (Sprünge)</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["N (Normal)","Volle Rotation – voller Basiswert"],
+              ["< (Under-rotated)","Weniger als ¼ Rotation fehlt – 30% Abzug (1er/2er), 20% (3er/4er)"],
+              ["<< (Half-rotated)","¼ bis ½ Rotation fehlt – 50% Abzug (1er/2er), 40% (3er), 30% (4er)"],
+              ["<<< (Downgraded)","Mehr als ½ Rotation fehlt – Wert der nächsttieferen Rotation"],
+            ].map(([k,v])=>(
+              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"3px 6px",fontWeight:700,color:"#f59e0b",whiteSpace:"nowrap",verticalAlign:"top",width:130}}>{k}</td>
+                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <h4 style={{margin:"0 0 6px",fontSize:13,fontWeight:700,color:"#dc2626"}}>Penalisierungen (Referee)</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["1.0","Knien/Liegen > 1x oder > 5 Sek."],
+              ["1.0","Kostümverstoß (mit Meinung der Judges)"],
+              ["0.5/10s","Zeitverstoß (unter Minimum / über Maximum)"],
+              ["0.5","Start > 10 Sek. nach Musik"],
+              ["1.0","Unangemessene Musik/Texte"],
+              ["0.5","Verlassen der Fläche / Bande berühren"],
+              ["0.5","Ein-/Austritt nicht in erlaubter Zeit"],
+              ["1.0 + 1.0","Stürze: 1.0 für 1. und 2. Sturz"],
+              ["+0.5/+0.3","Weitere Stürze: +0.5 (Espoir-Senior) / +0.3 (Tots/Minis)"],
+            ].map(([k,v],i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"3px 6px",fontWeight:700,color:"#dc2626",whiteSpace:"nowrap",verticalAlign:"top",width:70}}>{k}</td>
+                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#dc2626"}}>Penalisierungen (Technical Panel)</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["1.0","Sprung > 1 Rotation in Footwork Sequence"],
+              ["1.0","Fehlendes Pflichtelement (Mandatory Element)"],
+              ["1.0","Illegales Element"],
+              ["1.0","Pflichtposition in Pirouette nicht versucht"],
+            ].map(([k,v],i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"3px 6px",fontWeight:700,color:"#dc2626",whiteSpace:"nowrap",width:40}}>{k}</td>
+                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Bonus-Prozente (Sprungwert-Erhöhung)</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["+10%","Sprung nach halber Programmlänge (Cadet, Youth, Junior, Senior)"],
+              ["+10%","Axel-Doppel Toeloop Kombi ohne Verbindungssprung (nur Minis)"],
+              ["+10%","Doppel-Doppel Kombi (Minis, Espoir, Cadet LP)"],
+              ["+20%","Doppel-Dreifach / Dreifach-Doppel Kombi"],
+              ["+30%","Dreifach-Dreifach Kombi"],
+            ].map(([k,v],i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"3px 6px",fontWeight:700,color:"#059669",whiteSpace:"nowrap",verticalAlign:"top",width:50}}>{k}</td>
+                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Hinweis: Doppel-Axel zählt als Dreifach für Bonus. Downgraded-Sprünge erhalten keinen Bonus.</p>
+
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Schwierige Pirouetten-Positionen (Bonus auf Basisposition)</h4>
+        <p style={{fontSize:10,color:"#6b7280",margin:"0 0 4px"}}>Der Prozentwert wird auf den Grundwert der Basisposition addiert.</p>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <thead>
+            <tr style={{background:"#f0fdf4",borderBottom:"2px solid #86efac"}}>
+              <th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,width:45}}>Code</th>
+              <th style={{padding:"3px 6px",textAlign:"left",fontWeight:700}}>Position</th>
+              <th style={{padding:"3px 6px",textAlign:"right",fontWeight:700,width:50}}>Bonus</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ["UB","Biellmann","+80%"],["UBH","Biellmann Heel","+40%"],
+              ["US","Split (Spagat)","+40%"],["UT","Torso","+50%"],
+              ["UL","Layback","+30%"],["UF","Forward","+20%"],["UH","Heel","+20%"],
+              ["SS","Sit Sideways","+60%"],["ST","Sit Twist","+40%"],
+              ["SF","Sit Forward","+50%"],["SB","Sit Behind","+20%"],
+              ["CF","Camel Forward","+40%"],["CS","Camel Sideways","+60%"],
+              ["CL","Camel Layover","+20%"],
+              ["BF","Broken Forward","+40%"],["BS","Broken Sideways","+60%"],
+              ["HF","Heel Forward","+40%"],["HS","Heel Sideways","+60%"],
+              ["HL","Heel Layover","+20%"],
+              ["IB","Inverted Bryant","+25%"],["SV","Standard Variation","+20%"],
+            ].map(([code,name,bonus],i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"2px 6px",fontWeight:700,color:"#065f46"}}>{code}</td>
+                <td style={{padding:"2px 6px",color:"#374151"}}>{name}</td>
+                <td style={{padding:"2px 6px",textAlign:"right",fontWeight:700,color:"#059669"}}>{bonus}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Schwierige Pirouetten-Variationen (Bonus auf Elementwert)</h4>
+        <p style={{fontSize:10,color:"#6b7280",margin:"0 0 4px"}}>Der Prozentwert wird als zusätzlicher Bonus auf den Wert des Elements addiert.</p>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <thead>
+            <tr style={{background:"#f0fdf4",borderBottom:"2px solid #86efac"}}>
+              <th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,width:45}}>Code</th>
+              <th style={{padding:"3px 6px",textAlign:"left",fontWeight:700}}>Variation</th>
+              <th style={{padding:"3px 6px",textAlign:"right",fontWeight:700,width:50}}>Bonus</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ["DE","Difficult Entry – Schwieriger Einstieg","+15%"],
+              ["DC","Difficult Change – Schwieriger Wechsel","+15%"],
+              ["SBC","Sit Between Camel – Sitz zwischen Waage","+15%"],
+              ["R6","Revolutions 6+ – Mind. 6 Umdrehungen","+20%"],
+              ["R4","Revolutions 4+ – Mind. 4 Umdr. (invertiert)","+20%"],
+              ["BD","Both Directions – Beide Richtungen","+15%"],
+              ["DF","Different Feet – Verschiedene Füße","+20%"],
+            ].map(([code,name,bonus],i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"2px 6px",fontWeight:700,color:"#065f46"}}>{code}</td>
+                <td style={{padding:"2px 6px",color:"#374151"}}>{name}</td>
+                <td style={{padding:"2px 6px",textAlign:"right",fontWeight:700,color:"#059669"}}>{bonus}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#f59e0b"}}>Sonderregeln Wertung</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["70%","Lutz No Edge – Lutz ohne korrekte Kante: nur 70% des Elementwerts"],
+              ["50%","Saved Combination – Gerettete Kombi: Verbindungssprung zählt 50% Basiswert"],
+              ["-50%","Fall / Sturz – Einzelsprung: -0.5 Abzug pro Sturz auf Gesamtpunktzahl"],
+              ["NV","No Value – Element wird nicht gewertet (z.B. bei illegalem Element oder fehlendem Kriterium)"],
+              ["DG","Downgrade – Herabstufung: Element wird als niedrigere Rotation gewertet, kein Bonus"],
+            ].map(([k,v],i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"3px 6px",fontWeight:700,color:"#d97706",whiteSpace:"nowrap",verticalAlign:"top",width:50}}>{k}</td>
+                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Alle Bonus-Prozente beziehen sich auf den Basiswert des Elements gem. offizieller World Skate Wertungstabellen 2026.</p>
+
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#3b82f6"}}>Alterskategorien</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["Tots","8–9 Jahre"],["Minis","10–11 Jahre"],["Espoir","12–13 Jahre"],
+              ["Cadet","14–15 Jahre"],["Youth","16 Jahre"],["Junior","17–18 Jahre"],["Senior","ab 19 Jahre"],
+            ].map(([k,v])=>(
+              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"2px 6px",fontWeight:600,width:60}}>{k}</td>
+                <td style={{padding:"2px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#3b82f6"}}>Elementtypen</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["CoJ","Combination Jump – Sprungkombination (bis 5 Sprünge)"],
+              ["SJu","Solo Jump – Einzelsprung"],
+              ["CSp","Combination Spin – Kombinationspirouette"],
+              ["SSp","Solo Spin – Einzelpirouette"],
+              ["FoSq","Footwork Sequence – Schrittfolge"],
+              ["ChSt","Choreo Step Sequence – Choreographische Schrittfolge"],
+              ["CLi","Combination Lift – Hebungskombination (Pairs)"],
+              ["SLi","Solo Lift – Einzelhebung (Pairs)"],
+              ["CtSp","Contact Spin – Kontaktpirouette (Pairs)"],
+              ["DS","Death Spiral – Todesspirale (Pairs)"],
+              ["Tw","Twist – Twist Lutz (Pairs)"],
+              ["Tj","Throw Jump – Wurfsprung (Pairs)"],
+            ].map(([k,v])=>(
+              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"2px 6px",fontWeight:700,color:"#065f46",width:45}}>{k}</td>
+                <td style={{padding:"2px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+)}
+
+          {/* TABLE */}
+          <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",overflow:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",minWidth:850}}>
+              <thead>
+                <tr style={{background:"#f0fdf4",borderBottom:"2px solid #059669"}}>
+                  <th style={{...hdr,textAlign:"center",width:32}}>#</th>
+                  <th style={{...hdr,textAlign:"left"}}>Typ</th>
+                  <th style={{...hdr,textAlign:"left"}}>Element</th>
+                  <th style={{...hdr,textAlign:"center"}}>Rot.</th>
+                  <th style={{...hdr,textAlign:"right",width:55}}>Base</th>
+                  {Array.from({length:judgeCount}).map((_,i)=>(
+                    <th key={i} style={{...hdr,textAlign:"center",width:38}}>J{i+1}</th>
+                  ))}
+                  <th style={{...hdr,textAlign:"right",width:50}}>QOE</th>
+                  <th style={{...hdr,textAlign:"center",width:52}}>NV/DG</th>
+                  <th style={{...hdr,textAlign:"right",width:60}}>Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r,i)=>(
+                  <ElementRow key={i} num={i+1} row={r} types={types} judgeCount={judgeCount} onChange={d=>updateRow(i,d)}/>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{borderTop:"2px solid #059669",background:"#f0fdf4"}}>
+                  <td colSpan={7+judgeCount} style={{padding:"12px 10px",textAlign:"right",fontWeight:700,fontSize:13,color:"#065f46"}}>
+                    Technical Element Score (TES)
+                  </td>
+                  <td style={{padding:"12px 8px",textAlign:"right",fontWeight:800,fontSize:20,color:"#059669"}}>
+                    {tes.toFixed(2)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* PROGRAM COMPONENTS */}
+          <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",overflow:"auto",marginTop:16}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead>
+                <tr style={{background:"#eff6ff",borderBottom:"2px solid #3b82f6"}}>
+                  <th style={{...hdr,textAlign:"left",color:"#1e40af",padding:"8px 10px"}}>Program Components</th>
+                  <th style={{...hdr,textAlign:"center",color:"#1e40af",width:60}}>Faktor</th>
+                  {Array.from({length:judgeCount}).map((_,i)=>(
+                    <th key={i} style={{...hdr,textAlign:"center",color:"#1e40af",width:55}}>J{i+1}</th>
+                  ))}
+                  <th style={{...hdr,textAlign:"right",color:"#1e40af",width:55}}>Avg</th>
+                  <th style={{...hdr,textAlign:"right",color:"#1e40af",width:65}}>Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {PCS_COMPONENTS.map(comp => {
+                  const avg = calcPcsAvg(pcs[comp.key], judgeCount);
+                  const compScore = Math.round(avg * pcsFactor * 100) / 100;
+                  return (
+                    <tr key={comp.key} style={{borderBottom:"1px solid #e5e7eb"}}>
+                      <td style={{padding:"8px 10px",fontSize:12,fontWeight:600}}>{comp.label}</td>
+                      <td style={{padding:"8px 4px",fontSize:11,textAlign:"center",color:"#6b7280"}}>{pcsFactor.toFixed(1)}</td>
+                      {Array.from({length:judgeCount}).map((_,ji)=>(
+                        <td key={ji} style={{padding:"8px 2px",textAlign:"center"}}>
+                          <select value={pcs[comp.key][ji]} onChange={e=>{
+                            const np={...pcs};
+                            np[comp.key]=[...np[comp.key]];
+                            np[comp.key][ji]=parseFloat(e.target.value);
+                            setPcs(np);
+                          }} style={{...SEL, width:50, fontSize:11, padding:"3px 1px", textAlign:"center"}}>
+                            {Array.from({length:41},(_,i)=>i*0.25).map(v=>(
+                              <option key={v} value={v}>{v.toFixed(2)}</option>
+                            ))}
+                          </select>
+                        </td>
+                      ))}
+                      <td style={{padding:"8px 4px",fontSize:12,fontWeight:700,textAlign:"right",color:"#3b82f6"}}>{avg.toFixed(2)}</td>
+                      <td style={{padding:"8px 8px",fontSize:14,fontWeight:800,textAlign:"right",color:"#3b82f6"}}>{compScore.toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr style={{borderTop:"2px solid #3b82f6",background:"#eff6ff"}}>
+                  <td colSpan={2+judgeCount} style={{padding:"10px 10px",textAlign:"right",fontWeight:700,fontSize:12,color:"#1e40af"}}>
+                    Program Component Score (PCS)
+                  </td>
+                  <td colSpan={2} style={{padding:"10px 8px",textAlign:"right",fontWeight:800,fontSize:18,color:"#3b82f6"}}>
+                    {pcsTotal.toFixed(2)}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* DEDUCTIONS & EXTRA */}
+          <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16,marginTop:16}}>
+  <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
+    <div style={{display:"flex",alignItems:"center",gap:8}}>
+      <span style={{fontSize:13,fontWeight:700,color:"#dc2626"}}>Abzüge (PE):</span>
+      <button onClick={()=>setDeductions(d=>Math.round((d+0.5)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:700,fontSize:12,cursor:"pointer"}}>+0.5</button>
+      <button onClick={()=>setDeductions(d=>Math.round((d+1.0)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:700,fontSize:12,cursor:"pointer"}}>+1.0</button>
+      <input type="number" min="0" step="0.1" value={deductions} onChange={e=>setDeductions(parseFloat(e.target.value)||0)}
+        style={{width:60,padding:"5px 6px",borderRadius:4,border:"2px solid #fca5a5",fontSize:14,fontWeight:800,textAlign:"center",color:"#dc2626"}}/>
+      <button onClick={()=>setDeductions(d=>Math.max(0,Math.round((d-0.5)*100)/100))} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:700,fontSize:12,cursor:"pointer"}}>-0.5</button>
+      <button onClick={()=>setDeductions(0)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
+    </div>
+    <div style={{display:"flex",alignItems:"center",gap:8}}>
+      <span style={{fontSize:13,fontWeight:700,color:"#059669"}}>Extra Punkte:</span>
+      <button onClick={()=>setExtraPoints(d=>Math.round((d+0.5)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #86efac",background:"#f0fdf4",color:"#059669",fontWeight:700,fontSize:12,cursor:"pointer"}}>+0.5</button>
+      <button onClick={()=>setExtraPoints(d=>Math.round((d+1.0)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #86efac",background:"#f0fdf4",color:"#059669",fontWeight:700,fontSize:12,cursor:"pointer"}}>+1.0</button>
+      <input type="number" min="0" step="0.1" value={extraPoints} onChange={e=>setExtraPoints(parseFloat(e.target.value)||0)}
+        style={{width:60,padding:"5px 6px",borderRadius:4,border:"2px solid #86efac",fontSize:14,fontWeight:800,textAlign:"center",color:"#059669"}}/>
+      <button onClick={()=>setExtraPoints(d=>Math.max(0,Math.round((d-0.5)*100)/100))} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:700,fontSize:12,cursor:"pointer"}}>-0.5</button>
+      <button onClick={()=>setExtraPoints(0)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
+    </div>
+    <div style={{background:"#f0fdf4",borderRadius:8,border:"2px solid #059669",padding:"8px 16px",marginLeft:"auto"}}>
+      <span style={{fontSize:12,fontWeight:600,color:"#065f46"}}>Total Score: </span>
+      <span style={{fontSize:22,fontWeight:800,color:"#059669"}}>{totalScore.toFixed(2)}</span>
+    </div>
+  </div>
+</div>
+
+          {/* Legend */}
+          <div style={{marginTop:12,display:"flex",gap:12,flexWrap:"wrap",fontSize:10,color:"#6b7280"}}>
+            {types.map(t=><span key={t.code}><strong>{t.code}</strong> = {t.label}</span>)}
+          </div>
+
+          <div style={{marginTop:10,textAlign:"center",color:"#9ca3af",fontSize:10}}>
+            RollArt Content Sheet 2026 — Offizielle World Skate Werte — Artistic Roller Skating
+          </div>
+        </div>}
+      </div>
+    );
+  }
+
+  function Root() {
+    const auth = useAuth();
+    if (!auth?.user) return <LoginScreen />;
+    return <App />;
+  }
+
+  const root = ReactDOM.createRoot(document.getElementById("root"));
+  root.render(<AuthProvider><Root/></AuthProvider>);
+  </script>
+</body>
+</html>
