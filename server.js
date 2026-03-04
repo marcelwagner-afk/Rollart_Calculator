@@ -16,10 +16,29 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'rollart-dev-secret-nur-lokal-verwenden';
 
 // ============================================================
-//  DATABASE SETUP (JSON file-based for portability, SQLite optional)
+//  DATABASE SETUP — Daten werden in data/ gespeichert
+//  WICHTIG: Beim Update NUR server.js + public/ ersetzen,
+//  NIEMALS den data/ Ordner löschen!
 // ============================================================
-const DB_FILE = path.join(__dirname, 'db.json');
-let DB = { users: [], nextId: 1, settings: {
+const DATA_DIR = path.join(__dirname, 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  console.log('  📁 data/ Ordner erstellt');
+}
+
+// Migration: alte db.json aus Hauptordner nach data/ verschieben
+const OLD_DB_FILE = path.join(__dirname, 'db.json');
+const DB_FILE = path.join(DATA_DIR, 'db.json');
+const BACKUP_FILE = path.join(DATA_DIR, 'db_backup.json');
+
+if (fs.existsSync(OLD_DB_FILE) && !fs.existsSync(DB_FILE)) {
+  try {
+    fs.copyFileSync(OLD_DB_FILE, DB_FILE);
+    console.log('  ✅ Bestehende db.json nach data/ migriert');
+  } catch(e) { console.error('Migration error:', e.message); }
+}
+
+let DB = { users: [], nextId: 1, skaters: [], settings: {
   registrationOpen: true,
   welcomeMessage: 'Willkommen bei RollArt 2026!',
   seasonYear: 2026,
@@ -29,10 +48,32 @@ let DB = { users: [], nextId: 1, settings: {
 
 // Load or init DB
 if (fs.existsSync(DB_FILE)) {
-  try { DB = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); } catch(e) { /* start fresh */ }
+  try {
+    DB = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    // Automatisches Backup bei jedem Start
+    fs.writeFileSync(BACKUP_FILE, JSON.stringify(DB, null, 2));
+    const skaterCount = (DB.skaters || []).length;
+    const userCount = (DB.users || []).length;
+    console.log(`  💾 Datenbank geladen: ${userCount} Benutzer, ${skaterCount} Läufer`);
+    console.log(`  📋 Backup erstellt: data/db_backup.json`);
+  } catch(e) {
+    console.error('DB load error, versuche Backup...', e.message);
+    // Versuche Backup zu laden falls Hauptdatei korrupt
+    if (fs.existsSync(BACKUP_FILE)) {
+      try {
+        DB = JSON.parse(fs.readFileSync(BACKUP_FILE, 'utf8'));
+        console.log('  ⚠️ Backup geladen statt korrupter db.json');
+      } catch(e2) { console.error('Auch Backup korrupt, starte neu'); }
+    }
+  }
+} else {
+  console.log('  🆕 Neue Datenbank erstellt');
 }
+
 const saveDB = () => {
-  try { fs.writeFileSync(DB_FILE, JSON.stringify(DB, null, 2)); } catch(e) { console.error('DB save error:', e.message); }
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(DB, null, 2));
+  } catch(e) { console.error('DB save error:', e.message); }
 };
 
 // Simple query helpers
