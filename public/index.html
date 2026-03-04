@@ -2309,6 +2309,233 @@
   }
 
   // ============================================================
+  //  ADMIN DASHBOARD
+  // ============================================================
+  function AdminDashboard({ onClose }) {
+    const { user } = useAuth();
+    const [tab, setTab] = useState("stats");
+    const [stats, setStats] = useState(null);
+    const [users, setUsers] = useState([]);
+    const [settings, setSettings] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [msg, setMsg] = useState("");
+    const [editUser, setEditUser] = useState(null);
+    const [resetPw, setResetPw] = useState({});
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [s, u, st] = await Promise.all([api('/api/admin/stats'), api('/api/admin/users'), api('/api/admin/settings')]);
+        setStats(s); setUsers(u.users); setSettings(st.settings);
+      } catch (e) { setMsg("Fehler: " + e.message); }
+      setLoading(false);
+    };
+    useEffect(() => { load(); }, []);
+    const showMsg = (m) => { setMsg(m); setTimeout(() => setMsg(""), 3000); };
+
+    const updateUserRole = async (id, role) => {
+      try { await api('/api/admin/users/' + id, { method: 'PUT', body: JSON.stringify({ role }) }); showMsg("Rolle geaendert"); load(); }
+      catch (e) { showMsg("Fehler: " + e.message); }
+    };
+    const deleteUser = async (id, name) => {
+      if (!confirm("User '" + name + "' wirklich loeschen?")) return;
+      try { await api('/api/admin/users/' + id, { method: 'DELETE' }); showMsg("User geloescht"); load(); }
+      catch (e) { showMsg("Fehler: " + e.message); }
+    };
+    const doResetPassword = async (id) => {
+      const pw = resetPw[id];
+      if (!pw || pw.length < 6) { showMsg("Min. 6 Zeichen"); return; }
+      try { await api('/api/admin/users/' + id + '/reset-password', { method: 'POST', body: JSON.stringify({ newPassword: pw }) });
+        showMsg("Passwort zurueckgesetzt"); setResetPw(p => ({ ...p, [id]: "" })); }
+      catch (e) { showMsg("Fehler: " + e.message); }
+    };
+    const saveSettings = async () => {
+      try { const d = await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify(settings) });
+        setSettings(d.settings); showMsg("Einstellungen gespeichert"); }
+      catch (e) { showMsg("Fehler: " + e.message); }
+    };
+    const saveUserEdit = async () => {
+      if (!editUser) return;
+      try { await api('/api/admin/users/' + editUser.id, { method: 'PUT', body: JSON.stringify({
+        name: editUser.name, verein: editUser.verein, kategorie: editUser.kategorie, role: editUser.role }) });
+        showMsg("User aktualisiert"); setEditUser(null); load(); }
+      catch (e) { showMsg("Fehler: " + e.message); }
+    };
+
+    const filteredUsers = users.filter(u => !searchTerm ||
+      u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.verein?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const tabS = (t) => ({ padding:"8px 16px", borderRadius:"8px 8px 0 0", border:"none", fontSize:12, fontWeight:700,
+      cursor:"pointer", background:tab===t?"white":"transparent", color:tab===t?"#7c3aed":"#9ca3af",
+      borderBottom:tab===t?"3px solid #7c3aed":"3px solid transparent" });
+    const cS = { background:"white", borderRadius:12, border:"1px solid #e5e7eb", padding:16, marginBottom:12 };
+    const iS = { padding:"6px 10px", borderRadius:6, border:"2px solid #d1d5db", fontSize:13, width:"100%", fontFamily:"inherit" };
+
+    if (loading) return <div style={{ padding:40, textAlign:"center", color:"#6b7280" }}>Laden...</div>;
+
+    return (
+      <div style={{ padding:"16px 20px", maxWidth:1000, margin:"0 auto" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+          <div>
+            <h2 style={{ margin:0, fontSize:22, fontWeight:800, color:"#7c3aed" }}>Admin Dashboard</h2>
+            <p style={{ margin:0, fontSize:12, color:"#6b7280" }}>{user?.name} ({user?.email})</p>
+          </div>
+          <button onClick={onClose} style={{ padding:"6px 14px", borderRadius:6, border:"none", background:"#e5e7eb", color:"#374151", fontWeight:600, fontSize:12, cursor:"pointer" }}>Zurueck</button>
+        </div>
+        {msg && <div style={{ background:"#f0fdf4", border:"1px solid #86efac", borderRadius:8, padding:"8px 14px", marginBottom:12, fontSize:12, color:"#059669", fontWeight:600 }}>{msg}</div>}
+        <div style={{ display:"flex", gap:0, borderBottom:"1px solid #e5e7eb", marginBottom:16 }}>
+          <button onClick={()=>setTab("stats")} style={tabS("stats")}>Statistiken</button>
+          <button onClick={()=>setTab("users")} style={tabS("users")}>Benutzer ({users.length})</button>
+          <button onClick={()=>setTab("settings")} style={tabS("settings")}>Einstellungen</button>
+        </div>
+
+        {/* === STATS === */}
+        {tab==="stats"&&stats&&(<div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:16 }}>
+            {[{l:"Gesamt",v:stats.total,c:"#7c3aed",b:"#f5f3ff"},{l:"Heute",v:stats.todayCount,c:"#059669",b:"#f0fdf4"},
+              {l:"Diese Woche",v:stats.weekCount,c:"#2563eb",b:"#eff6ff"},{l:"Dieser Monat",v:stats.monthCount,c:"#f59e0b",b:"#fffbeb"}
+            ].map((k,i)=>(
+              <div key={i} style={{ background:k.b, borderRadius:12, padding:16, border:"1px solid "+k.c+"33" }}>
+                <div style={{ fontSize:10, fontWeight:600, color:"#6b7280", textTransform:"uppercase", letterSpacing:1 }}>{k.l}</div>
+                <div style={{ fontSize:32, fontWeight:800, color:k.c }}>{k.v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={cS}>
+            <h3 style={{ margin:"0 0 12px", fontSize:14, fontWeight:700, color:"#374151" }}>Registrierungen (14 Tage)</h3>
+            <div style={{ display:"flex", alignItems:"flex-end", gap:4, height:100 }}>
+              {(stats.daily||[]).map((d,i)=>{
+                const mx=Math.max(...stats.daily.map(x=>x.count),1);
+                return(<div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
+                  <span style={{ fontSize:8, fontWeight:700, color:"#6b7280" }}>{d.count||""}</span>
+                  <div style={{ width:"100%", height:Math.max(d.count/mx*80,2), background:d.count>0?"#7c3aed":"#e5e7eb", borderRadius:3 }}/>
+                  <span style={{ fontSize:7, color:"#9ca3af" }}>{d.date.slice(5)}</span>
+                </div>);
+              })}
+            </div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <div style={cS}>
+              <h3 style={{ margin:"0 0 8px", fontSize:13, fontWeight:700 }}>Top Vereine</h3>
+              {(stats.topVereine||[]).length===0?<span style={{ fontSize:11, color:"#9ca3af" }}>Keine Daten</span>:
+                stats.topVereine.map((v,i)=>(<div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", fontSize:12, borderBottom:"1px solid #f3f4f6" }}>
+                  <span>{v.name}</span><span style={{ fontWeight:700, color:"#7c3aed" }}>{v.count}</span></div>))}
+            </div>
+            <div style={cS}>
+              <h3 style={{ margin:"0 0 8px", fontSize:13, fontWeight:700 }}>Top Kategorien</h3>
+              {(stats.topKategorien||[]).length===0?<span style={{ fontSize:11, color:"#9ca3af" }}>Keine Daten</span>:
+                stats.topKategorien.map((k,i)=>(<div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", fontSize:12, borderBottom:"1px solid #f3f4f6" }}>
+                  <span>{k.name}</span><span style={{ fontWeight:700, color:"#2563eb" }}>{k.count}</span></div>))}
+            </div>
+          </div>
+        </div>)}
+
+        {/* === USERS === */}
+        {tab==="users"&&(<div>
+          <input placeholder="Suche Name, Email, Verein..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}
+            style={{ ...iS, maxWidth:400, marginBottom:12 }}/>
+          {editUser&&(<div style={{ ...cS, border:"2px solid #7c3aed" }}>
+            <h3 style={{ margin:"0 0 10px", fontSize:14, fontWeight:700, color:"#7c3aed" }}>Bearbeiten: {editUser.email}</h3>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8, marginBottom:10 }}>
+              <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Name</label>
+                <input value={editUser.name||""} onChange={e=>setEditUser({...editUser,name:e.target.value})} style={iS}/></div>
+              <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Verein</label>
+                <input value={editUser.verein||""} onChange={e=>setEditUser({...editUser,verein:e.target.value})} style={iS}/></div>
+              <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Kategorie</label>
+                <input value={editUser.kategorie||""} onChange={e=>setEditUser({...editUser,kategorie:e.target.value})} style={iS}/></div>
+              <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Rolle</label>
+                <select value={editUser.role||"user"} onChange={e=>setEditUser({...editUser,role:e.target.value})} style={{ ...iS, cursor:"pointer" }}>
+                  <option value="user">User</option><option value="admin">Admin</option></select></div>
+            </div>
+            <div style={{ display:"flex", gap:6 }}>
+              <button onClick={saveUserEdit} style={{ padding:"6px 14px", borderRadius:6, border:"none", background:"#7c3aed", color:"white", fontWeight:700, fontSize:12, cursor:"pointer" }}>Speichern</button>
+              <button onClick={()=>setEditUser(null)} style={{ padding:"6px 14px", borderRadius:6, border:"1px solid #d1d5db", background:"white", color:"#374151", fontWeight:600, fontSize:12, cursor:"pointer" }}>Abbrechen</button>
+            </div>
+          </div>)}
+          <div style={{ overflowX:"auto" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+              <thead><tr style={{ background:"#f3f4f6" }}>
+                {["ID","Name","Email","Verein","Kat.","Rolle","Datum","Aktionen"].map(h=>
+                  <th key={h} style={{ padding:"8px 10px", textAlign:"left", fontWeight:700, color:"#374151", borderBottom:"2px solid #e5e7eb" }}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {filteredUsers.map(u=>(
+                  <tr key={u.id} style={{ borderBottom:"1px solid #f3f4f6" }}>
+                    <td style={{ padding:"6px 10px", color:"#6b7280" }}>{u.id}</td>
+                    <td style={{ padding:"6px 10px", fontWeight:600 }}>{u.name}</td>
+                    <td style={{ padding:"6px 10px" }}>{u.email}</td>
+                    <td style={{ padding:"6px 10px" }}>{u.verein}</td>
+                    <td style={{ padding:"6px 10px" }}>{u.kategorie}</td>
+                    <td style={{ padding:"6px 10px" }}>
+                      <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700,
+                        background:u.role==="admin"?"#f5f3ff":"#f0fdf4", color:u.role==="admin"?"#7c3aed":"#059669" }}>{u.role}</span></td>
+                    <td style={{ padding:"6px 10px", fontSize:11, color:"#6b7280" }}>{u.created_at?new Date(u.created_at).toLocaleDateString("de-DE"):"-"}</td>
+                    <td style={{ padding:"6px 10px" }}>
+                      <div style={{ display:"flex", gap:3, flexWrap:"wrap" }}>
+                        <button onClick={()=>setEditUser({...u})} style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #7c3aed", background:"#f5f3ff", color:"#7c3aed", fontSize:10, fontWeight:600, cursor:"pointer" }}>Edit</button>
+                        {u.role==="user"?<button onClick={()=>updateUserRole(u.id,"admin")} style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #f59e0b", background:"#fffbeb", color:"#92400e", fontSize:10, fontWeight:600, cursor:"pointer" }}>Admin</button>
+                          :u.id!==user?.id?<button onClick={()=>updateUserRole(u.id,"user")} style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #6b7280", background:"#f9fafb", color:"#374151", fontSize:10, fontWeight:600, cursor:"pointer" }}>User</button>:null}
+                        {u.id!==user?.id&&<button onClick={()=>deleteUser(u.id,u.name)} style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #fca5a5", background:"#fef2f2", color:"#dc2626", fontSize:10, fontWeight:600, cursor:"pointer" }}>Del</button>}
+                      </div>
+                      <div style={{ display:"flex", gap:3, marginTop:3 }}>
+                        <input placeholder="Neues PW" value={resetPw[u.id]||""} onChange={e=>setResetPw(p=>({...p,[u.id]:e.target.value}))}
+                          type="password" style={{ padding:"2px 5px", borderRadius:3, border:"1px solid #d1d5db", fontSize:10, width:80 }}/>
+                        <button onClick={()=>doResetPassword(u.id)} style={{ padding:"2px 5px", borderRadius:3, border:"1px solid #f59e0b", background:"#fffbeb", color:"#92400e", fontSize:9, fontWeight:600, cursor:"pointer" }}>Reset</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop:8, fontSize:11, color:"#6b7280" }}>{filteredUsers.length} / {users.length} Benutzer</div>
+        </div>)}
+
+        {/* === SETTINGS === */}
+        {tab==="settings"&&(<div>
+          <div style={cS}>
+            <h3 style={{ margin:"0 0 12px", fontSize:14, fontWeight:700, color:"#374151" }}>App-Einstellungen</h3>
+            <div style={{ marginBottom:14 }}>
+              <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer" }}>
+                <input type="checkbox" checked={settings.registrationOpen!==false} onChange={e=>setSettings({...settings,registrationOpen:e.target.checked})}
+                  style={{ width:18, height:18 }}/>
+                <div><div style={{ fontSize:13, fontWeight:600 }}>Registrierung offen</div>
+                  <div style={{ fontSize:11, color:"#6b7280" }}>Neue Benutzer koennen sich registrieren</div></div>
+              </label>
+            </div>
+            <div style={{ marginBottom:14 }}>
+              <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer" }}>
+                <input type="checkbox" checked={settings.maintenanceMode===true} onChange={e=>setSettings({...settings,maintenanceMode:e.target.checked})}
+                  style={{ width:18, height:18 }}/>
+                <div><div style={{ fontSize:13, fontWeight:600, color:settings.maintenanceMode?"#dc2626":"#374151" }}>Wartungsmodus</div>
+                  <div style={{ fontSize:11, color:"#6b7280" }}>App fuer normale User sperren</div></div>
+              </label>
+            </div>
+            <div style={{ marginBottom:14 }}>
+              <label style={{ fontSize:11, fontWeight:600, color:"#374151", display:"block", marginBottom:3 }}>Willkommensnachricht</label>
+              <input value={settings.welcomeMessage||""} onChange={e=>setSettings({...settings,welcomeMessage:e.target.value})} style={iS} placeholder="Login-Seite"/>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:16 }}>
+              <div>
+                <label style={{ fontSize:11, fontWeight:600, color:"#374151", display:"block", marginBottom:3 }}>Saison-Jahr</label>
+                <input type="number" value={settings.seasonYear||2026} onChange={e=>setSettings({...settings,seasonYear:parseInt(e.target.value)||2026})} style={{ ...iS, width:100 }}/>
+              </div>
+              <div>
+                <label style={{ fontSize:11, fontWeight:600, color:"#374151", display:"block", marginBottom:3 }}>Max. User/Verein</label>
+                <input type="number" value={settings.maxUsersPerVerein||50} onChange={e=>setSettings({...settings,maxUsersPerVerein:parseInt(e.target.value)||50})} style={{ ...iS, width:100 }}/>
+              </div>
+            </div>
+            <button onClick={saveSettings} style={{ padding:"8px 20px", borderRadius:6, border:"none", background:"#7c3aed", color:"white", fontWeight:700, fontSize:13, cursor:"pointer" }}>Einstellungen speichern</button>
+          </div>
+        </div>)}
+      </div>
+    );
+  }
+
+  // ============================================================
   //  MAIN DASHBOARD
   // ============================================================
   function App() {
@@ -2557,6 +2784,8 @@
                   background:page==="official"?"white":"rgba(255,255,255,.2)",color:page==="official"?"#059669":"white"}}>Official Sheets</button>
                 <button onClick={()=>setPage("training")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
                   background:page==="training"?"white":"rgba(255,255,255,.2)",color:page==="training"?"#059669":"white"}}>Training Simulator</button>
+                {authCtx?.user?.role==="admin"&&<button onClick={()=>setPage("admin")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+                  background:page==="admin"?"white":"rgba(255,255,255,.2)",color:page==="admin"?"#dc2626":"white"}}>⚙ Admin</button>}
               </div>
             </div>
             {/* User menu */}
@@ -2602,6 +2831,9 @@
 
         {/* TRAINING SIMULATOR PAGE */}
         {page==="training"&&<TrainingSimulator importData={simImport} onImportDone={()=>setSimImport(null)}/>}
+
+        {/* ADMIN PAGE */}
+        {page==="admin"&&authCtx?.user?.role==="admin"&&<AdminDashboard onClose={()=>setPage("content")}/>}
 
         {/* PROFILE PAGE */}
         {page==="profile"&&<ProfileScreen onClose={()=>setPage("content")}/>}

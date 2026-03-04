@@ -1,1 +1,34 @@
-{"users":[],"nextId":1}
+{
+  "users": [
+    {
+      "email": "admin@rollart.de",
+      "password": "$2a$10$mqp8IpsYm00LgMZHNp944e0SFMV9wi4BYVrBy5r5q4HDimynKGfIq",
+      "name": "Administrator",
+      "verein": "",
+      "kategorie": "",
+      "role": "admin",
+      "id": 1,
+      "created_at": "2026-03-04T11:51:39.625Z",
+      "updated_at": "2026-03-04T11:51:39.625Z"
+    },
+    {
+      "email": "test@test.de",
+      "password": "$2a$10$pEXZbccF.vJuuJmiwCUBMeqJROBuIb7l2.cli2GIzKiX0zk6KfEXa",
+      "name": "Test User",
+      "verein": "TSV Test",
+      "kategorie": "Nachwuchs",
+      "role": "admin",
+      "id": 2,
+      "created_at": "2026-03-04T11:51:40.357Z",
+      "updated_at": "2026-03-04T11:51:40.478Z"
+    }
+  ],
+  "nextId": 4,
+  "settings": {
+    "registrationOpen": true,
+    "welcomeMessage": "Testmessage",
+    "seasonYear": 2026,
+    "maintenanceMode": true,
+    "maxUsersPerVerein": 50
+  }
+}
