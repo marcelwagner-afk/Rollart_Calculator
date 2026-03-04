@@ -321,10 +321,16 @@
     "minis":    { label:"Minis (10-11)",   age:"10-11", segments:["minis_fp"],                   time:"2:45" },
     "espoirs":  { label:"Espoirs (12-13)", age:"12-13", segments:["espoirs_sp","espoirs_fp"],     time:"SP 2:00 / FP 3:15" },
     "cadets":   { label:"Cadets (14-15)",  age:"14-15", segments:["cadets_sp","cadets_fp"],      time:"SP 2:30 / FP 3:30" },
-    "jeunesse": { label:"Jeunesse (16-17)",age:"16-17", segments:["jeunesse_sp","jeunesse_fp"],  time:"SP 2:30 / FP 3:30" },
-    "junior":   { label:"Junior (18-19)",  age:"18-19", segments:["junior_sp","junior_fp"],      time:"SP 2:50 / FP 4:00" },
-    "senior":   { label:"Senior (20+)",    age:"20+",   segments:["senior_sp","senior_fp"],      time:"SP 2:50 / FP 4:00" },
-    "pairs":    { label:"Paarlauf",        age:"-",     segments:["psp","pfp"],                  time:"SP 2:50 / FP 4:00" },
+    "jeunesse": { label:"Jeunesse (16-17)",age:"16-17", segments:["jeunesse_sp","jeunesse_fp"],  time:"SP 2:30 / FP 4:00" },
+    "junior":   { label:"Junior (18-19)",  age:"18-19", segments:["junior_sp","junior_fp"],      time:"SP 2:45 / FP 4:00" },
+    "senior":   { label:"Senior (20+)",    age:"20+",   segments:["senior_sp","senior_fp"],      time:"SP 2:45 / FP 4:00" },
+    "pairs_tots":     { label:"Pairs Tots (8-9)",      age:"8-9",   segments:["pairs_tots_fp"],                              time:"FP 2:00" },
+    "pairs_minis":    { label:"Pairs Minis (10-11)",    age:"10-11", segments:["pairs_minis_fp"],                             time:"FP 2:30" },
+    "pairs_espoirs":  { label:"Pairs Espoirs (12-13)",  age:"12-13", segments:["pairs_espoirs_sp","pairs_espoirs_fp"],        time:"SP 2:15 / FP 3:00" },
+    "pairs_cadets":   { label:"Pairs Cadets (14-15)",   age:"14-15", segments:["pairs_cadets_sp","pairs_cadets_fp"],         time:"SP 2:30 / FP 3:45" },
+    "pairs_youth":    { label:"Pairs Youth (16-17)",    age:"16-17", segments:["pairs_youth_sp","pairs_youth_fp"],           time:"SP 2:30 / FP 4:00" },
+    "pairs_junior":   { label:"Pairs Junior (18-19)",   age:"18-19", segments:["pairs_junior_sp","pairs_junior_fp"],         time:"SP 3:00 / FP 4:30" },
+    "pairs_senior":   { label:"Pairs Senior (20+)",     age:"20+",   segments:["pairs_senior_sp","pairs_senior_fp"],         time:"SP 3:00 / FP 4:30" },
   };
 
   const SEGMENT_DEFS = {
@@ -347,9 +353,25 @@
     // --- Senior ---
     "senior_sp":    { label:"Senior - Short Program", rows:7, category:"senior" },
     "senior_fp":    { label:"Senior - Kür", rows:13, category:"senior" },
-    // --- Pairs (legacy) ---
-    "psp":  { label:"Pairs Short Program", rows:8, category:"pairs" },
-    "pfp":  { label:"Pairs Free Program", rows:13, category:"pairs" },
+    // --- Pairs Tots ---
+    "pairs_tots_fp":      { label:"Pairs Tots - Kür", rows:7, category:"pairs_tots" },
+    // --- Pairs Minis ---
+    "pairs_minis_fp":     { label:"Pairs Minis - Kür", rows:8, category:"pairs_minis" },
+    // --- Pairs Espoirs ---
+    "pairs_espoirs_sp":   { label:"Pairs Espoirs - Short Program", rows:7, category:"pairs_espoirs" },
+    "pairs_espoirs_fp":   { label:"Pairs Espoirs - Kür", rows:9, category:"pairs_espoirs" },
+    // --- Pairs Cadets ---
+    "pairs_cadets_sp":    { label:"Pairs Cadets - Short Program", rows:7, category:"pairs_cadets" },
+    "pairs_cadets_fp":    { label:"Pairs Cadets - Kür", rows:10, category:"pairs_cadets" },
+    // --- Pairs Youth ---
+    "pairs_youth_sp":     { label:"Pairs Youth - Short Program", rows:7, category:"pairs_youth" },
+    "pairs_youth_fp":     { label:"Pairs Youth - Kür", rows:10, category:"pairs_youth" },
+    // --- Pairs Junior ---
+    "pairs_junior_sp":    { label:"Pairs Junior - Short Program", rows:8, category:"pairs_junior" },
+    "pairs_junior_fp":    { label:"Pairs Junior - Kür", rows:11, category:"pairs_junior" },
+    // --- Pairs Senior ---
+    "pairs_senior_sp":    { label:"Pairs Senior - Short Program", rows:8, category:"pairs_senior" },
+    "pairs_senior_fp":    { label:"Pairs Senior - Kür", rows:11, category:"pairs_senior" },
   };
 
   // ============================================================
@@ -459,7 +481,12 @@
     "jeunesse_sp":0.8, "jeunesse_fp":1.4,
     "junior_sp":0.8, "junior_fp":1.6,
     "senior_sp":0.8, "senior_fp":1.6,
-    "psp":0.8, "pfp":1.2,
+    "pairs_tots_fp":0.8, "pairs_minis_fp":0.8,
+    "pairs_espoirs_sp":0.8, "pairs_espoirs_fp":1.0,
+    "pairs_cadets_sp":0.8, "pairs_cadets_fp":1.0,
+    "pairs_youth_sp":0.8, "pairs_youth_fp":1.2,
+    "pairs_junior_sp":0.8, "pairs_junior_fp":1.4,
+    "pairs_senior_sp":0.8, "pairs_senior_fp":1.4,
     // Legacy
     "sp":0.8, "fp9":1.2, "fp12":1.6,
   };
@@ -1241,17 +1268,17 @@
     },
     "cadets_fp": {
       label:"Cadets – Kür",
-      info:"Alter 14-15 | 3:30 ±10s | Max 8 Sprünge | Axel Pflicht | Max 2 Kombis (max 5) | 2 Spins (Combo muss Sitz, max 4 Pos.) | Choreo max Lv1 30s",
+      info:"Alter 14-15 | 3:30 ±10s | Max 8 Sprünge | Axel Pflicht | Max 2 Kombis (max 5) | 2 Spins (Combo muss Sitz, max 4 Pos., kein Broken) | Choreo max Lv1 30s",
       required:[
         {type:"SJu",min:1,max:8,desc:"Solo-Sprünge (max 8 exkl. Connecting, Axel Pflicht)"},
         {type:"CoJ",min:0,max:2,desc:"0-2 Kombinationen (max 5 Sprünge pro Kombi)"},
         {type:"SSp",min:1,max:1,desc:"1 Solo-Spin"},
-        {type:"CSp",min:1,max:1,desc:"1 Kombinations-Spin (muss Sitz enthalten, max 4 Pos.)"},
+        {type:"CSp",min:1,max:1,desc:"1 Kombinations-Spin (muss Sitz enthalten, max 4 Pos., kein Broken)"},
         {type:"ChSt",min:1,max:1,desc:"1 Choreo-Sequenz (max Level 1, max 30s)"},
       ],
       maxTotal:12, maxJumps:10, maxSpins:2, maxSequences:1,
       jumpRestrictions:{ maxRotation:"triple", axelRequired:true, maxCombos:2, maxJumpsPerCombo:5 },
-      spinRestrictions:{ mustIncludeSit:true, maxComboPositions:4 },
+      spinRestrictions:{ mustIncludeSit:true, maxComboPositions:4, noBroken:true },
       footworkMaxLevel:1, footworkMaxSeconds:30, hasChoreoSeq:true,
     },
     // ─── JEUNESSE/YOUTH (16-17) ─── SP + Kür ───
@@ -1350,39 +1377,226 @@
       spinRestrictions:{ mustIncludeSit:true, maxComboPositions:4 },
       footworkMaxLevel:4, footworkMaxSeconds:40, hasChoreoSeq:true,
     },
-    // ─── PAARLAUF ───
-    "psp": {
-      label:"Pairs Short Program",
-      info:"Paarlauf SP | 2:50 ±5s",
+    // ─── PAIRS TOTS (8-9) ─── Nur Kür ───
+    "pairs_tots_fp": {
+      label:"Pairs Tots – Kür",
+      info:"Alter 8-9 | 2:00 ±10s | 1 SBS-Sprung (1 Rotation) | 1 SBS-Kombi (max 3 Sprünge, 1 Rotation) | 1 SBS-Spin (max 2 Pos., nur Aufrecht) | 1 Contact Spin (1 Pos., Aufrecht) | FoSq max Lv1 30s | KEINE HEBUNGEN",
       required:[
-        {type:"SJu",min:1,max:1,desc:"1 Solo-Sprung"},
-        {type:"CoJ",min:1,max:1,desc:"1 Kombination"},
-        {type:"SSp",min:0,max:1,desc:"0-1 Solo-Spin"},
-        {type:"CSp",min:0,max:1,desc:"0-1 Kombinations-Spin"},
-        {type:"CtSp",min:0,max:1,desc:"0-1 Contact Spin"},
-        {type:"SLi",min:0,max:1,desc:"0-1 Solo Lift"},
-        {type:"FoSq",min:0,max:1,desc:"0-1 Schrittfolge"},
-        {type:"DS",min:0,max:1,desc:"0-1 Death Spiral"},
+        {type:"SJu",min:1,max:1,desc:"1 Side by Side Sprung (max 1 Rotation)"},
+        {type:"CoJ",min:1,max:1,desc:"1 SBS-Kombi (max 3 Sprünge, 1 Rotation)"},
+        {type:"SSp",min:1,max:1,desc:"1 SBS-Spin (1 Pos. oder Combo max 2 Pos., nur Aufrecht)"},
+        {type:"CtSp",min:1,max:1,desc:"1 Contact Spin (1 Pos., nur Aufrecht)"},
+        {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge (max Lv1, max 30s)"},
       ],
-      maxTotal:8, maxJumps:3, maxSpins:3, maxSequences:2,
+      maxTotal:7, maxJumps:2, maxSpins:2, maxSequences:1,
+      jumpRestrictions:{ maxRotation:"single", maxCombos:1, maxJumpsPerCombo:3 },
+      spinRestrictions:{ allowedPositions:["upright"], maxComboPositions:2 },
+      footworkMaxLevel:1, footworkMaxSeconds:30,
+      pairsRestrictions:{ noLifts:true, noThrows:true, noTwist:true, noDeathSpiral:true },
     },
-    "pfp": {
-      label:"Pairs Free Program",
-      info:"Paarlauf Kür | 4:00 ±10s",
+    // ─── PAIRS MINIS (10-11) ─── Nur Kür ───
+    "pairs_minis_fp": {
+      label:"Pairs Minis – Kür",
+      info:"Alter 10-11 | 2:30 ±10s | Max 2 SBS-Sprünge (nicht in Kombi, max Axel/Doppel-TL/Doppel-S) | 1 SBS-Spin (max 2 Pos., Aufrecht+Sitz) | Max 2 Wurfsprünge (einfach/Axel) | 1 Contact Spin (1 Pos.) | 1 Spiral (Kamel BO) | FoSq max Lv2 30s | KEINE HEBUNGEN",
       required:[
-        {type:"SJu",min:1,max:3,desc:"1-3 Solo-Sprünge"},
-        {type:"CoJ",min:1,max:3,desc:"1-3 Kombinationen"},
-        {type:"SSp",min:0,max:2,desc:"0-2 Solo-Spins"},
-        {type:"CSp",min:0,max:2,desc:"0-2 Kombinations-Spins"},
-        {type:"CtSp",min:0,max:1,desc:"0-1 Contact Spin"},
-        {type:"CLi",min:0,max:2,desc:"0-2 Combination Lifts"},
-        {type:"SLi",min:0,max:2,desc:"0-2 Solo Lifts"},
-        {type:"FoSq",min:0,max:1,desc:"0-1 Schrittfolge"},
-        {type:"DS",min:0,max:1,desc:"0-1 Death Spiral"},
-        {type:"Tw",min:0,max:1,desc:"0-1 Twist"},
-        {type:"Tj",min:0,max:2,desc:"0-2 Throw Jumps"},
+        {type:"SJu",min:1,max:2,desc:"1-2 SBS-Sprünge (nicht in Kombi, max Axel/Doppel-TL/Doppel-S)"},
+        {type:"SSp",min:1,max:1,desc:"1 SBS-Spin (1 Pos. oder Combo max 2 Pos., Aufrecht+Sitz)"},
+        {type:"Tj",min:0,max:2,desc:"0-2 Wurfsprünge (einfach oder Axel)"},
+        {type:"CtSp",min:1,max:1,desc:"1 Contact Spin (1 Pos., Aufrecht/Sitz/Hazel)"},
+        {type:"Sp",min:1,max:1,desc:"1 Spiral (Kamel BO)"},
+        {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge (max Lv2, max 30s)"},
       ],
-      maxTotal:13, maxJumps:7, maxSpins:4, maxSequences:2,
+      maxTotal:8, maxJumps:4, maxSpins:2, maxSequences:2,
+      jumpRestrictions:{ maxRotation:"double", allowedJumps:["1W","1T","1S","1F","1Lz","1Lo","1Th","1A","2T","2S"], noCombos:true },
+      spinRestrictions:{ allowedPositions:["upright","sit"], maxComboPositions:2 },
+      footworkMaxLevel:2, footworkMaxSeconds:30,
+      pairsRestrictions:{ noLifts:true, noTwist:true, noDeathSpiral:true, maxThrowRotation:"single+axel" },
+    },
+    // ─── PAIRS ESPOIRS (12-13) ─── SP + Kür ───
+    "pairs_espoirs_sp": {
+      label:"Pairs Espoirs – Short Program",
+      info:"Alter 12-13 | 2:15 ±5s | 1 Pos.-Hebung (Axel, max Lv2) | 1 SBS-Sprung (Axel) | 1 SBS-Spin (Sitz BI) | 1 Wurfsprung (einfach, kein Axel) | 1 Contact Spin (Sitz Face-to-Face) | 1 Spiral (Kamel BO) | FoSq max Lv3 30s",
+      required:[
+        {type:"SLi",min:1,max:1,desc:"1 Positions-Hebung (Axel, max Lv2)"},
+        {type:"SJu",min:1,max:1,desc:"1 SBS-Sprung (Axel)"},
+        {type:"SSp",min:1,max:1,desc:"1 SBS-Spin (Sitz BI)"},
+        {type:"Tj",min:1,max:1,desc:"1 Wurfsprung (einfach, kein Axel)"},
+        {type:"CtSp",min:1,max:1,desc:"1 Contact Spin (Sitz Face-to-Face)"},
+        {type:"Sp",min:1,max:1,desc:"1 Spiral (Kamel BO)"},
+        {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge (max Lv3, max 30s)"},
+      ],
+      maxTotal:7, maxJumps:2, maxSpins:2, maxSequences:2,
+      jumpRestrictions:{ maxRotation:"single", axelRequired:true },
+      spinRestrictions:{ soloMustBeSit:true },
+      footworkMaxLevel:3, footworkMaxSeconds:30,
+      pairsRestrictions:{ liftMaxLevel:2, liftType:"axel", maxThrowRotation:"single_no_axel", noTwist:true, noDeathSpiral:true },
+    },
+    "pairs_espoirs_fp": {
+      label:"Pairs Espoirs – Kür",
+      info:"Alter 12-13 | 3:00 ±10s | 2 Hebungen (1 Combo+1 Solo, max Lv2, kein Overhead/Low Militano) | Max 2 SBS-Sprünge (max 2 Rot., kein Doppel-Loop/2A/Dreifach) | 1 SBS-Combo-Spin (max 2 Pos.) | Max 2 Wurfsprünge (Axel/Doppel-TL/Doppel-S) | 1 Combo Contact Spin (max 2 Pos.) | 1 Spiral (Kamel BO) | Choreo max 30s",
+      required:[
+        {type:"SLi",min:1,max:1,desc:"1 Solo-Hebung (max Lv2, kein Overhead/Low Militano)"},
+        {type:"CLi",min:1,max:1,desc:"1 Combo-Hebung (max Lv2, kein Overhead/Low Militano)"},
+        {type:"SJu",min:1,max:2,desc:"1-2 SBS-Sprünge (max 2 Rot., kein Doppel-Loop/2A/Dreifach)"},
+        {type:"CSp",min:1,max:1,desc:"1 SBS-Combo-Spin (max 2 Pos.)"},
+        {type:"Tj",min:0,max:2,desc:"0-2 Wurfsprünge (Axel/Doppel-TL/Doppel-S)"},
+        {type:"CtSp",min:1,max:1,desc:"1 Combo Contact Spin (max 2 Pos.)"},
+        {type:"Sp",min:1,max:1,desc:"1 Spiral (Kamel BO)"},
+        {type:"ChSt",min:1,max:1,desc:"1 Choreo-Sequenz (max 30s)"},
+      ],
+      maxTotal:9, maxJumps:4, maxSpins:2, maxSequences:2,
+      jumpRestrictions:{ maxRotation:"double", noDoubleLoop:true, noDoubleAxel:true, noTriples:true },
+      spinRestrictions:{ maxComboPositions:2 },
+      footworkMaxLevel:0, footworkMaxSeconds:0, hasChoreoSeq:true,
+      pairsRestrictions:{ liftMaxLevel:2, noOverhead:true, noLowMilitano:true, maxThrows:2, allowedThrows:["1A","2T","2S"] },
+    },
+    // ─── PAIRS CADETS (14-15) ─── SP + Kür ───
+    "pairs_cadets_sp": {
+      label:"Pairs Cadets – Short Program",
+      info:"Alter 14-15 | 2:30 ±5s | 1 Pos.-Hebung (Flip Reversed Split, max Lv2) | 1 SBS-Sprung (2026: Doppel-Salchow) | 1 SBS-Spin (Sitz/Kamel BO) | 1 Wurfsprung (Doppel-TL/Doppel-S) | Contact Spin (Hazel) | Death Spiral (BO, max Lv2) | FoSq max Lv4 40s",
+      required:[
+        {type:"SLi",min:1,max:1,desc:"1 Pos.-Hebung (Flip Reversed Split, max Lv2)"},
+        {type:"SJu",min:1,max:1,desc:"1 SBS-Sprung (2026: Doppel-Salchow)"},
+        {type:"SSp",min:1,max:1,desc:"1 SBS-Spin (Sitz/Kamel BO)"},
+        {type:"Tj",min:1,max:1,desc:"1 Wurfsprung (Doppel-Toeloop oder Doppel-Salchow)"},
+        {type:"CtSp",min:1,max:1,desc:"1 Contact Spin (Hazel)"},
+        {type:"DS",min:1,max:1,desc:"1 Death Spiral (BO, max Lv2)"},
+        {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge (max Lv4, max 40s)"},
+      ],
+      maxTotal:7, maxJumps:2, maxSpins:2, maxSequences:2,
+      jumpRestrictions:{ maxRotation:"double", requiredJump:"2S" },
+      spinRestrictions:{ soloMustBeSitOrCamel:true },
+      footworkMaxLevel:4, footworkMaxSeconds:40,
+      pairsRestrictions:{ liftMaxLevel:2, liftType:"flip_reversed_split", deathSpiralMaxLevel:2, deathSpiralEdge:"BO" },
+    },
+    "pairs_cadets_fp": {
+      label:"Pairs Cadets – Kür",
+      info:"Alter 14-15 | 3:45 ±10s | 2 Hebungen (1 Combo+1 Solo, max Lv3, kein Overhead) | 1 SBS-Sprung (kein 2A/Dreifach) | 1 Kombi max 2 Sprünge (kein 2A/Dreifach) | Max 2 Wurfsprünge (max 2 Rot.) | 1 Twist (max 2 Rot.) | 1 Contact Spin (Solo/Combo max 3 Pos.) | 1 Death Spiral (max Lv2) | Choreo max 30s",
+      required:[
+        {type:"SLi",min:1,max:1,desc:"1 Solo-Hebung (max Lv3, kein Overhead)"},
+        {type:"CLi",min:1,max:1,desc:"1 Combo-Hebung (max Lv3, kein Overhead)"},
+        {type:"SJu",min:1,max:1,desc:"1 SBS-Sprung (kein 2A/Dreifach)"},
+        {type:"CoJ",min:0,max:1,desc:"0-1 SBS-Kombi (max 2 Sprünge, kein 2A/Dreifach)"},
+        {type:"Tj",min:0,max:2,desc:"0-2 Wurfsprünge (max 2 Rotationen)"},
+        {type:"Tw",min:1,max:1,desc:"1 Twist (max 2 Rotationen)"},
+        {type:"CtSp",min:1,max:1,desc:"1 Contact Spin (Solo/Combo max 3 Pos.)"},
+        {type:"DS",min:1,max:1,desc:"1 Death Spiral (max Lv2)"},
+        {type:"ChSt",min:1,max:1,desc:"1 Choreo-Sequenz (max 30s)"},
+      ],
+      maxTotal:10, maxJumps:4, maxSpins:1, maxSequences:1,
+      jumpRestrictions:{ maxRotation:"double", noDoubleAxel:true, noTriples:true, maxCombos:1, maxJumpsPerCombo:2 },
+      footworkMaxLevel:0, footworkMaxSeconds:0, hasChoreoSeq:true,
+      pairsRestrictions:{ liftMaxLevel:3, noOverhead:true, maxThrowRotation:"double", twistMaxRotation:2, deathSpiralMaxLevel:2, contactSpinMaxPositions:3 },
+    },
+    // ─── PAIRS YOUTH (16-17) ─── SP + Kür ───
+    "pairs_youth_sp": {
+      label:"Pairs Youth – Short Program",
+      info:"Alter 16-17 | 2:30 ±5s | 1 Pos.-Hebung (Press, max 3 Rot., max Lv2) | 1 SBS-Sprung (kein 2A/Dreifach) | 1 Contact Spin (Einzel-Pos.) | 1 Wurfsprung (Doppel inkl. 2A) | 1 Death Spiral (max Lv3, Inside) | FoSq max Lv4 40s",
+      required:[
+        {type:"SLi",min:1,max:1,desc:"1 Pos.-Hebung (Press, max 3 Rot., max Lv2)"},
+        {type:"SJu",min:1,max:1,desc:"1 SBS-Sprung (kein 2A/Dreifach)"},
+        {type:"CtSp",min:1,max:1,desc:"1 Contact Spin (Einzel-Position)"},
+        {type:"Tj",min:1,max:1,desc:"1 Wurfsprung (Doppel inkl. 2A)"},
+        {type:"DS",min:1,max:1,desc:"1 Death Spiral (max Lv3, Inside)"},
+        {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge (max Lv4, max 40s)"},
+      ],
+      maxTotal:7, maxJumps:2, maxSpins:1, maxSequences:2,
+      jumpRestrictions:{ maxRotation:"double", noDoubleAxel:true, noTriples:true },
+      footworkMaxLevel:4, footworkMaxSeconds:40,
+      pairsRestrictions:{ liftMaxLevel:2, liftType:"press", liftMaxRotations:3, deathSpiralMaxLevel:3, deathSpiralEdge:"Inside", maxThrowRotation:"double_incl_2A" },
+    },
+    "pairs_youth_fp": {
+      label:"Pairs Youth – Kür",
+      info:"Alter 16-17 | 4:00 ±10s | 2 Hebungen (1 Combo+1 Solo, max Kennedy, max Lv3) | 1 SBS-Sprung (kein 2A/Dreifach) | 1 Kombi max 2 Sprünge | Max 2 Wurfsprünge (max Doppel inkl. 2A) | 1 Twist (max 2 Rot.) | 1 Contact Spin (Combo max 3 Pos.) | 1 Death Spiral (max Lv3) | Choreo max 30s",
+      required:[
+        {type:"SLi",min:1,max:1,desc:"1 Solo-Hebung (max Kennedy, max Lv3)"},
+        {type:"CLi",min:1,max:1,desc:"1 Combo-Hebung (max Kennedy, max Lv3)"},
+        {type:"SJu",min:1,max:1,desc:"1 SBS-Sprung (kein 2A/Dreifach)"},
+        {type:"CoJ",min:0,max:1,desc:"0-1 SBS-Kombi (max 2 Sprünge)"},
+        {type:"Tj",min:0,max:2,desc:"0-2 Wurfsprünge (max Doppel inkl. 2A)"},
+        {type:"Tw",min:1,max:1,desc:"1 Twist (max 2 Rotationen)"},
+        {type:"CtSp",min:1,max:1,desc:"1 Contact Spin (Combo max 3 Pos.)"},
+        {type:"DS",min:1,max:1,desc:"1 Death Spiral (max Lv3)"},
+        {type:"ChSt",min:1,max:1,desc:"1 Choreo-Sequenz (max 30s)"},
+      ],
+      maxTotal:10, maxJumps:4, maxSpins:1, maxSequences:1,
+      jumpRestrictions:{ maxRotation:"double", noDoubleAxel:true, noTriples:true, maxCombos:1, maxJumpsPerCombo:2 },
+      footworkMaxLevel:0, footworkMaxSeconds:0, hasChoreoSeq:true,
+      pairsRestrictions:{ liftMaxLevel:3, liftMaxType:"kennedy", maxThrowRotation:"double_incl_2A", twistMaxRotation:2, deathSpiralMaxLevel:3, contactSpinMaxPositions:3 },
+    },
+    // ─── PAIRS JUNIOR (18-19) ─── SP + Kür ───
+    "pairs_junior_sp": {
+      label:"Pairs Junior – Short Program",
+      info:"Alter 18-19 | 3:00 ±5s | 2 Pos.-Hebungen (max 4 Rot., max Militano) | 1 SBS-Sprung (kein 2A/Dreifach) | Wurfsprung (2026: Doppel) | 1 Combo Contact Spin (max 3 Pos.) | 1 Death Spiral (Outside) | FoSq max Lv4 40s",
+      required:[
+        {type:"SLi",min:2,max:2,desc:"2 Positions-Hebungen (max 4 Rot., max Militano)"},
+        {type:"SJu",min:1,max:1,desc:"1 SBS-Sprung (kein 2A/Dreifach)"},
+        {type:"Tj",min:1,max:1,desc:"1 Wurfsprung (2026: Doppel)"},
+        {type:"CtSp",min:1,max:1,desc:"1 Combo Contact Spin (max 3 Pos.)"},
+        {type:"DS",min:1,max:1,desc:"1 Death Spiral (Outside)"},
+        {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge (max Lv4, max 40s)"},
+      ],
+      maxTotal:8, maxJumps:2, maxSpins:1, maxSequences:2,
+      jumpRestrictions:{ maxRotation:"double", noDoubleAxel:true, noTriples:true },
+      footworkMaxLevel:4, footworkMaxSeconds:40,
+      pairsRestrictions:{ liftMaxRotations:4, liftMaxType:"militano", deathSpiralEdge:"Outside", maxThrowRotation:"double" },
+    },
+    "pairs_junior_fp": {
+      label:"Pairs Junior – Kür",
+      info:"Alter 18-19 | 4:30 ±10s | 2 Hebungen (1 Combo+1 Solo, max Militano) | Max 2 SBS-Sprung-Elemente (1 Solo+1 Kombi max 4) | Max 2 Wurfsprünge (max Doppel) | 1 Twist | 1 Contact Spin (Solo/Combo max 3 Pos.) | 1 Death Spiral (max Lv2) | Choreo max 30s",
+      required:[
+        {type:"SLi",min:1,max:1,desc:"1 Solo-Hebung (max Militano)"},
+        {type:"CLi",min:1,max:1,desc:"1 Combo-Hebung (max Militano)"},
+        {type:"SJu",min:1,max:1,desc:"1 SBS-Sprung (Solo)"},
+        {type:"CoJ",min:0,max:1,desc:"0-1 SBS-Kombi (max 4 Sprünge)"},
+        {type:"Tj",min:0,max:2,desc:"0-2 Wurfsprünge (max Doppel, müssen verschieden sein)"},
+        {type:"Tw",min:1,max:1,desc:"1 Twist"},
+        {type:"CtSp",min:1,max:1,desc:"1 Contact Spin (Solo/Combo max 3 Pos.)"},
+        {type:"DS",min:1,max:1,desc:"1 Death Spiral (max Lv2)"},
+        {type:"ChSt",min:1,max:1,desc:"1 Choreo-Sequenz (max 30s)"},
+      ],
+      maxTotal:11, maxJumps:5, maxSpins:1, maxSequences:1,
+      jumpRestrictions:{ maxRotation:"double", maxCombos:1, maxJumpsPerCombo:4 },
+      footworkMaxLevel:0, footworkMaxSeconds:0, hasChoreoSeq:true,
+      pairsRestrictions:{ liftMaxType:"militano", maxThrowRotation:"double", throwsMustBeDifferent:true, deathSpiralMaxLevel:2, contactSpinMaxPositions:3 },
+    },
+    // ─── PAIRS SENIOR (20+) ─── SP + Kür ───
+    "pairs_senior_sp": {
+      label:"Pairs Senior – Short Program",
+      info:"Alter 20+ | 3:00 ±5s | 1 Pos.-Hebung (max 4 Rot.) | 1 Combo-Hebung (max 8 Rot., 3 Pos. Dame) | 1 SBS-Sprung (kein Kombi) | Wurfsprung (2026) | 1 Combo Contact Spin (max 3 Pos.) | 1 Death Spiral (Outside) | FoSq max Lv4 40s",
+      required:[
+        {type:"SLi",min:1,max:1,desc:"1 Pos.-Hebung (max 4 Rotationen)"},
+        {type:"CLi",min:1,max:1,desc:"1 Combo-Hebung (max 8 Rot., 3 Pos. Dame)"},
+        {type:"SJu",min:1,max:1,desc:"1 SBS-Sprung (kein Kombi)"},
+        {type:"Tj",min:1,max:1,desc:"1 Wurfsprung (2026)"},
+        {type:"CtSp",min:1,max:1,desc:"1 Combo Contact Spin (max 3 Pos.)"},
+        {type:"DS",min:1,max:1,desc:"1 Death Spiral (Outside)"},
+        {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge (max Lv4, max 40s)"},
+      ],
+      maxTotal:8, maxJumps:2, maxSpins:1, maxSequences:2,
+      jumpRestrictions:{ noCombos:true },
+      footworkMaxLevel:4, footworkMaxSeconds:40,
+      pairsRestrictions:{ soloLiftMaxRotations:4, comboLiftMaxRotations:8, comboLiftMaxPositions:3, deathSpiralEdge:"Outside", contactSpinMaxPositions:3 },
+    },
+    "pairs_senior_fp": {
+      label:"Pairs Senior – Kür",
+      info:"Alter 20+ | 4:30 ±10s | 3 Hebungen (mind. 1 Pos.+1 Combo) | Max 2 SBS-Sprung-Elemente (1 Solo+1 Kombi max 4) | Max 2 Wurfsprünge (max 1 Dreifach/2A, müssen verschieden sein) | 1 Twist | 1 Combo Contact Spin ODER 1 SBS-Combo-Spin (max 3 Pos.) | 1 Death Spiral (Inside) | Choreo max 30s",
+      required:[
+        {type:"SLi",min:1,max:2,desc:"1-2 Solo-Hebungen"},
+        {type:"CLi",min:1,max:2,desc:"1-2 Combo-Hebungen"},
+        {type:"SJu",min:1,max:1,desc:"1 SBS-Sprung (Solo)"},
+        {type:"CoJ",min:0,max:1,desc:"0-1 SBS-Kombi (max 4 Sprünge)"},
+        {type:"Tj",min:0,max:2,desc:"0-2 Wurfsprünge (max 1 Dreifach/2A, müssen verschieden sein)"},
+        {type:"Tw",min:1,max:1,desc:"1 Twist"},
+        {type:"CtSp",min:0,max:1,desc:"0-1 Combo Contact Spin (max 3 Pos.) ODER SBS-Combo-Spin"},
+        {type:"CSp",min:0,max:1,desc:"0-1 SBS-Combo-Spin (alternativ zu Contact Spin)"},
+        {type:"DS",min:1,max:1,desc:"1 Death Spiral (Inside)"},
+        {type:"ChSt",min:1,max:1,desc:"1 Choreo-Sequenz (max 30s)"},
+      ],
+      maxTotal:11, maxJumps:5, maxSpins:2, maxSequences:1,
+      jumpRestrictions:{ maxRotation:"triple", maxCombos:1, maxJumpsPerCombo:4, maxTripleOrDoubleAxelThrows:1 },
+      footworkMaxLevel:0, footworkMaxSeconds:0, hasChoreoSeq:true,
+      pairsRestrictions:{ totalLifts:3, minPositionLifts:1, minComboLifts:1, maxThrows:2, throwsMustBeDifferent:true, deathSpiralEdge:"Inside", contactSpinMaxPositions:3 },
     },
   };
 
@@ -1391,7 +1605,7 @@
     const [tab,setTab]=useState("rules"); // rules, optimize, training
 
     const rules=SEGMENT_RULES[segment]||SEGMENT_RULES["senior_fp"];
-    const isPairs=segment==="psp"||segment==="pfp";
+    const isPairs=segment.startsWith("pairs_");
     const pcsFactor=PCS_FACTORS[segment]||1.0;
     const catKey=SEGMENT_DEFS[segment]?.category||"senior";
     const catDef=CATEGORY_DEFS[catKey]||CATEGORY_DEFS["senior"];
@@ -1901,7 +2115,7 @@
     const [judgeCount,setJudgeCount]=useState(3);
     const [importMsg,setImportMsg]=useState("");
 
-    const isPairs=segment==="psp"||segment==="pfp";
+    const isPairs=segment.startsWith("pairs_");
     const segDef=SEGMENT_DEFS[segment];
     const types=isPairs?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE;
     const pcsFactor=PCS_FACTORS[segment]||1.0;
@@ -1929,7 +2143,7 @@
       if(importData.deductions!==undefined)setDeductions(importData.deductions);
       if(importData.extraPoints!==undefined)setExtraPoints(importData.extraPoints);
       const filled=imported.filter(r=>{
-        const td=(importData.segment==="psp"||importData.segment==="pfp"?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE).find(t=>t.code===r.typeCode);
+        const td=(importData.segment.startsWith("pairs_")?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE).find(t=>t.code===r.typeCode);
         if(td?.isCombo)return(r.comboEls||[]).some(s=>s.code);
         return!!r.elCode;
       }).length;
@@ -2816,7 +3030,7 @@
     const [showSkaterModal, setShowSkaterModal] = useState(false);
     const [savingSkater, setSavingSkater] = useState(false);
 
-    const isPairs = segment==="psp"||segment==="pfp";
+    const isPairs = segment.startsWith("pairs_");
     const segDef = SEGMENT_DEFS[segment];
     const types = isPairs ? ELEMENT_TYPES_PAIRS : ELEMENT_TYPES_FREE;
 
@@ -3503,6 +3717,26 @@
             ))}
           </tbody>
         </table>
+
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#1d4ed8"}}>Offizielle Regelwerke (World Skate 2026)</h4>
+        <p style={{fontSize:10,color:"#6b7280",margin:"0 0 6px"}}>Die offiziellen Regelwerke für die Saison 2026:</p>
+        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+          {[
+            {name:"Free Skating 2026 – Official Regulation", desc:"Einzellauf-Regeln für alle Altersklassen (Tots bis Senior)"},
+            {name:"Pairs 2026 – Official Regulation", desc:"Paarlauf-Regeln für alle Altersklassen"},
+            {name:"General 2026 – Official Regulation", desc:"Allgemeine Wettkampf- und Bewertungsregeln"},
+            {name:"Artistic Impression 2026 – Official Regulation", desc:"Artistic Impression / Program Components Bewertung"},
+            {name:"Content Sheets 2026", desc:"Offizielle Content Sheets für alle Kategorien"},
+            {name:"RollArt – Free Skating Values 2026", desc:"Basiswerte aller Einzellauf-Elemente"},
+            {name:"RollArt – Pairs Values 2026", desc:"Basiswerte aller Paarlauf-Elemente"},
+          ].map((doc,i)=>(
+            <div key={i} style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:6,padding:"6px 10px",fontSize:11}}>
+              <span style={{fontWeight:700,color:"#1d4ed8"}}>{doc.name}</span>
+              <span style={{color:"#6b7280",marginLeft:8}}> – {doc.desc}</span>
+            </div>
+          ))}
+        </div>
+        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Die PDFs sind in der App hinterlegt und werden vom KI-Coach für Regelprüfungen verwendet.</p>
       </div>
     </div>
   </div>
