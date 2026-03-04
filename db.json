@@ -13,7 +13,24 @@
     }
   ],
   "nextId": 3,
-  "skaters": [],
+  "skaters": [
+    {
+      "id": 1772641378036,
+      "userId": 1,
+      "name": "Test Läufer",
+      "kategorie": "senior",
+      "verein": "",
+      "music": "",
+      "segment": "senior_fp",
+      "rows": [],
+      "pcs": {},
+      "deductions": 0,
+      "extraPoints": 0,
+      "officialSheet": null,
+      "createdAt": "2026-03-04T16:22:58.036Z",
+      "updatedAt": "2026-03-04T16:22:58.036Z"
+    }
+  ],
   "nextSkaterId": 1,
   "settings": {
     "registrationOpen": true,

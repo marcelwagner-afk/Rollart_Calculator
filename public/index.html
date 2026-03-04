@@ -904,17 +904,25 @@
         if(isNewPage){doc.addPage();}
         y=14;
 
-        // === HEADER: World Skate logo text (top-left) + big bold title (center-right) ===
-        // Green "WORLD SKATE" logo text
-        doc.setFont("helvetica","bold");
-        doc.setFontSize(10);
-        doc.setTextColor(100,180,70); // green
-        doc.text("WORLD",mx+2,y);
-        doc.text("SKATE",mx+2,y+4);
-        // Small circle hint for logo
-        doc.setDrawColor(100,180,70);doc.setLineWidth(0.6);
-        doc.circle(mx-1,y+1,3.5);
-        doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
+        // === HEADER: World Skate spiral logo (top-left) + big bold title (center-right) ===
+        const logoX=mx+8, logoY=y+5, logoR=6;
+        // Draw spiral arcs (outer=dark grey, mid=grey, inner=green)
+        const drawArc=(cx,cy,r,startDeg,endDeg,color,w)=>{
+          doc.setDrawColor(...color);doc.setLineWidth(w);
+          const steps=40;const s=startDeg*Math.PI/180;const e=endDeg*Math.PI/180;
+          const pts=[];for(let i=0;i<=steps;i++){const a=s+(e-s)*i/steps;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
+          for(let i=0;i<pts.length-1;i++)doc.line(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
+        };
+        drawArc(logoX,logoY,logoR,-90,250,[74,74,74],0.9);
+        drawArc(logoX,logoY,logoR*0.72,-90,240,[136,136,136],0.8);
+        drawArc(logoX,logoY,logoR*0.45,-90,220,[122,182,72],0.7);
+        // "WORLD SKATE" text right of logo
+        doc.setFont("helvetica","bold");doc.setFontSize(9);
+        doc.setTextColor(74,74,74);
+        doc.text("WORLD",logoX+logoR+3,logoY+0.5);
+        doc.setTextColor(136,136,136);
+        doc.text("SKATE",logoX+logoR+3,logoY+4);
+        doc.setDrawColor(0,0,0);doc.setLineWidth(lw);doc.setTextColor(0,0,0);
 
         // Title — big bold, centered in the right portion
         const titleX=mx+50+(cw-50)/2;
@@ -1062,11 +1070,7 @@
     };
 
     // Restore from TXT
-    const restoreTxt=(e)=>{
-      const file=e.target.files?.[0];if(!file)return;e.target.value="";
-      const reader=new FileReader();
-      reader.onload=ev=>{
-        const text=ev.target.result;
+    const restoreTxt=(text)=>{
         const nm=text.match(/Name:\s*(.+)/);if(nm)setName(nm[1].trim());
         const ct=text.match(/Category:\s*(.+)/);if(ct)setCategory(ct[1].trim());
         const fd=text.match(/Federation:\s*(.+)/);if(fd)setFederation(fd[1].trim());
@@ -1093,8 +1097,57 @@
           secIdx++;
         }
         setSections(newSections);
-      };
-      reader.readAsText(file);
+    };
+
+    // Import file (PDF or TXT)
+    const importFile=async(e)=>{
+      const file=e.target.files?.[0];if(!file)return;e.target.value="";
+      if(file.name.toLowerCase().endsWith('.pdf')){
+        // PDF import using pdf.js
+        try{
+          const buf=await file.arrayBuffer();
+          const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+          let fullText="";
+          for(let p=1;p<=pdf.numPages;p++){
+            const pg=await pdf.getPage(p);
+            const tc=await pg.getTextContent();
+            const pageText=tc.items.map(it=>it.str).join(" ");
+            fullText+=pageText+"\n";
+          }
+          // Try to extract structured data from PDF text
+          const nm=fullText.match(/(?:COMPETITORS?\s*NAME|Name)[:\s]+([^\n|]+)/i);
+          if(nm)setName(nm[1].trim());
+          const ct=fullText.match(/(?:CATEGORY|Kategorie)[:\s]+([^\n|]+)/i);
+          if(ct){
+            const catVal=ct[1].trim();
+            // Try to match to known category
+            const found=Object.entries(CATEGORY_DEFS).find(([k,v])=>v.label.toLowerCase().includes(catVal.toLowerCase())||catVal.toLowerCase().includes(k));
+            if(found)changeKategorie(found[0]);
+          }
+          const fd=fullText.match(/(?:Representing|Verein|Federation)[:\s]+([^\n|]+)/i);
+          if(fd)setFederation(fd[1].trim());
+          const ch=fullText.match(/(?:CHOREOGRAPHY|Musik|Choreographie)[:\s]+([^\n|]+)/i);
+          if(ch)setChoreography(ch[1].trim());
+          // Try to extract element codes from PDF text
+          const codePattern=/\b([1-4]?[TSFLA][a-z]*\d?|[A-Z]{2,4}\d?|St[B1-4]|CaSp[B1-4]|USp[B1-4]|SSp[B1-4]|CSp[B1-4]|FoSq[B1-4]|ChSt[B1-4])\b/g;
+          const foundCodes=fullText.match(codePattern)||[];
+          if(foundCodes.length>0){
+            const newSections=[...sections];
+            const els=[...newSections[0].elements];
+            foundCodes.forEach((code,i)=>{if(i<els.length)els[i]={...els[i],code:code};});
+            newSections[0]={...newSections[0],elements:els};
+            setSections(newSections);
+          }
+          alert('PDF importiert. Bitte Daten überprüfen — PDF-Erkennung kann ungenau sein.');
+        }catch(err){
+          alert('Fehler beim PDF-Import: '+err.message);
+        }
+      } else {
+        // TXT import
+        const reader=new FileReader();
+        reader.onload=ev=>restoreTxt(ev.target.result);
+        reader.readAsText(file);
+      }
     };
 
     const codes=sheet.sections[0].codes;
@@ -1121,11 +1174,11 @@
 
         {/* Actions */}
         <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
-          <button onClick={exportPDF} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#dc2626",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>Als PDF drucken</button>
-          <button onClick={saveTxt} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#059669",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>Speichern (TXT)</button>
+          <button onClick={exportPDF} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#dc2626",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>PDF exportieren</button>
+          <button onClick={saveTxt} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#059669",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>TXT exportieren</button>
           <label style={{padding:"6px 14px",borderRadius:5,border:"1px solid #059669",background:"#f0fdf4",color:"#059669",fontWeight:600,fontSize:11,cursor:"pointer"}}>
-            Laden (TXT)
-            <input type="file" accept=".txt" onChange={restoreTxt} style={{display:"none"}}/>
+            Importieren (PDF/TXT)
+            <input type="file" accept=".pdf,.txt" onChange={importFile} style={{display:"none"}}/>
           </label>
           <button onClick={handleSendToContent} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#7c3aed",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
             &#9654; An Content Elements Sheet senden
@@ -1137,9 +1190,12 @@
         <div id="official-sheet-print" style={{background:"white",border:"1px solid #ccc",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.12)",maxWidth:820,margin:"0 auto"}}>
           {/* Header: Logo area + Title */}
           <div style={{display:"flex",alignItems:"center",padding:"12px 16px 8px",gap:16,borderBottom:"1px solid #ddd",background:"#fafafa"}}>
-            <div style={{minWidth:60,textAlign:"center"}}>
-              <div style={{fontSize:9,fontWeight:800,lineHeight:1,color:"#7ab648",fontFamily:"Arial,sans-serif"}}>WORLD</div>
-              <div style={{fontSize:9,fontWeight:800,lineHeight:1,color:"#7ab648",fontFamily:"Arial,sans-serif"}}>SKATE</div>
+            <div style={{minWidth:70,textAlign:"center"}}>
+              <svg width="55" height="55" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <path d="M50 5 A45 45 0 1 1 15 75" fill="none" stroke="#4a4a4a" strokeWidth="5" strokeLinecap="round"/>
+                <path d="M50 15 A35 35 0 1 1 22 68" fill="none" stroke="#888888" strokeWidth="4.5" strokeLinecap="round"/>
+                <path d="M50 25 A25 25 0 1 1 30 62" fill="none" stroke="#7ab648" strokeWidth="4" strokeLinecap="round"/>
+              </svg>
             </div>
             <h2 style={{margin:0,fontSize:24,fontWeight:900,fontFamily:"Arial,sans-serif",color:"#000",flex:1,textAlign:"center"}}>
               {sheet.title.replace(" 2026","")}
@@ -1600,9 +1656,46 @@
     },
   };
 
-  function KiCoach({rows,types,segment,judgeCount,elements,tes,pcsTotal,bonusTotal,pcs}){
+  function KiCoach({rows,types,segment,judgeCount,elements,tes,pcsTotal,bonusTotal,pcs,kategorie,deductions,extraPoints}){
     const [open,setOpen]=useState(true);
-    const [tab,setTab]=useState("rules"); // rules, optimize, training
+    const [tab,setTab]=useState("rules"); // rules, optimize, training, claude
+    const [claudeMsg,setClaudeMsg]=useState("");
+    const [claudeHistory,setClaudeHistory]=useState([]);
+    const [claudeLoading,setClaudeLoading]=useState(false);
+
+    const sendToClaude=async(msg)=>{
+      if(!msg.trim()||claudeLoading)return;
+      const userMsg={role:"user",text:msg};
+      setClaudeHistory(h=>[...h,userMsg]);
+      setClaudeMsg("");
+      setClaudeLoading(true);
+      try{
+        const token=localStorage.getItem('rollart_token');
+        const total=tes+pcsTotal-deductions+extraPoints;
+        const context={
+          kategorie:kategorie||"senior",
+          segment,
+          rows:rows.map(r=>({typeCode:r.typeCode,elCode:r.elCode,rotation:r.rotation,nv:r.nv,dg:r.dg,bonuses:r.bonuses,comboEls:r.comboEls})),
+          scores:{tes:Math.round(tes*100)/100,pcs:Math.round(pcsTotal*100)/100,deductions,total:Math.round(total*100)/100},
+        };
+        const res=await fetch('/api/ki-coach',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+          body:JSON.stringify({message:msg,context}),
+        });
+        const data=await res.json();
+        if(res.ok){
+          setClaudeHistory(h=>[...h,{role:"assistant",text:data.reply}]);
+        }else{
+          setClaudeHistory(h=>[...h,{role:"error",text:data.error||'Fehler bei der KI-Analyse'}]);
+        }
+      }catch(err){
+        setClaudeHistory(h=>[...h,{role:"error",text:'Verbindungsfehler: '+err.message}]);
+      }
+      setClaudeLoading(false);
+    };
+
+    const quickAnalysis=()=>sendToClaude("Analysiere mein aktuelles Programm. Prüfe die Regelkonformität, finde Optimierungspotenzial und gib konkrete Trainingstipps.");
 
     const rules=SEGMENT_RULES[segment]||SEGMENT_RULES["senior_fp"];
     const isPairs=segment.startsWith("pairs_");
@@ -1857,6 +1950,9 @@
               <button onClick={()=>setTab("training")} style={tabStyle("training")}>
                 Training
               </button>
+              <button onClick={()=>setTab("claude")} style={tabStyle("claude")}>
+                {"\uD83E\uDDE0"} Claude KI
+              </button>
             </div>
 
             {/* Category Info Banner */}
@@ -1912,7 +2008,7 @@
               {tab==="training"&&(
                 <div>
                   {trainingTips.length===0?(
-                    <div style={{fontSize:11,color:"#9ca3af",fontStyle:"italic",padding:8}}>F\u00FClle Elemente aus, um Trainingstipps zu erhalten.</div>
+                    <div style={{fontSize:11,color:"#9ca3af",fontStyle:"italic",padding:8}}>Fülle Elemente aus, um Trainingstipps zu erhalten.</div>
                   ):trainingTips.map((tip,i)=>(
                     <div key={i} style={{padding:"8px 10px",marginBottom:6,borderRadius:8,background:"#faf5ff",border:"1px solid #ddd6fe"}}>
                       <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:3}}>
@@ -1931,6 +2027,63 @@
                       <div style={{fontSize:11,color:"#6b7280",lineHeight:1.4}}>{tip.desc}</div>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {/* CLAUDE KI TAB */}
+              {tab==="claude"&&(
+                <div>
+                  {/* Quick actions */}
+                  <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>
+                    <button onClick={quickAnalysis} disabled={claudeLoading} style={{padding:"5px 10px",borderRadius:6,border:"1px solid #7c3aed",background:"#faf5ff",color:"#7c3aed",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                      {"\uD83D\uDD0D"} Komplett-Analyse
+                    </button>
+                    <button onClick={()=>sendToClaude("Prüfe ob mein Programm regelkonform ist und liste alle Regelverstöße auf.")} disabled={claudeLoading} style={{padding:"5px 10px",borderRadius:6,border:"1px solid #dc2626",background:"#fef2f2",color:"#dc2626",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                      {"\u2696\uFE0F"} Regelprüfung
+                    </button>
+                    <button onClick={()=>sendToClaude("Welche Elemente sollte ich upgraden oder tauschen für maximale Punkte? Gib konkrete Vorschläge.")} disabled={claudeLoading} style={{padding:"5px 10px",borderRadius:6,border:"1px solid #059669",background:"#f0fdf4",color:"#059669",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                      {"\uD83D\uDCC8"} Optimieren
+                    </button>
+                    <button onClick={()=>sendToClaude("Erstelle einen Trainingsplan für die nächsten 4 Wochen basierend auf meinem aktuellen Programm.")} disabled={claudeLoading} style={{padding:"5px 10px",borderRadius:6,border:"1px solid #f59e0b",background:"#fffbeb",color:"#92400e",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                      {"\uD83C\uDFCB\uFE0F"} Trainingsplan
+                    </button>
+                  </div>
+
+                  {/* Chat history */}
+                  <div style={{maxHeight:280,overflowY:"auto",marginBottom:8,border:"1px solid #e5e7eb",borderRadius:8,background:"#fafafa"}}>
+                    {claudeHistory.length===0&&!claudeLoading&&(
+                      <div style={{padding:16,textAlign:"center",color:"#9ca3af",fontSize:11}}>
+                        <div style={{fontSize:24,marginBottom:4}}>{"\uD83E\uDDE0"}</div>
+                        Frage den KI-Coach! Er kennt alle World Skate 2026 Regeln und analysiert dein Programm.
+                      </div>
+                    )}
+                    {claudeHistory.map((m,i)=>(
+                      <div key={i} style={{padding:"8px 12px",borderBottom:"1px solid #f3f4f6",
+                        background:m.role==="user"?"#ede9fe":m.role==="error"?"#fef2f2":"white"}}>
+                        <div style={{fontSize:9,fontWeight:700,color:m.role==="user"?"#7c3aed":m.role==="error"?"#dc2626":"#059669",marginBottom:2}}>
+                          {m.role==="user"?"Du":m.role==="error"?"Fehler":"KI-Coach"}
+                        </div>
+                        <div style={{fontSize:11,color:"#374151",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{m.text}</div>
+                      </div>
+                    ))}
+                    {claudeLoading&&(
+                      <div style={{padding:"12px",textAlign:"center",color:"#7c3aed",fontSize:11,fontWeight:600}}>
+                        {"\uD83E\uDDE0"} Claude analysiert... <span style={{animation:"pulse 1.5s infinite"}}>{"●●●"}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Input */}
+                  <div style={{display:"flex",gap:4}}>
+                    <input value={claudeMsg} onChange={e=>setClaudeMsg(e.target.value)}
+                      onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendToClaude(claudeMsg);}}}
+                      placeholder="Frage an den KI-Coach..." disabled={claudeLoading}
+                      style={{flex:1,padding:"8px 10px",borderRadius:6,border:"1px solid #d1d5db",fontSize:11,outline:"none"}}/>
+                    <button onClick={()=>sendToClaude(claudeMsg)} disabled={claudeLoading||!claudeMsg.trim()}
+                      style={{padding:"8px 14px",borderRadius:6,border:"none",background:claudeLoading?"#d1d5db":"#7c3aed",color:"white",fontWeight:700,fontSize:11,cursor:claudeLoading?"wait":"pointer"}}>
+                      Senden
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -2433,7 +2586,8 @@
 
             {/* KI-Coach */}
             <KiCoach rows={rows} types={types} segment={segment} judgeCount={judgeCount}
-              elements={elements} tes={tes} pcsTotal={pcsTotal} bonusTotal={bonusTotal} pcs={pcs}/>
+              elements={elements} tes={tes} pcsTotal={pcsTotal} bonusTotal={bonusTotal} pcs={pcs}
+              kategorie={kategorie} deductions={deductions} extraPoints={extraPoints}/>
           </div>
         </div>
       </div>
@@ -3279,7 +3433,7 @@
     // Skater save/load functions
     const loadSkaters = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('rollart_token');
         const res = await fetch('/api/skaters', { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
@@ -3295,7 +3449,7 @@
       }
       setSavingSkater(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('rollart_token');
         const payload = { name: skater, kategorie, verein: "", music, segment, rows, pcs, deductions, extraPoints, officialSheet: null };
         const res = await fetch('/api/skaters', {
           method: 'POST',

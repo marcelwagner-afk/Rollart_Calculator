@@ -408,6 +408,118 @@ app.delete('/api/skaters/:id', auth, (req, res) => {
 });
 
 // ============================================================
+//  KI-COACH — Claude API Integration
+// ============================================================
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+
+const KI_SYSTEM_PROMPT = `Du bist der RollArt KI-Coach für Artistic Roller Skating (Rollkunstlauf) nach World Skate 2026 Regeln.
+Du analysierst Programm-Zusammensetzungen und gibst präzise Regelprüfungen, Optimierungsvorschläge und Trainingsempfehlungen.
+
+WICHTIGE REGELN DIE DU KENNEN MUSST:
+
+EINZELLAUF SHORT PROGRAM (Junior/Senior):
+- Axel (einfach, doppel oder dreifach)
+- Kombination 2-3 Sprünge inkl. Connecting (max 2 Dreifach)
+- Solo-Sprung (kein Axel)
+- 1 Solo-Spin, 1 Combo-Spin (muss Sitz enthalten, max 4 Pos.)
+- Schrittfolge max 40s
+- Junior/Senior: 2:45 ±5s | Cadet/Youth: 2:30 ±5s | Espoir: 2:00 ±5s
+
+EINZELLAUF LONG PROGRAM:
+- Youth/Junior/Senior: Max 8 Sprünge, max 3 Kombis, max 5 pro Kombi, Axel Pflicht, 2 Spins, Choreo max 30s, 4:00 ±10s
+- Cadet: Max 8 Sprünge, max 2 Kombis, Axel Pflicht, kein Broken-Spin, 3:30 ±10s
+- Espoir: Max 8 Sprünge, kein 2A/Dreifach, max 2 Kombis, 3:15 ±10s
+- Minis: Max 12 Sprünge (1 Rot. + Doppel-TL/S), Axel+Toeloop Pflicht, FoSq max Lv2, 2:45 ±10s
+- Tots: Max 12 Sprünge (1 Rot. inkl. Waltz), Toeloop+Salchow Pflicht, FoSq max Lv1, 2:30 ±10s
+
+PAARLAUF:
+- Tots/Minis: nur Kür, KEINE Hebungen erlaubt
+- Espoir-Senior: SP + Kür mit Hebungen, Wurfsprüngen, Twist, Death Spiral, Contact Spin
+- Senior SP: 1 Pos.-Hebung + 1 Combo-Hebung, 1 SBS-Sprung, Wurfsprung, Combo Contact Spin, Death Spiral (Outside), FoSq
+- Senior Kür: 3 Hebungen, max 2 SBS-Sprünge, max 2 Würfe, 1 Twist, Contact/SBS-Spin, Death Spiral (Inside), Choreo
+
+BONUSSYSTEM:
+- +10% nach halber Programmlänge (Cadet+)
+- +10% Doppel+Doppel Kombi, +20% Doppel+Dreifach, +30% Dreifach+Dreifach
+- Spin-Positionen: Biellmann +80%, Sideways +60%, Split/Twist/Forward +40-50%, Heel/Layback +20-30%
+- Doppel-Axel zählt als Dreifach (Junior/Senior Kür)
+
+QOE (Quality of Element): -3 bis +3, Trimmed Mean bei >3 Judges
+Rotation: N (voll), < (under, -30%), << (half, -50%), <<< (downgrade)
+
+Antworte IMMER auf Deutsch. Sei präzise und gib konkrete Verbesserungsvorschläge mit geschätzten Punktegewinnen.
+Verwende kurze, klare Sätze. Strukturiere deine Antwort mit Emojis als Aufzählungszeichen.`;
+
+app.post('/api/ki-coach', auth, async (req, res) => {
+  if (!ANTHROPIC_API_KEY) {
+    return res.status(503).json({ error: 'Kein Anthropic API-Key konfiguriert. Bitte ANTHROPIC_API_KEY als Umgebungsvariable setzen.' });
+  }
+
+  const { message, context } = req.body;
+  if (!message) {
+    return res.status(400).json({ error: 'Nachricht fehlt' });
+  }
+
+  // Build context string from skating data
+  let contextStr = '';
+  if (context) {
+    contextStr = `\n\nAKTUELLES PROGRAMM:\nKategorie: ${context.kategorie || 'unbekannt'}\nSegment: ${context.segment || 'unbekannt'}\n`;
+    if (context.rows && context.rows.length > 0) {
+      contextStr += 'Elemente:\n';
+      context.rows.forEach((r, i) => {
+        if (r.typeCode) {
+          const rotation = r.rotation && r.rotation !== 'normal' ? ` [${r.rotation}]` : '';
+          const nv = r.nv ? ' [NV]' : '';
+          const dg = r.dg ? ' [DG]' : '';
+          const bonuses = (r.bonuses || []).length > 0 ? ` Boni: ${r.bonuses.join(', ')}` : '';
+          if (r.typeCode === 'CoJ') {
+            const subs = (r.comboEls || []).filter(s => s.code).map(s => s.code).join('+');
+            contextStr += `  ${i + 1}. ${r.typeCode}: ${subs || 'leer'}${rotation}${nv}${dg}${bonuses}\n`;
+          } else {
+            contextStr += `  ${i + 1}. ${r.typeCode}: ${r.elCode || 'leer'}${rotation}${nv}${dg}${bonuses}\n`;
+          }
+        }
+      });
+    }
+    if (context.scores) {
+      contextStr += `\nPunkte: TES=${context.scores.tes || 0}, PCS=${context.scores.pcs || 0}, Abzüge=${context.scores.deductions || 0}, Gesamt=${context.scores.total || 0}\n`;
+    }
+  }
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        system: KI_SYSTEM_PROMPT,
+        messages: [
+          { role: 'user', content: contextStr + '\n\nFrage des Trainers/Läufers: ' + message }
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Claude API error:', response.status, errText);
+      return res.status(502).json({ error: `Claude API Fehler (${response.status})` });
+    }
+
+    const data = await response.json();
+    const reply = data.content?.[0]?.text || 'Keine Antwort von Claude erhalten.';
+    res.json({ reply });
+  } catch (err) {
+    console.error('KI-Coach error:', err);
+    res.status(500).json({ error: 'Fehler bei der KI-Analyse: ' + err.message });
+  }
+});
+
+// ============================================================
 //  SERVE FRONTEND
 // ============================================================
 app.get('/', (req, res) => {
