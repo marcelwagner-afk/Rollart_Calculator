@@ -805,10 +805,10 @@
     );
   }
 
-  function OfficialSheets(){
+  function OfficialSheets({onSendToContent}){
     const [sheetType,setSheetType]=useState("sp_fp");
     const [name,setName]=useState("");
-    const [category,setCategory]=useState("");
+    const [kategorie,setKategorie]=useState("senior");
     const [federation,setFederation]=useState("");
     const [choreography,setChoreography]=useState("");
     const sheet=SHEET_TYPES[sheetType];
@@ -821,6 +821,31 @@
 
     const changeSheet=(st)=>{setSheetType(st);setSections(initSections(st));};
     const updateSection=(sIdx,data)=>{setSections(prev=>prev.map((s,i)=>i===sIdx?data:s));};
+
+    // Auto-update sheetType when kategorie changes
+    const changeKategorie=(k)=>{
+      setKategorie(k);
+      const catDef=CATEGORY_DEFS[k];
+      if(catDef){
+        const segs=catDef.segments||[];
+        let newSheetType="sp_fp";
+        if(segs.length===1){
+          // Only FP
+          newSheetType=segs[0].endsWith("_fp")?"fp12":"sp";
+        } else if(segs.length===2){
+          // SP+FP
+          newSheetType="sp_fp";
+        }
+        setSheetType(newSheetType);
+        setSections(initSections(newSheetType));
+      }
+    };
+
+    const handleSendToContent=()=>{
+      if(onSendToContent){
+        onSendToContent({name,kategorie,federation,choreography,sections});
+      }
+    };
 
     // jsPDF-based PDF generation matching original World Skate template exactly
     const exportPDF=()=>{
@@ -1057,6 +1082,16 @@
           ))}
         </div>
 
+        {/* Kategorie selector */}
+        <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+          <label style={{fontWeight:600,fontSize:12}}>Kategorie:</label>
+          <select value={kategorie} onChange={e=>changeKategorie(e.target.value)} style={{padding:"6px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12,background:"white",cursor:"pointer"}}>
+            {Object.entries(CATEGORY_DEFS).map(([k,v])=>(
+              <option key={k} value={k}>{v.label}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Actions */}
         <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
           <button onClick={exportPDF} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#dc2626",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>Als PDF drucken</button>
@@ -1065,7 +1100,10 @@
             Laden (TXT)
             <input type="file" accept=".txt" onChange={restoreTxt} style={{display:"none"}}/>
           </label>
-          <button onClick={()=>{setName("");setCategory("");setFederation("");setChoreography("");setSections(initSections(sheetType));}} style={{padding:"6px 14px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Löschen</button>
+          <button onClick={handleSendToContent} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#7c3aed",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
+            &#9654; An Content Elements Sheet senden
+          </button>
+          <button onClick={()=>{setName("");setKategorie("senior");setFederation("");setChoreography("");setSections(initSections(sheetType));}} style={{padding:"6px 14px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Löschen</button>
         </div>
 
         {/* Official Sheet — matching original sk8info template */}
@@ -1086,14 +1124,14 @@
             <tbody>
               {[
                 {label:"COMPETITORS NAME",val:name,set:setName,ph:"Name"},
-                {label:"CATEGORY",val:category,set:setCategory,ph:"z.B. Schüler D, Cadet..."},
+                {label:"CATEGORY",val:CATEGORY_DEFS[kategorie]?.label||kategorie,set:()=>{},ph:"",readonly:true},
                 {label:"Representing",val:federation,set:setFederation,ph:"Verein / Verband"},
                 {label:"CHOREOGRAPHY",val:choreography,set:setChoreography,ph:"Musik / Choreographie"},
               ].map((inf,i)=>(
                 <tr key={i}>
                   <td style={{border:"1px solid #000",padding:"6px 10px",fontWeight:700,fontSize:12,width:200,background:"#fff",fontFamily:"Arial,sans-serif"}}>{inf.label}</td>
                   <td style={{border:"1px solid #000",padding:"6px 10px"}}>
-                    <input value={inf.val} onChange={e=>inf.set(e.target.value)} placeholder={inf.ph}
+                    <input value={inf.val} onChange={e=>inf.set(e.target.value)} placeholder={inf.ph} readOnly={inf.readonly||false}
                       style={{border:"none",outline:"none",width:"100%",fontSize:14,fontFamily:"Arial,sans-serif",padding:0,background:"transparent"}}/>
                   </td>
                 </tr>
@@ -2753,8 +2791,9 @@
   // ============================================================
   function App() {
     const authCtx = useAuth();
-    const [page, setPage] = useState("content"); // "content", "official", "training", "profile"
+    const [page, setPage] = useState("official"); // "content", "official", "training", "profile"
     const [simImport, setSimImport] = useState(null);
+    const [officialImport, setOfficialImport] = useState(null);
     const [kategorie, setKategorie] = useState("senior");
     const [segment, setSegment] = useState("senior_fp");
     const [skater, setSkater] = useState("");
@@ -2773,6 +2812,9 @@
     const [extraPoints, setExtraPoints] = useState(0);
     const [showGlossar, setShowGlossar] = useState(false);
     const [showPenalties, setShowPenalties] = useState(false);
+    const [skaters, setSkaters] = useState([]);
+    const [showSkaterModal, setShowSkaterModal] = useState(false);
+    const [savingSkater, setSavingSkater] = useState(false);
 
     const isPairs = segment==="psp"||segment==="pfp";
     const segDef = SEGMENT_DEFS[segment];
@@ -2798,6 +2840,39 @@
       setDeductions(0);
       setExtraPoints(0);
     };
+
+    // Handle official import
+    useEffect(() => {
+      if (officialImport) {
+        setSkater(officialImport.name || "");
+        setCat(officialImport.kategorie || "");
+        setMusic(officialImport.choreography || "");
+
+        // Set kategorie and segment
+        if (officialImport.kategorie) {
+          setKategorie(officialImport.kategorie);
+          const catDef = CATEGORY_DEFS[officialImport.kategorie];
+          if (catDef) {
+            const segs = catDef.segments || [];
+            const firstSeg = segs[0] || "senior_fp";
+            setSegment(firstSeg);
+
+            // Map element codes from official sheet sections to rows
+            const newRows = Array.from({length: SEGMENT_DEFS[firstSeg].rows}, emptyRow);
+            if (officialImport.sections && officialImport.sections.length > 0) {
+              const elementsFromSection = officialImport.sections[0]?.elements || [];
+              elementsFromSection.forEach((el, idx) => {
+                if (idx < newRows.length && el.code) {
+                  newRows[idx] = {...newRows[idx], typeCode: el.code.substring(0, 3), elCode: el.code};
+                }
+              });
+            }
+            setRows(newRows);
+          }
+        }
+        setOfficialImport(null);
+      }
+    }, [officialImport]);
 
     const updateRow = useCallback((i, data) => {
       setRows(prev => prev.map((r,j)=>j===i?data:r));
@@ -2987,6 +3062,61 @@
       a.download=`${skater||"programm"}_${segDef.label.replace(/\s/g,"_")}.txt`; a.click();
     };
 
+    // Skater save/load functions
+    const loadSkaters = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/skaters', { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) {
+          const data = await res.json();
+          setSkaters(data.skaters || []);
+        }
+      } catch (err) { console.error('Error loading skaters:', err); }
+    };
+
+    const saveSkater = async () => {
+      if (!skater.trim()) {
+        alert('Bitte Läufer-Namen eingeben');
+        return;
+      }
+      setSavingSkater(true);
+      try {
+        const token = localStorage.getItem('token');
+        const payload = { name: skater, kategorie, verein: "", music, segment, rows, pcs, deductions, extraPoints, officialSheet: null };
+        const res = await fetch('/api/skaters', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+          setUploadMsg(`"${skater}" gespeichert`);
+          loadSkaters();
+        } else {
+          setUploadMsg('Fehler beim Speichern');
+        }
+      } catch (err) {
+        setUploadMsg('Fehler: ' + err.message);
+      }
+      setSavingSkater(false);
+    };
+
+    const loadSkaterData = (sk) => {
+      setSkater(sk.name || "");
+      setCat(sk.kategorie || "");
+      setMusic(sk.music || "");
+      setKategorie(sk.kategorie || "senior");
+      setSegment(sk.segment || "senior_fp");
+      setRows(sk.rows || Array.from({length: SEGMENT_DEFS[sk.segment || "senior_fp"].rows}, emptyRow));
+      setPcs(sk.pcs || emptyPcs());
+      setDeductions(sk.deductions || 0);
+      setExtraPoints(sk.extraPoints || 0);
+      setShowSkaterModal(false);
+      setUploadMsg(`"${sk.name}" geladen`);
+    };
+
+    // Load skaters on mount
+    useEffect(() => { loadSkaters(); }, []);
+
     // ============================================================
     //  RENDER
     // ============================================================
@@ -3002,10 +3132,10 @@
               <h1 style={{margin:0,fontSize:22,fontWeight:800}}>RollArt 2026</h1>
               {/* PAGE TABS */}
               <div style={{display:"flex",gap:4,marginTop:6}}>
-                <button onClick={()=>setPage("content")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
-                  background:page==="content"?"white":"rgba(255,255,255,.2)",color:page==="content"?"#059669":"white"}}>Wertung</button>
                 <button onClick={()=>setPage("official")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
-                  background:page==="official"?"white":"rgba(255,255,255,.2)",color:page==="official"?"#059669":"white"}}>Official Sheets</button>
+                  background:page==="official"?"white":"rgba(255,255,255,.2)",color:page==="official"?"#059669":"white"}}>Official Sheet</button>
+                <button onClick={()=>setPage("content")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+                  background:page==="content"?"white":"rgba(255,255,255,.2)",color:page==="content"?"#059669":"white"}}>Content Elements Sheet</button>
                 <button onClick={()=>setPage("training")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
                   background:page==="training"?"white":"rgba(255,255,255,.2)",color:page==="training"?"#059669":"white"}}>Training Simulator</button>
                 {authCtx?.user?.role==="admin"&&<button onClick={()=>setPage("admin")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
@@ -3065,13 +3195,13 @@
         {page==="training"&&<TrainingSimulator importData={simImport} onImportDone={()=>setSimImport(null)}/>}
 
         {/* ADMIN PAGE */}
-        {page==="admin"&&authCtx?.user?.role==="admin"&&<AdminDashboard onClose={()=>setPage("content")}/>}
+        {page==="admin"&&authCtx?.user?.role==="admin"&&<AdminDashboard onClose={()=>setPage("official")}/>}
 
         {/* PROFILE PAGE */}
-        {page==="profile"&&<ProfileScreen onClose={()=>setPage("content")}/>}
+        {page==="profile"&&<ProfileScreen onClose={()=>setPage("official")}/>}
 
         {/* OFFICIAL SHEETS PAGE */}
-        {page==="official"&&<OfficialSheets/>}
+        {page==="official"&&<OfficialSheets onSendToContent={(data)=>{setOfficialImport(data);setPage("content");}}/>}
 
         {/* CONTENT SHEET PAGE */}
         {page==="content"&&<div style={{padding:"16px 20px",maxWidth:1150,margin:"0 auto"}}>
@@ -3090,6 +3220,8 @@
               <input type="file" accept=".pdf,.txt" onChange={handleUpload} style={{display:"none"}}/>
             </label>
             <button onClick={exportTxt} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#059669",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>Exportieren</button>
+            <button onClick={saveSkater} disabled={savingSkater} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#3b82f6",color:"white",fontWeight:600,fontSize:11,cursor:"pointer",opacity:savingSkater?0.6:1}}>💾 Läufer speichern</button>
+            <button onClick={()=>setShowSkaterModal(true)} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#10b981",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>📂 Läufer laden</button>
             <button onClick={()=>{
               setSimImport({segment,skater,cat,music,judgeCount,rows:rows.map(r=>({...r})),pcs:{...pcs,skating:[...pcs.skating],transitions:[...pcs.transitions],performance:[...pcs.performance],choreography:[...pcs.choreography]},deductions,extraPoints,_ts:Date.now()});
               setPage("training");
@@ -3102,6 +3234,31 @@
             <button onClick={()=>setShowGlossar(g=>!g)} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #6b7280",background:showGlossar?"#374151":"white",color:showGlossar?"white":"#374151",fontWeight:600,fontSize:11,cursor:"pointer"}}>Glossar & Regeln</button>
             {uploadMsg && <span style={{fontSize:11,color:"#059669",fontWeight:500}}>{uploadMsg}</span>}
           </div>
+
+          {/* Skater Load Modal */}
+          {showSkaterModal && (
+            <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:9999}}>
+              <div style={{background:"white",borderRadius:10,padding:20,maxWidth:400,width:"90%",maxHeight:"80vh",overflow:"auto"}}>
+                <h3 style={{margin:"0 0 16px",fontSize:16,fontWeight:800}}>Gespeicherte Läufer laden</h3>
+                {skaters.length===0?(
+                  <p style={{color:"#6b7280",fontSize:13}}>Keine gespeicherten Läufer vorhanden</p>
+                ):(
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {skaters.map((sk)=>(
+                      <div key={sk.id} style={{border:"1px solid #e5e7eb",borderRadius:6,padding:10,cursor:"pointer",hover:{background:"#f9fafb"}}} onClick={()=>loadSkaterData(sk)}>
+                        <div style={{fontWeight:600,fontSize:13}}>{sk.name}</div>
+                        <div style={{fontSize:11,color:"#6b7280"}}>
+                          {CATEGORY_DEFS[sk.kategorie]?.label||sk.kategorie} • {SEGMENT_DEFS[sk.segment]?.label||sk.segment}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button onClick={()=>setShowSkaterModal(false)} style={{marginTop:16,padding:"6px 12px",borderRadius:5,border:"none",background:"#6b7280",color:"white",fontWeight:600,fontSize:11,cursor:"pointer",width:"100%"}}>Schließen</button>
+              </div>
+            </div>
+          )}
+
 
           {showGlossar && (
   <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16,marginBottom:16}}>

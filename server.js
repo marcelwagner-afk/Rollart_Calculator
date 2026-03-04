@@ -321,6 +321,93 @@ app.get('/api/settings/public', (req, res) => {
 });
 
 // ============================================================
+//  SKATER PROFILE ENDPOINTS
+// ============================================================
+
+// Initialize skaters array if not present
+if (!DB.skaters) {
+  DB.skaters = [];
+  saveDB();
+}
+
+// GET /api/skaters — List all skaters for current user
+app.get('/api/skaters', auth, (req, res) => {
+  const userSkaters = DB.skaters.filter(s => s.userId === req.user.id);
+  res.json({ skaters: userSkaters });
+});
+
+// POST /api/skaters — Save new skater profile
+app.post('/api/skaters', auth, (req, res) => {
+  const { name, kategorie, verein, music, segment, rows, pcs, deductions, extraPoints, officialSheet } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: 'Skater name is required' });
+  }
+
+  const skater = {
+    id: Date.now(),
+    userId: req.user.id,
+    name,
+    kategorie: kategorie || '',
+    verein: verein || '',
+    music: music || '',
+    segment: segment || 'senior_fp',
+    rows: rows || [],
+    pcs: pcs || {},
+    deductions: deductions || 0,
+    extraPoints: extraPoints || 0,
+    officialSheet: officialSheet || null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  DB.skaters.push(skater);
+  saveDB();
+  res.status(201).json({ skater });
+});
+
+// PUT /api/skaters/:id — Update skater profile
+app.put('/api/skaters/:id', auth, (req, res) => {
+  const skaterId = parseInt(req.params.id);
+  const skater = DB.skaters.find(s => s.id === skaterId && s.userId === req.user.id);
+
+  if (!skater) {
+    return res.status(404).json({ error: 'Skater not found' });
+  }
+
+  const { name, kategorie, verein, music, segment, rows, pcs, deductions, extraPoints, officialSheet } = req.body;
+
+  if (name !== undefined) skater.name = name;
+  if (kategorie !== undefined) skater.kategorie = kategorie;
+  if (verein !== undefined) skater.verein = verein;
+  if (music !== undefined) skater.music = music;
+  if (segment !== undefined) skater.segment = segment;
+  if (rows !== undefined) skater.rows = rows;
+  if (pcs !== undefined) skater.pcs = pcs;
+  if (deductions !== undefined) skater.deductions = deductions;
+  if (extraPoints !== undefined) skater.extraPoints = extraPoints;
+  if (officialSheet !== undefined) skater.officialSheet = officialSheet;
+
+  skater.updatedAt = new Date().toISOString();
+  saveDB();
+  res.json({ skater });
+});
+
+// DELETE /api/skaters/:id — Delete skater profile
+app.delete('/api/skaters/:id', auth, (req, res) => {
+  const skaterId = parseInt(req.params.id);
+  const idx = DB.skaters.findIndex(s => s.id === skaterId && s.userId === req.user.id);
+
+  if (idx === -1) {
+    return res.status(404).json({ error: 'Skater not found' });
+  }
+
+  DB.skaters.splice(idx, 1);
+  saveDB();
+  res.json({ message: 'Skater deleted' });
+});
+
+// ============================================================
 //  SERVE FRONTEND
 // ============================================================
 app.get('/', (req, res) => {

@@ -2,33 +2,24 @@
   "users": [
     {
       "email": "admin@rollart.de",
-      "password": "$2a$10$mqp8IpsYm00LgMZHNp944e0SFMV9wi4BYVrBy5r5q4HDimynKGfIq",
+      "password": "$2a$10$gPC1PXelCSHQHAxlxEpvoOcN1dnGo3/NjvHp/cihs6kca3Q4Tarhe",
       "name": "Administrator",
       "verein": "",
       "kategorie": "",
       "role": "admin",
       "id": 1,
-      "created_at": "2026-03-04T11:51:39.625Z",
-      "updated_at": "2026-03-04T11:51:39.625Z"
-    },
-    {
-      "email": "test@test.de",
-      "password": "$2a$10$pEXZbccF.vJuuJmiwCUBMeqJROBuIb7l2.cli2GIzKiX0zk6KfEXa",
-      "name": "Test User",
-      "verein": "TSV Test",
-      "kategorie": "Nachwuchs",
-      "role": "admin",
-      "id": 2,
-      "created_at": "2026-03-04T11:51:40.357Z",
-      "updated_at": "2026-03-04T11:51:40.478Z"
+      "created_at": "2026-03-04T14:56:43.294Z",
+      "updated_at": "2026-03-04T14:56:43.294Z"
     }
   ],
-  "nextId": 4,
+  "nextId": 3,
+  "skaters": [],
+  "nextSkaterId": 1,
   "settings": {
     "registrationOpen": true,
-    "welcomeMessage": "Testmessage",
+    "welcomeMessage": "Willkommen!",
     "seasonYear": 2026,
-    "maintenanceMode": true,
+    "maintenanceMode": false,
     "maxUsersPerVerein": 50
   }
 }
