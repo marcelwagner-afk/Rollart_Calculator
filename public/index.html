@@ -1262,17 +1262,17 @@
     // ─── MINIS (10-11) ─── Nur Kür ───
     "minis_fp": {
       label:"Minis – Kür",
-      info:"Alter 10-11 | 2:45 ±10s | Max 12 Sprünge (1-Rot., Doppel-Toeloop+Doppel-Salchow erlaubt) | Axel+Toeloop Pflicht | Max 2 Kombis (max 5) | 2 Spins (Combo muss Sitz, kein Broken/Heel/Inverted) | FoSq max Lv2 30s",
+      info:"Alter 10-11 | 2:45 ±10s | Max 12 Sprünge (1-Rot., Doppel-Toeloop+Doppel-Salchow erlaubt) | Axel+Toeloop Pflicht | Max 2 Kombis (max 5) | 2 Spins (1 MUSS Combo mit Sitz sein, 2. frei wählbar, kein Broken/Heel/Inverted) | FoSq max Lv2 30s",
       required:[
         {type:"SJu",min:1,max:12,desc:"Solo-Sprünge (max 12, 1-Rot + Doppel-Toeloop/Salchow erlaubt, Axel+Toeloop Pflicht)"},
         {type:"CoJ",min:0,max:2,desc:"0-2 Kombinationen (max 5 Sprünge pro Kombi)"},
-        {type:"SSp",min:1,max:1,desc:"1 Solo-Spin"},
-        {type:"CSp",min:1,max:1,desc:"1 Kombinations-Spin (muss Sitz enthalten, max 4 Pos., kein Broken/Heel/Inverted)"},
+        {type:"SSp",min:0,max:2,desc:"0-2 Spin-Elemente (Solo oder Combo, kein Broken/Heel/Inverted)"},
+        {type:"CSp",min:1,max:1,desc:"1 Kombinations-Spin PFLICHT (muss Sitz enthalten, max 4 Pos., kein Broken/Heel/Inverted)"},
         {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge (max Level 2, max 30s)"},
       ],
       maxTotal:16, maxJumps:14, maxSpins:2, maxSequences:1,
       jumpRestrictions:{ maxRotation:"single+doubleTL/S", axelRequired:true, toeloopRequired:true, maxCombos:2, maxJumpsPerCombo:5, sameJumpMaxRepeat:3 },
-      spinRestrictions:{ mustIncludeSit:true, maxComboPositions:4, noBroken:true, noHeel:true, noInverted:true },
+      spinRestrictions:{ mustIncludeSit:true, maxComboPositions:4, noBroken:true, noHeel:true, noInverted:true, noSoloSpinRequired:true },
       footworkMaxLevel:2, footworkMaxSeconds:30,
     },
     // ─── ESPOIRS (12-13) ─── SP + Kür ───
@@ -3189,7 +3189,7 @@
     const segDef = SEGMENT_DEFS[segment];
     const types = isPairs ? ELEMENT_TYPES_PAIRS : ELEMENT_TYPES_FREE;
 
-    const emptyRow = () => ({ typeCode:"", elCode:"", judgeGoe:[0,0,0,0,0], rotation:"normal", comboEls:[], nv:false, dg:false });
+    const emptyRow = () => ({ typeCode:"", elCode:"", judgeGoe:[0,0,0,0,0], rotation:"normal", comboEls:[], nv:false, dg:false, bonuses:[] });
     const [rows, setRows] = useState(Array.from({length:segDef.rows}, emptyRow));
 
     const changeKategorie = (k) => {
@@ -3451,7 +3451,7 @@
       setSavingSkater(true);
       try {
         const token = localStorage.getItem('rollart_token');
-        const payload = { name: skater, kategorie, verein: "", music, segment, rows, pcs, deductions, extraPoints, officialSheet: null };
+        const payload = { name: skater, kategorie, verein: cat || "", music, segment, rows: rows.map(r=>({...r, bonuses:r.bonuses||[]})), pcs, deductions, extraPoints, judgeCount, officialSheet: null };
         const res = await fetch('/api/skaters', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -3471,14 +3471,19 @@
 
     const loadSkaterData = (sk) => {
       setSkater(sk.name || "");
-      setCat(sk.kategorie || "");
+      setCat(sk.verein || sk.kategorie || "");
       setMusic(sk.music || "");
       setKategorie(sk.kategorie || "senior");
       setSegment(sk.segment || "senior_fp");
-      setRows(sk.rows || Array.from({length: SEGMENT_DEFS[sk.segment || "senior_fp"].rows}, emptyRow));
+      // Rows mit bonuses-Feld sicherstellen
+      const loadedRows = (sk.rows || []).map(r => ({...r, bonuses: r.bonuses || [], comboEls: r.comboEls || []}));
+      const neededRows = SEGMENT_DEFS[sk.segment || "senior_fp"]?.rows || 16;
+      while (loadedRows.length < neededRows) loadedRows.push(emptyRow());
+      setRows(loadedRows);
       setPcs(sk.pcs || emptyPcs());
       setDeductions(sk.deductions || 0);
       setExtraPoints(sk.extraPoints || 0);
+      if (sk.judgeCount) setJudgeCount(sk.judgeCount);
       setShowSkaterModal(false);
       setUploadMsg(`"${sk.name}" geladen`);
     };
