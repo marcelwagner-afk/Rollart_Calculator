@@ -3558,6 +3558,7 @@
     };
 
     const emptyPcs = () => ({ skating:[0,0,0,0,0], transitions:[0,0,0,0,0], performance:[0,0,0,0,0], choreography:[0,0,0,0,0] });
+    const emptyRow = () => ({ typeCode:"", elCode:"", judgeGoe:[0,0,0,0,0], rotation:"normal", comboEls:[], nv:false, dg:false, bonuses:[] });
 
     const handleUpload = async (e) => {
       const file = e.target.files?.[0];
@@ -3626,8 +3627,16 @@
         return best.code;
       };
 
+      // Pad judge array to 5 elements (PDF has 3, simulator expects up to 5)
+      const padJudges = (arr) => {
+        const a = arr || [0,0,0,0,0];
+        while (a.length < 5) a.push(0);
+        return a.slice(0, 5);
+      };
+
       // Map elements to simulator rows
       const rows = (skater.elements || []).map(el => {
+        const jGoe = padJudges(el.judges);
         const isComboJump = el.type === "ComboJump" && el.subElements && el.subElements.length > 0;
         const isComboSpin = el.type === "ComboSpin" && el.typeCode === "CSp";
         const isSoloSpin = el.type === "Spin" && el.typeCode === "SSp";
@@ -3637,11 +3646,11 @@
           // ComboJump: each sub-element is a jump code (1Lo, 1F, etc.)
           return {
             typeCode: "CoJ", elCode: "",
-            judgeGoe: el.judges || [0,0,0,0,0],
+            judgeGoe: jGoe,
             rotation: "normal",
             comboEls: el.subElements.map(s => ({
               code: s.code || "", rotation: "normal", nv: false,
-              judgeGoe: [0,0,0,0,0],
+              judgeGoe: padJudges(null),
             })),
             nv: false, dg: false, bonuses: [],
           };
@@ -3649,37 +3658,41 @@
 
         if (isComboSpin) {
           // ComboSpin: PDF sub-elements are positions (S, C, U) - we need overall CSp level
-          // Use totalBase to find closest CSp level, then put as single combo sub-element
-          const cspCode = matchCSpLevel(el.totalBase || el.base || 0);
+          const cspCode = matchCSpLevel(el.base || 0);
           return {
             typeCode: "CSp", elCode: "",
-            judgeGoe: el.judges || [0,0,0,0,0],
+            judgeGoe: jGoe,
             rotation: "normal",
             comboEls: [{
               code: cspCode, rotation: "normal", nv: false,
-              judgeGoe: el.judges || [0,0,0,0,0],
+              judgeGoe: jGoe,
             }],
             nv: false, dg: false, bonuses: [],
           };
         }
 
         if (isSoloSpin) {
-          // Solo Spin: find matching SSp level
-          const sspCode = matchSSpLevel(el.totalBase || el.base || 0);
+          // Solo Spin: find matching code from base value
+          const sspCode = matchSSpLevel(el.base || 0);
           return {
             typeCode: "SSp", elCode: sspCode,
-            judgeGoe: el.judges || [0,0,0,0,0],
+            judgeGoe: jGoe,
             rotation: "normal", comboEls: [],
             nv: false, dg: false, bonuses: [],
           };
         }
 
         if (isStep) {
-          // Step Sequence: find matching level from base value
-          const stepCode = el.elCode && el.elCode.match(/^St[B1-4]$/) ? el.elCode : matchStepLevel(el.totalBase || el.base || 0);
+          // Step Sequence / ChSt: find matching level from base value or use parsed code
+          let stepCode = el.elCode || "";
+          if (el.typeCode === "ChSt") {
+            stepCode = stepCode.match(/^ChSt[B1]?$/) ? stepCode : (el.base >= 2.5 ? "ChSt1" : "ChStB");
+          } else {
+            stepCode = stepCode.match(/^St[B1-4]$/) ? stepCode : matchStepLevel(el.base || 0);
+          }
           return {
             typeCode: el.typeCode, elCode: stepCode,
-            judgeGoe: el.judges || [0,0,0,0,0],
+            judgeGoe: jGoe,
             rotation: "normal", comboEls: [],
             nv: false, dg: false, bonuses: [],
           };
@@ -3689,7 +3702,7 @@
         return {
           typeCode: el.typeCode || "SJu",
           elCode: el.elCode || "",
-          judgeGoe: el.judges || [0,0,0,0,0],
+          judgeGoe: jGoe,
           rotation: "normal", comboEls: [],
           nv: false, dg: false, bonuses: [],
         };
