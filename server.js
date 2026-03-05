@@ -31,11 +31,30 @@ const OLD_DB_FILE = path.join(__dirname, 'db.json');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 const BACKUP_FILE = path.join(DATA_DIR, 'db_backup.json');
 
-if (fs.existsSync(OLD_DB_FILE) && !fs.existsSync(DB_FILE)) {
-  try {
-    fs.copyFileSync(OLD_DB_FILE, DB_FILE);
-    console.log('  ✅ Bestehende db.json nach data/ migriert');
-  } catch(e) { console.error('Migration error:', e.message); }
+if (fs.existsSync(OLD_DB_FILE)) {
+  if (!fs.existsSync(DB_FILE)) {
+    // Keine data/db.json vorhanden → alte Datei migrieren
+    try {
+      fs.copyFileSync(OLD_DB_FILE, DB_FILE);
+      console.log('  ✅ Bestehende db.json nach data/ migriert');
+    } catch(e) { console.error('Migration error:', e.message); }
+  } else {
+    // Beide existieren → prüfen welche mehr Daten hat und ggf. mergen
+    try {
+      const oldData = JSON.parse(fs.readFileSync(OLD_DB_FILE, 'utf8'));
+      const newData = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      const oldSkaters = (oldData.skaters || []).length;
+      const newSkaters = (newData.skaters || []).length;
+      const oldUsers = (oldData.users || []).length;
+      const newUsers = (newData.users || []).length;
+      if (oldSkaters > newSkaters || oldUsers > newUsers) {
+        // Alte DB hat mehr Daten → Backup der neuen machen, dann alte übernehmen
+        fs.writeFileSync(BACKUP_FILE, JSON.stringify(newData, null, 2));
+        fs.copyFileSync(OLD_DB_FILE, DB_FILE);
+        console.log(`  ⚠️ Alte db.json hat mehr Daten (${oldUsers} User, ${oldSkaters} Läufer) → übernommen`);
+      }
+    } catch(e) { /* Fehler beim Merge-Check ignorieren, data/db.json bleibt */ }
+  }
 }
 
 let DB = { users: [], nextId: 1, skaters: [], settings: {
@@ -752,7 +771,7 @@ app.post('/api/ki-coach', auth, async (req, res) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 1024,
+        max_tokens: 2048,
         system: KI_SYSTEM_PROMPT,
         messages: [
           { role: 'user', content: contextStr + '\n\nFrage des Trainers/Läufers: ' + message }

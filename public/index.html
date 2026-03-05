@@ -1962,7 +1962,7 @@
               <span style={{fontSize:10,color:"#6b7280"}}>{rules.info||rules.label}</span>
             </div>
 
-            <div style={{padding:12,maxHeight:400,overflowY:"auto"}}>
+            <div style={{padding:12,maxHeight:tab==="ki"?700:400,overflowY:"auto"}}>
               {/* RULES TAB */}
               {tab==="rules"&&(
                 <div>
@@ -2050,37 +2050,38 @@
                   </div>
 
                   {/* Chat history */}
-                  <div style={{maxHeight:280,overflowY:"auto",marginBottom:8,border:"1px solid #e5e7eb",borderRadius:8,background:"#fafafa"}}>
+                  <div style={{minHeight:300,maxHeight:550,overflowY:"auto",marginBottom:10,border:"1px solid #e5e7eb",borderRadius:10,background:"#fafafa"}}>
                     {kiHistory.length===0&&!kiLoading&&(
-                      <div style={{padding:16,textAlign:"center",color:"#9ca3af",fontSize:11}}>
-                        <div style={{fontSize:24,marginBottom:4}}>{"\uD83E\uDDE0"}</div>
+                      <div style={{padding:24,textAlign:"center",color:"#9ca3af",fontSize:12}}>
+                        <div style={{fontSize:36,marginBottom:8}}>{"\uD83E\uDDE0"}</div>
+                        <div style={{fontWeight:700,color:"#7c3aed",fontSize:14,marginBottom:4}}>KI-Coach bereit</div>
                         Frage den KI-Coach! Er kennt alle World Skate 2026 Regeln und analysiert dein Programm.
                       </div>
                     )}
                     {kiHistory.map((m,i)=>(
-                      <div key={i} style={{padding:"8px 12px",borderBottom:"1px solid #f3f4f6",
+                      <div key={i} style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",
                         background:m.role==="user"?"#ede9fe":m.role==="error"?"#fef2f2":"white"}}>
-                        <div style={{fontSize:9,fontWeight:700,color:m.role==="user"?"#7c3aed":m.role==="error"?"#dc2626":"#059669",marginBottom:2}}>
+                        <div style={{fontSize:10,fontWeight:700,color:m.role==="user"?"#7c3aed":m.role==="error"?"#dc2626":"#059669",marginBottom:3}}>
                           {m.role==="user"?"Du":m.role==="error"?"Fehler":"KI-Coach"}
                         </div>
-                        <div style={{fontSize:11,color:"#374151",lineHeight:1.5,whiteSpace:"pre-wrap"}}>{m.text}</div>
+                        <div style={{fontSize:12,color:"#374151",lineHeight:1.6,whiteSpace:"pre-wrap"}}>{m.text}</div>
                       </div>
                     ))}
                     {kiLoading&&(
-                      <div style={{padding:"12px",textAlign:"center",color:"#7c3aed",fontSize:11,fontWeight:600}}>
+                      <div style={{padding:"16px",textAlign:"center",color:"#7c3aed",fontSize:12,fontWeight:600}}>
                         {"\uD83E\uDDE0"} KI analysiert... <span style={{animation:"pulse 1.5s infinite"}}>{"●●●"}</span>
                       </div>
                     )}
                   </div>
 
                   {/* Input */}
-                  <div style={{display:"flex",gap:4}}>
+                  <div style={{display:"flex",gap:6}}>
                     <input value={kiMsg} onChange={e=>setKiMsg(e.target.value)}
                       onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendToKI(kiMsg);}}}
                       placeholder="Frage an den KI-Coach..." disabled={kiLoading}
-                      style={{flex:1,padding:"8px 10px",borderRadius:6,border:"1px solid #d1d5db",fontSize:11,outline:"none"}}/>
+                      style={{flex:1,padding:"10px 12px",borderRadius:8,border:"1px solid #d1d5db",fontSize:12,outline:"none"}}/>
                     <button onClick={()=>sendToKI(kiMsg)} disabled={kiLoading||!kiMsg.trim()}
-                      style={{padding:"8px 14px",borderRadius:6,border:"none",background:kiLoading?"#d1d5db":"#7c3aed",color:"white",fontWeight:700,fontSize:11,cursor:kiLoading?"wait":"pointer"}}>
+                      style={{padding:"10px 18px",borderRadius:8,border:"none",background:kiLoading?"#d1d5db":"#7c3aed",color:"white",fontWeight:700,fontSize:12,cursor:kiLoading?"wait":"pointer"}}>
                       Senden
                     </button>
                   </div>
@@ -3230,9 +3231,20 @@
             const newRows = Array.from({length: SEGMENT_DEFS[firstSeg].rows}, emptyRow);
             if (officialImport.sections && officialImport.sections.length > 0) {
               const elementsFromSection = officialImport.sections[0]?.elements || [];
+              // Known type codes sorted by length (longest first for matching)
+              const knownTypes = types.map(t=>t.code).sort((a,b)=>b.length-a.length);
               elementsFromSection.forEach((el, idx) => {
                 if (idx < newRows.length && el.code) {
-                  newRows[idx] = {...newRows[idx], typeCode: el.code.substring(0, 3), elCode: el.code};
+                  // Find matching type code by prefix (handles CSp3, FoSq2, ChSt1, CtSp2 etc.)
+                  let matchedType = "";
+                  for (const tc of knownTypes) {
+                    if (el.code.startsWith(tc)) { matchedType = tc; break; }
+                  }
+                  if (!matchedType) matchedType = el.code.substring(0, 3); // fallback
+                  // Find if exact elCode exists in data
+                  const typeDef = types.find(t=>t.code===matchedType);
+                  const elExists = typeDef?.data?.find(e=>e.code===el.code);
+                  newRows[idx] = {...newRows[idx], typeCode: matchedType, elCode: elExists ? el.code : ""};
                 }
               });
             }
@@ -3287,7 +3299,31 @@
       types.forEach(t => { typeMap[t.code.toLowerCase()] = t.code; });
       // fuzzy OCR variants
       const fuzzy = {...typeMap, col:"CoJ",c0j:"CoJ",siu:"SJu",fosg:"FoSq",fos:"FoSq",
-        cli:"CLi",sli:"SLi",ctsp:"CtSp",tlj:"Tj",twlz:"Tw"};
+        cli:"CLi",sli:"SLi",ctsp:"CtSp",tlj:"Tj",twlz:"Tw",
+        casp:"CSp",cosp:"CSp",cssp:"CSp",comb:"CoJ"};
+      // All known element codes for matching codes WITH level (CSp3, SSp2, FoSqB etc.)
+      const allElData = types.flatMap(t=>t.data.map(e=>({code:e.code, typeCode:t.code})));
+      // Helper: resolve a word to {typeCode, elCode}
+      const resolveCode = (raw) => {
+        const c = raw.replace(/[^A-Za-z0-9]/g,'');
+        if(c.length<2||c.length>8) return null;
+        // 1. Exact element code match (e.g. "CSp3", "SSp2", "FoSq1")
+        const exactEl = allElData.find(e=>e.code.toLowerCase()===c.toLowerCase());
+        if(exactEl) return {typeCode:exactEl.typeCode, elCode:exactEl.code};
+        // 2. Exact type code match (e.g. "CSp", "SSp", "CoJ")
+        const tc = fuzzy[c.toLowerCase()];
+        if(tc) return {typeCode:tc, elCode:""};
+        // 3. Prefix match: try removing last char(s) to find type (e.g. "CSp3" -> "CSp")
+        for(let len=c.length-1;len>=2;len--){
+          const prefix=c.substring(0,len).toLowerCase();
+          const ptc=fuzzy[prefix];
+          if(ptc){
+            const fullEl=allElData.find(e=>e.code.toLowerCase()===c.toLowerCase()&&e.typeCode===ptc);
+            return {typeCode:ptc, elCode:fullEl?fullEl.code:""};
+          }
+        }
+        return null;
+      };
 
       if (file.name.toLowerCase().endsWith(".pdf")) {
         setUploadMsg("PDF wird geladen...");
@@ -3349,10 +3385,11 @@
             if(!rm)return;
             const words=t.substring(rm[0].length).trim().split(/\s+/);
             for(const w of words){
-              const c=w.replace(/[^A-Za-z0-9]/g,'');
-              if(c.length<2||c.length>6)continue;
-              const tc=fuzzy[c.toLowerCase()];
-              if(tc){newRows.push({...emptyRow(),typeCode:tc});break;}
+              const resolved = resolveCode(w);
+              if(resolved){
+                newRows.push({...emptyRow(), typeCode:resolved.typeCode, elCode:resolved.elCode||""});
+                break;
+              }
             }
           });
           if(newRows.length>0){
@@ -3878,25 +3915,25 @@
           </tbody>
         </table>
 
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#1d4ed8"}}>Offizielle Regelwerke (World Skate 2026)</h4>
-        <p style={{fontSize:10,color:"#6b7280",margin:"0 0 6px"}}>Die offiziellen Regelwerke für die Saison 2026:</p>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#1d4ed8"}}>Offizielle Regelwerke (World Skate 2026) — Download</h4>
+        <p style={{fontSize:10,color:"#6b7280",margin:"0 0 6px"}}>Klicke auf ein Dokument, um es herunterzuladen:</p>
         <div style={{display:"flex",flexDirection:"column",gap:4}}>
           {[
-            {name:"Free Skating 2026 – Official Regulation", desc:"Einzellauf-Regeln für alle Altersklassen (Tots bis Senior)"},
-            {name:"Pairs 2026 – Official Regulation", desc:"Paarlauf-Regeln für alle Altersklassen"},
-            {name:"General 2026 – Official Regulation", desc:"Allgemeine Wettkampf- und Bewertungsregeln"},
-            {name:"Artistic Impression 2026 – Official Regulation", desc:"Artistic Impression / Program Components Bewertung"},
-            {name:"Content Sheets 2026", desc:"Offizielle Content Sheets für alle Kategorien"},
-            {name:"RollArt – Free Skating Values 2026", desc:"Basiswerte aller Einzellauf-Elemente"},
-            {name:"RollArt – Pairs Values 2026", desc:"Basiswerte aller Paarlauf-Elemente"},
+            {name:"Free Skating 2026 – Official Regulation", desc:"Einzellauf-Regeln für alle Altersklassen", file:"Free_2026.pdf"},
+            {name:"Pairs 2026 – Official Regulation", desc:"Paarlauf-Regeln für alle Altersklassen", file:"Pairs_2026.pdf"},
+            {name:"General 2026 – Official Regulation", desc:"Allgemeine Wettkampf- und Bewertungsregeln", file:"General_2026.pdf"},
+            {name:"Artistic Impression 2026", desc:"Artistic Impression / Program Components Bewertung", file:"Artistic_Impression_2026.pdf"},
+            {name:"Content Sheets 2026", desc:"Offizielle Content Sheets für alle Kategorien", file:"Content_Sheets_2026.pdf"},
+            {name:"RollArt – Free Skating Values 2026", desc:"Basiswerte aller Einzellauf-Elemente", file:"Free_Values_2026.pdf"},
+            {name:"RollArt – Pairs Values 2026", desc:"Basiswerte aller Paarlauf-Elemente", file:"Pairs_Values_2026.pdf"},
           ].map((doc,i)=>(
-            <div key={i} style={{background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:6,padding:"6px 10px",fontSize:11}}>
-              <span style={{fontWeight:700,color:"#1d4ed8"}}>{doc.name}</span>
-              <span style={{color:"#6b7280",marginLeft:8}}> – {doc.desc}</span>
-            </div>
+            <a key={i} href={`/docs/${doc.file}`} download={doc.file} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",display:"block",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:6,padding:"8px 12px",fontSize:11,cursor:"pointer",transition:"all 0.2s"}}>
+              <span style={{fontWeight:700,color:"#1d4ed8"}}>📥 {doc.name}</span>
+              <span style={{color:"#6b7280",marginLeft:8,fontSize:10}}> – {doc.desc}</span>
+            </a>
           ))}
         </div>
-        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Die PDFs sind in der App hinterlegt und werden vom KI-Coach für Regelprüfungen verwendet.</p>
+        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Die Regeln sind im KI-Coach hinterlegt und werden für Regelprüfungen verwendet.</p>
       </div>
     </div>
   </div>
