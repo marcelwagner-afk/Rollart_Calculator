@@ -89,6 +89,29 @@ if (fs.existsSync(DB_FILE)) {
   console.log('  🆕 Neue Datenbank erstellt');
 }
 
+// ============================================================
+//  DB MIGRATION — fehlende Collections/Felder ergänzen
+//  So gehen bei einem Update keine Daten verloren und neue
+//  Features funktionieren sofort mit bestehender Datenbank.
+// ============================================================
+let migrated = false;
+if (!Array.isArray(DB.users)) { DB.users = []; migrated = true; }
+if (!DB.nextId) { DB.nextId = Math.max(1, ...DB.users.map(u => u.id || 0)) + 1; migrated = true; }
+if (!Array.isArray(DB.skaters)) { DB.skaters = []; migrated = true; }
+if (!Array.isArray(DB.trainingLog)) { DB.trainingLog = []; migrated = true; }
+if (!Array.isArray(DB.scoreHistory)) { DB.scoreHistory = []; migrated = true; }
+if (!Array.isArray(DB.competitions)) { DB.competitions = []; migrated = true; }
+if (!DB.settings) { DB.settings = { registrationOpen: true, welcomeMessage: 'Willkommen bei RollArt 2026!', seasonYear: 2026, maintenanceMode: false, maxUsersPerVerein: 50 }; migrated = true; }
+if (migrated) {
+  console.log('  🔄 DB migriert: fehlende Collections ergänzt');
+  // Sofort speichern damit die Struktur persistiert wird
+  try {
+    const tmpFile = DB_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(DB, null, 2));
+    fs.renameSync(tmpFile, DB_FILE);
+  } catch(e) { console.error('Migration save error:', e.message); }
+}
+
 const saveDB = () => {
   try {
     // Atomares Schreiben: erst temp-Datei, dann umbenennen
@@ -403,7 +426,7 @@ app.get('/api/skaters', auth, (req, res) => {
 
 // POST /api/skaters — Save new skater profile
 app.post('/api/skaters', auth, (req, res) => {
-  const { name, kategorie, verein, music, segment, rows, pcs, deductions, extraPoints, officialSheet, judgeCount } = req.body;
+  const { name, kategorie, geschlecht, verein, music, segment, rows, pcs, deductions, extraPoints, officialSheet, judgeCount } = req.body;
 
   if (!name) {
     return res.status(400).json({ error: 'Skater name is required' });
@@ -414,6 +437,7 @@ app.post('/api/skaters', auth, (req, res) => {
     userId: req.user.id,
     name,
     kategorie: kategorie || '',
+    geschlecht: geschlecht || 'damen',
     verein: verein || '',
     music: music || '',
     segment: segment || 'senior_fp',
@@ -441,10 +465,11 @@ app.put('/api/skaters/:id', auth, (req, res) => {
     return res.status(404).json({ error: 'Skater not found' });
   }
 
-  const { name, kategorie, verein, music, segment, rows, pcs, deductions, extraPoints, officialSheet, judgeCount } = req.body;
+  const { name, kategorie, geschlecht, verein, music, segment, rows, pcs, deductions, extraPoints, officialSheet, judgeCount } = req.body;
 
   if (name !== undefined) skater.name = name;
   if (kategorie !== undefined) skater.kategorie = kategorie;
+  if (geschlecht !== undefined) skater.geschlecht = geschlecht;
   if (verein !== undefined) skater.verein = verein;
   if (music !== undefined) skater.music = music;
   if (segment !== undefined) skater.segment = segment;
