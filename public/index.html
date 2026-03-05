@@ -897,7 +897,7 @@
     );
   }
 
-  function OfficialSheets({onSendToContent}){
+  function OfficialSheets({onSendToContent,importFromContent}){
     const [sheetType,setSheetType]=useState("sp_fp");
     const [name,setName]=useState("");
     const [kategorie,setKategorie]=useState("senior");
@@ -938,6 +938,38 @@
         onSendToContent({name,kategorie,federation,choreography,sections});
       }
     };
+
+    // Import from Content Sheet
+    React.useEffect(()=>{
+      if(!importFromContent)return;
+      const d=importFromContent;
+      if(d.skater)setName(d.skater);
+      if(d.kategorie){
+        setKategorie(d.kategorie);
+        // Set appropriate sheet type
+        const catDef=CATEGORY_DEFS[d.kategorie];
+        if(catDef){
+          const segs=catDef.segments||[];
+          let newSt="sp_fp";
+          if(segs.length===1) newSt=segs[0].endsWith("_fp")?"fp12":"sp";
+          setSheetType(newSt);
+          const newSections=initSections(newSt);
+          // Map rows into first section
+          if(d.rows&&newSections.length>0){
+            const types=d.segment?.startsWith("pairs_")?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE;
+            d.rows.forEach((r,i)=>{
+              if(i<newSections[0].elements.length&&r.elCode){
+                newSections[0].elements[i]={time:"",code:r.elCode,notes:"",performed:""};
+              }
+            });
+          }
+          if(d.music)newSections[0].music=d.music;
+          setSections(newSections);
+        }
+      }
+      if(d.cat)setFederation(d.cat);
+      if(d.music)setChoreography(d.music);
+    },[importFromContent]);
 
     // jsPDF-based PDF generation matching original World Skate template exactly
     const exportPDF=()=>{
@@ -3988,9 +4020,10 @@
   // ============================================================
   function App() {
     const authCtx = useAuth();
-    const [page, setPage] = useState("official"); // "content", "official", "training", "profile", "wettbewerbe"
+    const [page, setPage] = useState("content"); // "content", "training", "wettbewerbe", "official", "glossar", "profile"
     const [simImport, setSimImport] = useState(null);
     const [officialImport, setOfficialImport] = useState(null);
+    const [officialExport, setOfficialExport] = useState(null);
     const [compImport, setCompImport] = useState(null);
     const [kategorie, setKategorie] = useState("senior");
     const [segment, setSegment] = useState("senior_fp");
@@ -4009,8 +4042,6 @@
     const [pcs, setPcs] = useState(emptyPcs());
     const [deductions, setDeductions] = useState(0);
     const [extraPoints, setExtraPoints] = useState(0);
-    const [showGlossar, setShowGlossar] = useState(false);
-    const [showPenalties, setShowPenalties] = useState(false);
     const [skaters, setSkaters] = useState([]);
     const [showSkaterModal, setShowSkaterModal] = useState(false);
     const [savingSkater, setSavingSkater] = useState(false);
@@ -4405,10 +4436,11 @@
               {/* PAGE TABS */}
               <div className="r-nav-scroll" style={{display:"flex",gap:4,marginTop:6}}>
                 {[
-                  {key:"official",label:"Official Sheet"},
                   {key:"content",label:"Content Sheet"},
                   {key:"training",label:"Simulator"},
                   {key:"wettbewerbe",label:"Wettbewerbe"},
+                  {key:"official",label:"Official Sheet"},
+                  {key:"glossar",label:"Glossar & Regeln"},
                 ].map(t=>(
                   <button key={t.key} onClick={()=>setPage(t.key)} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
                     background:page===t.key?"white":"rgba(255,255,255,.2)",color:page===t.key?"#059669":"white"}}>{t.label}</button>
@@ -4483,13 +4515,229 @@
         {page==="wettbewerbe"&&<CompetitionPage onLoadSkater={(data)=>setCompImport(data)}/>}
 
         {/* ADMIN PAGE */}
-        {page==="admin"&&authCtx?.user?.role==="admin"&&<AdminDashboard onClose={()=>setPage("official")}/>}
+        {page==="admin"&&authCtx?.user?.role==="admin"&&<AdminDashboard onClose={()=>setPage("content")}/>}
 
         {/* PROFILE PAGE */}
-        {page==="profile"&&<ProfileScreen onClose={()=>setPage("official")}/>}
+        {page==="profile"&&<ProfileScreen onClose={()=>setPage("content")}/>}
+
+        {/* GLOSSAR & REGELN PAGE */}
+        {page==="glossar"&&<div style={{padding:"16px 20px",maxWidth:1200,margin:"0 auto"}}>
+  <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16,marginBottom:16}}>
+    <h3 style={{margin:"0 0 12px",fontSize:16,fontWeight:800,color:"#065f46"}}>Glossar & Regeln (RollArt 2026)</h3>
+    <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,fontSize:12}}>
+      <div>
+        <h4 style={{margin:"0 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Bewertungssystem</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["QOE","Quality of the Element – Qualitätsbewertung pro Element durch jeden Judge (+3 bis -3)"],
+              ["TE","Technical Value of Element – Basiswert des technischen Elements"],
+              ["TES / TC","Technical Element Score – Summe aller Elementwerte inkl. QOE"],
+              ["TVP","Technical Value of Program – Gesamttechnischer Wert (TC + AI - PE)"],
+              ["AI / PCS","Artistic Impression / Program Components – Skating Skills, Transitions, Performance, Choreography"],
+              ["PE","Penalization – Abzüge die vom TVP abgezogen werden"],
+              ["NV","No Value – Element erhält keinen Wert"],
+              ["DG","Downgrade – Element wird herabgestuft (halber Basiswert)"],
+            ].map(([k,v])=>(
+              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"4px 6px",fontWeight:700,color:"#065f46",whiteSpace:"nowrap",verticalAlign:"top"}}>{k}</td>
+                <td style={{padding:"4px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>QOE Richtlinien</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["0","Grundeigenschaften des Elements erreicht"],
+              ["+1","1–2 Features erfüllt"],
+              ["+2","3–4 Features erfüllt"],
+              ["+3","5–6 Features erfüllt"],
+              ["-1 bis -3","Fehler bei der Ausführung (siehe Neg. QOE Tabelle)"],
+            ].map(([k,v])=>(
+              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"3px 6px",fontWeight:700,color:k.startsWith("-")?"#dc2626":"#059669",whiteSpace:"nowrap",width:70}}>{k}</td>
+                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Bei mehr als 3 Judges: höchste & niedrigste QOE werden gestrichen (Trimmed Mean). Bei 3 oder weniger: einfacher Durchschnitt. Ergebnis auf 2 Dezimalstellen gerundet.</p>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Rotation (Sprünge)</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["N (Normal)","Volle Rotation – voller Basiswert"],
+              ["< (Under-rotated)","Weniger als ¼ Rotation fehlt – 30% Abzug (1er/2er), 20% (3er/4er)"],
+              ["<< (Half-rotated)","¼ bis ½ Rotation fehlt – 50% Abzug (1er/2er), 40% (3er), 30% (4er)"],
+              ["<<< (Downgraded)","Mehr als ½ Rotation fehlt – Wert der nächsttieferen Rotation"],
+            ].map(([k,v])=>(
+              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"3px 6px",fontWeight:700,color:"#f59e0b",whiteSpace:"nowrap",verticalAlign:"top",width:130}}>{k}</td>
+                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h4 style={{margin:"0 0 6px",fontSize:13,fontWeight:700,color:"#dc2626"}}>Penalisierungen (Referee)</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["1.0","Knien/Liegen > 1x oder > 5 Sek."],
+              ["1.0","Kostümverstoß (mit Meinung der Judges)"],
+              ["0.5/10s","Zeitverstoß (unter Minimum / über Maximum)"],
+              ["0.5","Start > 10 Sek. nach Musik"],
+              ["1.0","Unangemessene Musik/Texte"],
+              ["0.5","Verlassen der Fläche / Bande berühren"],
+              ["0.5","Ein-/Austritt nicht in erlaubter Zeit"],
+              ["1.0 + 1.0","Stürze: 1.0 für 1. und 2. Sturz"],
+              ["+0.5/+0.3","Weitere Stürze: +0.5 (Espoir-Senior) / +0.3 (Tots/Minis)"],
+            ].map(([k,v],i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"3px 6px",fontWeight:700,color:"#dc2626",whiteSpace:"nowrap",verticalAlign:"top",width:70}}>{k}</td>
+                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#dc2626"}}>Penalisierungen (Technical Panel)</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["1.0","Sprung > 1 Rotation in Footwork Sequence"],
+              ["1.0","Fehlendes Pflichtelement (Mandatory Element)"],
+              ["1.0","Illegales Element"],
+              ["1.0","Pflichtposition in Pirouette nicht versucht"],
+            ].map(([k,v],i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"3px 6px",fontWeight:700,color:"#dc2626",whiteSpace:"nowrap",width:40}}>{k}</td>
+                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Bonus-Prozente (Sprungwert-Erhöhung)</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["+10%","Sprung nach halber Programmlänge (Cadet, Youth, Junior, Senior)"],
+              ["+10%","Axel-Doppel Toeloop Kombi ohne Verbindungssprung (nur Minis)"],
+              ["+10%","Doppel-Doppel Kombi (Minis, Espoir, Cadet LP)"],
+              ["+20%","Doppel-Dreifach / Dreifach-Doppel Kombi"],
+              ["+30%","Dreifach-Dreifach Kombi"],
+            ].map(([k,v],i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"3px 6px",fontWeight:700,color:"#059669",whiteSpace:"nowrap",verticalAlign:"top",width:50}}>{k}</td>
+                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Hinweis: Doppel-Axel zählt als Dreifach für Bonus. Downgraded-Sprünge erhalten keinen Bonus.</p>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Schwierige Pirouetten-Positionen (Bonus auf Basisposition)</h4>
+        <p style={{fontSize:10,color:"#6b7280",margin:"0 0 4px"}}>Der Prozentwert wird auf den Grundwert der Basisposition addiert.</p>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <thead><tr style={{background:"#f0fdf4",borderBottom:"2px solid #86efac"}}><th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,width:45}}>Code</th><th style={{padding:"3px 6px",textAlign:"left",fontWeight:700}}>Position</th><th style={{padding:"3px 6px",textAlign:"right",fontWeight:700,width:50}}>Bonus</th></tr></thead>
+          <tbody>
+            {[
+              ["UB","Biellmann","+80%"],["UBH","Biellmann Heel","+40%"],["US","Split (Spagat)","+40%"],["UT","Torso","+50%"],
+              ["UL","Layback","+30%"],["UF","Forward","+20%"],["UH","Heel","+20%"],
+              ["SS","Sit Sideways","+60%"],["ST","Sit Twist","+40%"],["SF","Sit Forward","+50%"],["SB","Sit Behind","+20%"],
+              ["CF","Camel Forward","+40%"],["CS","Camel Sideways","+60%"],["CL","Camel Layover","+20%"],
+              ["BF","Broken Forward","+40%"],["BS","Broken Sideways","+60%"],
+              ["HF","Heel Forward","+40%"],["HS","Heel Sideways","+60%"],["HL","Heel Layover","+20%"],
+              ["IB","Inverted Bryant","+25%"],["SV","Standard Variation","+20%"],
+            ].map(([code,n,bonus],i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"2px 6px",fontWeight:700,color:"#065f46"}}>{code}</td>
+                <td style={{padding:"2px 6px",color:"#374151"}}>{n}</td>
+                <td style={{padding:"2px 6px",textAlign:"right",fontWeight:700,color:"#059669"}}>{bonus}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Schwierige Pirouetten-Variationen (Bonus auf Elementwert)</h4>
+        <p style={{fontSize:10,color:"#6b7280",margin:"0 0 4px"}}>Der Prozentwert wird als zusätzlicher Bonus auf den Wert des Elements addiert.</p>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <thead><tr style={{background:"#f0fdf4",borderBottom:"2px solid #86efac"}}><th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,width:45}}>Code</th><th style={{padding:"3px 6px",textAlign:"left",fontWeight:700}}>Variation</th><th style={{padding:"3px 6px",textAlign:"right",fontWeight:700,width:50}}>Bonus</th></tr></thead>
+          <tbody>
+            {[
+              ["DE","Difficult Entry – Schwieriger Einstieg","+15%"],["DC","Difficult Change – Schwieriger Wechsel","+15%"],
+              ["SBC","Sit Between Camel – Sitz zwischen Waage","+15%"],["R6","Revolutions 6+ – Mind. 6 Umdrehungen","+20%"],
+              ["R4","Revolutions 4+ – Mind. 4 Umdr. (invertiert)","+20%"],["BD","Both Directions – Beide Richtungen","+15%"],
+              ["DF","Different Feet – Verschiedene Füße","+20%"],
+            ].map(([code,n,bonus],i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"2px 6px",fontWeight:700,color:"#065f46"}}>{code}</td>
+                <td style={{padding:"2px 6px",color:"#374151"}}>{n}</td>
+                <td style={{padding:"2px 6px",textAlign:"right",fontWeight:700,color:"#059669"}}>{bonus}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#f59e0b"}}>Sonderregeln Wertung</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[
+              ["70%","Lutz No Edge – Lutz ohne korrekte Kante: nur 70% des Elementwerts"],
+              ["50%","Saved Combination – Gerettete Kombi: Verbindungssprung zählt 50% Basiswert"],
+              ["-50%","Fall / Sturz – Einzelsprung: -0.5 Abzug pro Sturz auf Gesamtpunktzahl"],
+              ["NV","No Value – Element wird nicht gewertet (z.B. bei illegalem Element oder fehlendem Kriterium)"],
+              ["DG","Downgrade – Herabstufung: Element wird als niedrigere Rotation gewertet, kein Bonus"],
+            ].map(([k,v],i)=>(
+              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
+                <td style={{padding:"3px 6px",fontWeight:700,color:"#d97706",whiteSpace:"nowrap",verticalAlign:"top",width:50}}>{k}</td>
+                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Alle Bonus-Prozente beziehen sich auf den Basiswert des Elements gem. offizieller World Skate Wertungstabellen 2026.</p>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#3b82f6"}}>Alterskategorien</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[["Tots","8–9 Jahre"],["Minis","10–11 Jahre"],["Espoir","12–13 Jahre"],["Cadet","14–15 Jahre"],["Youth","16 Jahre"],["Junior","17–18 Jahre"],["Senior","ab 19 Jahre"]].map(([k,v])=>(
+              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}><td style={{padding:"2px 6px",fontWeight:600,width:60}}>{k}</td><td style={{padding:"2px 6px",color:"#374151"}}>{v}</td></tr>
+            ))}
+          </tbody>
+        </table>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#3b82f6"}}>Elementtypen</h4>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <tbody>
+            {[["CoJ","Combination Jump – Sprungkombination (bis 5 Sprünge)"],["SJu","Solo Jump – Einzelsprung"],["CSp","Combination Spin – Kombinationspirouette"],["SSp","Solo Spin – Einzelpirouette"],["FoSq","Footwork Sequence – Schrittfolge"],["ChSt","Choreo Step Sequence – Choreographische Schrittfolge"],["CLi","Combination Lift – Hebungskombination (Pairs)"],["SLi","Solo Lift – Einzelhebung (Pairs)"],["CtSp","Contact Spin – Kontaktpirouette (Pairs)"],["DS","Death Spiral – Todesspirale (Pairs)"],["Tw","Twist – Twist Lutz (Pairs)"],["Tj","Throw Jump – Wurfsprung (Pairs)"]].map(([k,v])=>(
+              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}><td style={{padding:"2px 6px",fontWeight:700,color:"#065f46",width:45}}>{k}</td><td style={{padding:"2px 6px",color:"#374151"}}>{v}</td></tr>
+            ))}
+          </tbody>
+        </table>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#1d4ed8"}}>Offizielle Regelwerke (World Skate 2026) — Download</h4>
+        <p style={{fontSize:10,color:"#6b7280",margin:"0 0 6px"}}>Klicke auf ein Dokument, um es herunterzuladen:</p>
+        <div style={{display:"flex",flexDirection:"column",gap:4}}>
+          {[
+            {name:"Free Skating 2026 – Official Regulation", desc:"Einzellauf-Regeln für alle Altersklassen", file:"Free_2026.pdf"},
+            {name:"Pairs 2026 – Official Regulation", desc:"Paarlauf-Regeln für alle Altersklassen", file:"Pairs_2026.pdf"},
+            {name:"General 2026 – Official Regulation", desc:"Allgemeine Wettkampf- und Bewertungsregeln", file:"General_2026.pdf"},
+            {name:"Artistic Impression 2026", desc:"Artistic Impression / Program Components Bewertung", file:"Artistic_Impression_2026.pdf"},
+            {name:"Content Sheets 2026", desc:"Offizielle Content Sheets für alle Kategorien", file:"Content_Sheets_2026.pdf"},
+            {name:"RollArt – Free Skating Values 2026", desc:"Basiswerte aller Einzellauf-Elemente", file:"Free_Values_2026.pdf"},
+            {name:"RollArt – Pairs Values 2026", desc:"Basiswerte aller Paarlauf-Elemente", file:"Pairs_Values_2026.pdf"},
+          ].map((doc,i)=>(
+            <a key={i} href={`/docs/${doc.file}`} download={doc.file} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",display:"block",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:6,padding:"8px 12px",fontSize:11,cursor:"pointer",transition:"all 0.2s"}}>
+              <span style={{fontWeight:700,color:"#1d4ed8"}}>📥 {doc.name}</span>
+              <span style={{color:"#6b7280",marginLeft:8,fontSize:10}}> – {doc.desc}</span>
+            </a>
+          ))}
+        </div>
+        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Die Regeln sind im KI-Coach hinterlegt und werden für Regelprüfungen verwendet.</p>
+      </div>
+    </div>
+  </div>
+</div>}
 
         {/* OFFICIAL SHEETS PAGE */}
-        {page==="official"&&<OfficialSheets onSendToContent={(data)=>{setOfficialImport(data);setPage("content");}}/>}
+        {page==="official"&&<OfficialSheets onSendToContent={(data)=>{setOfficialImport(data);setPage("content");}} importFromContent={officialExport}/>}
 
         {/* CONTENT SHEET PAGE */}
         {page==="content"&&<div style={{padding:"12px 16px",maxWidth:1150,margin:"0 auto"}}>
@@ -4516,10 +4764,15 @@
             }} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#7c3aed",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
               &#9654; An Simulator
             </button>
+            <button onClick={()=>{
+              setOfficialExport({skater,cat,music,kategorie,segment,rows:rows.map(r=>({...r})),_ts:Date.now()});
+              setPage("official");
+            }} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#1d4ed8",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
+              &#9654; An Official Sheet
+            </button>
             <button onClick={addRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>+ Zeile</button>
             <button onClick={removeRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>- Zeile</button>
             <button onClick={clearAll} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Löschen</button>
-            <button onClick={()=>setShowGlossar(g=>!g)} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #6b7280",background:showGlossar?"#374151":"white",color:showGlossar?"white":"#374151",fontWeight:600,fontSize:11,cursor:"pointer"}}>Glossar & Regeln</button>
             {uploadMsg && <span style={{fontSize:11,color:"#059669",fontWeight:500}}>{uploadMsg}</span>}
           </div>
 
@@ -4548,273 +4801,6 @@
           )}
 
 
-          {showGlossar && (
-  <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16,marginBottom:16}}>
-    <h3 style={{margin:"0 0 12px",fontSize:16,fontWeight:800,color:"#065f46"}}>Glossar & Regeln (RollArt 2026)</h3>
-
-    <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,fontSize:12}}>
-      <div>
-        <h4 style={{margin:"0 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Bewertungssystem</h4>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <tbody>
-            {[
-              ["QOE","Quality of the Element – Qualitätsbewertung pro Element durch jeden Judge (+3 bis -3)"],
-              ["TE","Technical Value of Element – Basiswert des technischen Elements"],
-              ["TES / TC","Technical Element Score – Summe aller Elementwerte inkl. QOE"],
-              ["TVP","Technical Value of Program – Gesamttechnischer Wert (TC + AI - PE)"],
-              ["AI / PCS","Artistic Impression / Program Components – Skating Skills, Transitions, Performance, Choreography"],
-              ["PE","Penalization – Abzüge die vom TVP abgezogen werden"],
-              ["NV","No Value – Element erhält keinen Wert"],
-              ["DG","Downgrade – Element wird herabgestuft (halber Basiswert)"],
-            ].map(([k,v])=>(
-              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"4px 6px",fontWeight:700,color:"#065f46",whiteSpace:"nowrap",verticalAlign:"top"}}>{k}</td>
-                <td style={{padding:"4px 6px",color:"#374151"}}>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>QOE Richtlinien</h4>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <tbody>
-            {[
-              ["0","Grundeigenschaften des Elements erreicht"],
-              ["+1","1–2 Features erfüllt"],
-              ["+2","3–4 Features erfüllt"],
-              ["+3","5–6 Features erfüllt"],
-              ["-1 bis -3","Fehler bei der Ausführung (siehe Neg. QOE Tabelle)"],
-            ].map(([k,v])=>(
-              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"3px 6px",fontWeight:700,color:k.startsWith("-")?"#dc2626":"#059669",whiteSpace:"nowrap",width:70}}>{k}</td>
-                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Bei mehr als 3 Judges: höchste & niedrigste QOE werden gestrichen (Trimmed Mean). Bei 3 oder weniger: einfacher Durchschnitt. Ergebnis auf 2 Dezimalstellen gerundet.</p>
-
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Rotation (Sprünge)</h4>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <tbody>
-            {[
-              ["N (Normal)","Volle Rotation – voller Basiswert"],
-              ["< (Under-rotated)","Weniger als ¼ Rotation fehlt – 30% Abzug (1er/2er), 20% (3er/4er)"],
-              ["<< (Half-rotated)","¼ bis ½ Rotation fehlt – 50% Abzug (1er/2er), 40% (3er), 30% (4er)"],
-              ["<<< (Downgraded)","Mehr als ½ Rotation fehlt – Wert der nächsttieferen Rotation"],
-            ].map(([k,v])=>(
-              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"3px 6px",fontWeight:700,color:"#f59e0b",whiteSpace:"nowrap",verticalAlign:"top",width:130}}>{k}</td>
-                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div>
-        <h4 style={{margin:"0 0 6px",fontSize:13,fontWeight:700,color:"#dc2626"}}>Penalisierungen (Referee)</h4>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <tbody>
-            {[
-              ["1.0","Knien/Liegen > 1x oder > 5 Sek."],
-              ["1.0","Kostümverstoß (mit Meinung der Judges)"],
-              ["0.5/10s","Zeitverstoß (unter Minimum / über Maximum)"],
-              ["0.5","Start > 10 Sek. nach Musik"],
-              ["1.0","Unangemessene Musik/Texte"],
-              ["0.5","Verlassen der Fläche / Bande berühren"],
-              ["0.5","Ein-/Austritt nicht in erlaubter Zeit"],
-              ["1.0 + 1.0","Stürze: 1.0 für 1. und 2. Sturz"],
-              ["+0.5/+0.3","Weitere Stürze: +0.5 (Espoir-Senior) / +0.3 (Tots/Minis)"],
-            ].map(([k,v],i)=>(
-              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"3px 6px",fontWeight:700,color:"#dc2626",whiteSpace:"nowrap",verticalAlign:"top",width:70}}>{k}</td>
-                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#dc2626"}}>Penalisierungen (Technical Panel)</h4>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <tbody>
-            {[
-              ["1.0","Sprung > 1 Rotation in Footwork Sequence"],
-              ["1.0","Fehlendes Pflichtelement (Mandatory Element)"],
-              ["1.0","Illegales Element"],
-              ["1.0","Pflichtposition in Pirouette nicht versucht"],
-            ].map(([k,v],i)=>(
-              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"3px 6px",fontWeight:700,color:"#dc2626",whiteSpace:"nowrap",width:40}}>{k}</td>
-                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Bonus-Prozente (Sprungwert-Erhöhung)</h4>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <tbody>
-            {[
-              ["+10%","Sprung nach halber Programmlänge (Cadet, Youth, Junior, Senior)"],
-              ["+10%","Axel-Doppel Toeloop Kombi ohne Verbindungssprung (nur Minis)"],
-              ["+10%","Doppel-Doppel Kombi (Minis, Espoir, Cadet LP)"],
-              ["+20%","Doppel-Dreifach / Dreifach-Doppel Kombi"],
-              ["+30%","Dreifach-Dreifach Kombi"],
-            ].map(([k,v],i)=>(
-              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"3px 6px",fontWeight:700,color:"#059669",whiteSpace:"nowrap",verticalAlign:"top",width:50}}>{k}</td>
-                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Hinweis: Doppel-Axel zählt als Dreifach für Bonus. Downgraded-Sprünge erhalten keinen Bonus.</p>
-
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Schwierige Pirouetten-Positionen (Bonus auf Basisposition)</h4>
-        <p style={{fontSize:10,color:"#6b7280",margin:"0 0 4px"}}>Der Prozentwert wird auf den Grundwert der Basisposition addiert.</p>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <thead>
-            <tr style={{background:"#f0fdf4",borderBottom:"2px solid #86efac"}}>
-              <th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,width:45}}>Code</th>
-              <th style={{padding:"3px 6px",textAlign:"left",fontWeight:700}}>Position</th>
-              <th style={{padding:"3px 6px",textAlign:"right",fontWeight:700,width:50}}>Bonus</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              ["UB","Biellmann","+80%"],["UBH","Biellmann Heel","+40%"],
-              ["US","Split (Spagat)","+40%"],["UT","Torso","+50%"],
-              ["UL","Layback","+30%"],["UF","Forward","+20%"],["UH","Heel","+20%"],
-              ["SS","Sit Sideways","+60%"],["ST","Sit Twist","+40%"],
-              ["SF","Sit Forward","+50%"],["SB","Sit Behind","+20%"],
-              ["CF","Camel Forward","+40%"],["CS","Camel Sideways","+60%"],
-              ["CL","Camel Layover","+20%"],
-              ["BF","Broken Forward","+40%"],["BS","Broken Sideways","+60%"],
-              ["HF","Heel Forward","+40%"],["HS","Heel Sideways","+60%"],
-              ["HL","Heel Layover","+20%"],
-              ["IB","Inverted Bryant","+25%"],["SV","Standard Variation","+20%"],
-            ].map(([code,name,bonus],i)=>(
-              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"2px 6px",fontWeight:700,color:"#065f46"}}>{code}</td>
-                <td style={{padding:"2px 6px",color:"#374151"}}>{name}</td>
-                <td style={{padding:"2px 6px",textAlign:"right",fontWeight:700,color:"#059669"}}>{bonus}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Schwierige Pirouetten-Variationen (Bonus auf Elementwert)</h4>
-        <p style={{fontSize:10,color:"#6b7280",margin:"0 0 4px"}}>Der Prozentwert wird als zusätzlicher Bonus auf den Wert des Elements addiert.</p>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <thead>
-            <tr style={{background:"#f0fdf4",borderBottom:"2px solid #86efac"}}>
-              <th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,width:45}}>Code</th>
-              <th style={{padding:"3px 6px",textAlign:"left",fontWeight:700}}>Variation</th>
-              <th style={{padding:"3px 6px",textAlign:"right",fontWeight:700,width:50}}>Bonus</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              ["DE","Difficult Entry – Schwieriger Einstieg","+15%"],
-              ["DC","Difficult Change – Schwieriger Wechsel","+15%"],
-              ["SBC","Sit Between Camel – Sitz zwischen Waage","+15%"],
-              ["R6","Revolutions 6+ – Mind. 6 Umdrehungen","+20%"],
-              ["R4","Revolutions 4+ – Mind. 4 Umdr. (invertiert)","+20%"],
-              ["BD","Both Directions – Beide Richtungen","+15%"],
-              ["DF","Different Feet – Verschiedene Füße","+20%"],
-            ].map(([code,name,bonus],i)=>(
-              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"2px 6px",fontWeight:700,color:"#065f46"}}>{code}</td>
-                <td style={{padding:"2px 6px",color:"#374151"}}>{name}</td>
-                <td style={{padding:"2px 6px",textAlign:"right",fontWeight:700,color:"#059669"}}>{bonus}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#f59e0b"}}>Sonderregeln Wertung</h4>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <tbody>
-            {[
-              ["70%","Lutz No Edge – Lutz ohne korrekte Kante: nur 70% des Elementwerts"],
-              ["50%","Saved Combination – Gerettete Kombi: Verbindungssprung zählt 50% Basiswert"],
-              ["-50%","Fall / Sturz – Einzelsprung: -0.5 Abzug pro Sturz auf Gesamtpunktzahl"],
-              ["NV","No Value – Element wird nicht gewertet (z.B. bei illegalem Element oder fehlendem Kriterium)"],
-              ["DG","Downgrade – Herabstufung: Element wird als niedrigere Rotation gewertet, kein Bonus"],
-            ].map(([k,v],i)=>(
-              <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"3px 6px",fontWeight:700,color:"#d97706",whiteSpace:"nowrap",verticalAlign:"top",width:50}}>{k}</td>
-                <td style={{padding:"3px 6px",color:"#374151"}}>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Alle Bonus-Prozente beziehen sich auf den Basiswert des Elements gem. offizieller World Skate Wertungstabellen 2026.</p>
-
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#3b82f6"}}>Alterskategorien</h4>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <tbody>
-            {[
-              ["Tots","8–9 Jahre"],["Minis","10–11 Jahre"],["Espoir","12–13 Jahre"],
-              ["Cadet","14–15 Jahre"],["Youth","16 Jahre"],["Junior","17–18 Jahre"],["Senior","ab 19 Jahre"],
-            ].map(([k,v])=>(
-              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"2px 6px",fontWeight:600,width:60}}>{k}</td>
-                <td style={{padding:"2px 6px",color:"#374151"}}>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#3b82f6"}}>Elementtypen</h4>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <tbody>
-            {[
-              ["CoJ","Combination Jump – Sprungkombination (bis 5 Sprünge)"],
-              ["SJu","Solo Jump – Einzelsprung"],
-              ["CSp","Combination Spin – Kombinationspirouette"],
-              ["SSp","Solo Spin – Einzelpirouette"],
-              ["FoSq","Footwork Sequence – Schrittfolge"],
-              ["ChSt","Choreo Step Sequence – Choreographische Schrittfolge"],
-              ["CLi","Combination Lift – Hebungskombination (Pairs)"],
-              ["SLi","Solo Lift – Einzelhebung (Pairs)"],
-              ["CtSp","Contact Spin – Kontaktpirouette (Pairs)"],
-              ["DS","Death Spiral – Todesspirale (Pairs)"],
-              ["Tw","Twist – Twist Lutz (Pairs)"],
-              ["Tj","Throw Jump – Wurfsprung (Pairs)"],
-            ].map(([k,v])=>(
-              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"2px 6px",fontWeight:700,color:"#065f46",width:45}}>{k}</td>
-                <td style={{padding:"2px 6px",color:"#374151"}}>{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#1d4ed8"}}>Offizielle Regelwerke (World Skate 2026) — Download</h4>
-        <p style={{fontSize:10,color:"#6b7280",margin:"0 0 6px"}}>Klicke auf ein Dokument, um es herunterzuladen:</p>
-        <div style={{display:"flex",flexDirection:"column",gap:4}}>
-          {[
-            {name:"Free Skating 2026 – Official Regulation", desc:"Einzellauf-Regeln für alle Altersklassen", file:"Free_2026.pdf"},
-            {name:"Pairs 2026 – Official Regulation", desc:"Paarlauf-Regeln für alle Altersklassen", file:"Pairs_2026.pdf"},
-            {name:"General 2026 – Official Regulation", desc:"Allgemeine Wettkampf- und Bewertungsregeln", file:"General_2026.pdf"},
-            {name:"Artistic Impression 2026", desc:"Artistic Impression / Program Components Bewertung", file:"Artistic_Impression_2026.pdf"},
-            {name:"Content Sheets 2026", desc:"Offizielle Content Sheets für alle Kategorien", file:"Content_Sheets_2026.pdf"},
-            {name:"RollArt – Free Skating Values 2026", desc:"Basiswerte aller Einzellauf-Elemente", file:"Free_Values_2026.pdf"},
-            {name:"RollArt – Pairs Values 2026", desc:"Basiswerte aller Paarlauf-Elemente", file:"Pairs_Values_2026.pdf"},
-          ].map((doc,i)=>(
-            <a key={i} href={`/docs/${doc.file}`} download={doc.file} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",display:"block",background:"#eff6ff",border:"1px solid #bfdbfe",borderRadius:6,padding:"8px 12px",fontSize:11,cursor:"pointer",transition:"all 0.2s"}}>
-              <span style={{fontWeight:700,color:"#1d4ed8"}}>📥 {doc.name}</span>
-              <span style={{color:"#6b7280",marginLeft:8,fontSize:10}}> – {doc.desc}</span>
-            </a>
-          ))}
-        </div>
-        <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Die Regeln sind im KI-Coach hinterlegt und werden für Regelprüfungen verwendet.</p>
-      </div>
-    </div>
-  </div>
-)}
 
           {/* TABLE */}
           <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",overflow:"auto"}}>
