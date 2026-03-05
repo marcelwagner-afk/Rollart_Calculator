@@ -3450,50 +3450,74 @@
         saveEl();
       }
 
-      // PCS components (handle both same-line and split-line formats)
-      // Helper: clamp PCS judge value to valid range 0-10
+      // PCS components: robust parsing for all PDF text extraction patterns
+      // Patterns seen across real PDFs (text items grouped by Y-coordinate):
+      //   A) "Transitions/Linking Footwork/Movement 0.8 2.00 2.50 2.50 2.33" (name+factor+j1+j2+j3+avg on one line)
+      //   B) "Transitions/Linking Footwork/Movement" then "0.8 2.25 2.25 2.25 2.25" (name alone, nums next line)
+      //   C) "Transitions/Linking Footwork/Movement 1.00 1.25 1.50 1.25" then "0.8" (judges on name line, factor separate!)
+      //   D) "Skating Skills 1.50 1.50 1.25 1.42" then "0.8" (same as C)
+      //   E) "Skating Skills" then "0.8" then "2.50 2.25 2.50 2.42" (factor on middle line)
       const clampJ = (v) => (isNaN(v) || v < 0 || v > 10) ? 0 : v;
-      // Helper: detect PCS factor values (0.8, 1.0, 1.2, 1.4, 1.6)
       const isPcsFactor = (v) => [0.8, 1.0, 1.2, 1.4, 1.6].some(f => Math.abs(v - f) < 0.01);
+      const compPatterns = [
+        { regex: /Skating\s+Skills/i, key: "skating" },
+        { regex: /Transition/i, key: "transitions" },
+        { regex: /Performance/i, key: "performance" },
+        { regex: /Choreography/i, key: "choreography" },
+      ];
+      // Extract 3 judge scores from a number array, skipping factor/avg
+      const extractJudges = (f) => {
+        if (f.length >= 5) {
+          // 5+ nums: first is factor → skip it, use next 3
+          return [f[1], f[2], f[3]];
+        }
+        if (f.length === 4) {
+          // 4 nums: "factor j1 j2 j3" or "j1 j2 j3 avg"
+          // Heuristic: if f[3] ≈ mean(f[0],f[1],f[2]), they are j1 j2 j3 avg
+          const mean012 = Math.round(((f[0]+f[1]+f[2])/3)*100)/100;
+          if (Math.abs(f[3] - mean012) <= 0.02) return [f[0], f[1], f[2]];
+          // Otherwise if f[0] is a known factor value, skip it
+          if (isPcsFactor(f[0])) return [f[1], f[2], f[3]];
+          // Default: treat as j1 j2 j3 avg
+          return [f[0], f[1], f[2]];
+        }
+        if (f.length === 3) return [f[0], f[1], f[2]];
+        return null;
+      };
       let lastComp = "";
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        // Same line: "Transitions/Linking Footwork/Movement 0.8 2.00 2.50 2.50 2.33"
-        const pm = line.match(/(Skating\s+Skills|Transition[^\d]*|Performance[^\d]*|Choreography[^\d]*?)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/i);
-        if (pm) {
-          const cn = pm[1].toLowerCase();
-          const j1 = clampJ(parseFloat(pm[3])), j2 = clampJ(parseFloat(pm[4])), j3 = clampJ(parseFloat(pm[5]));
-          if (cn.includes("skating")) components.skating = [j1,j2,j3,0,0];
-          else if (cn.includes("transition")) components.transitions = [j1,j2,j3,0,0];
-          else if (cn.includes("performance")) components.performance = [j1,j2,j3,0,0];
-          else if (cn.includes("choreography")) components.choreography = [j1,j2,j3,0,0];
-          lastComp = ""; continue;
+        // Detect component name in this line
+        let compKey = "";
+        for (const cp of compPatterns) {
+          if (cp.regex.test(line) && !line.includes("JUDGES") && !/^Program\s+Component/i.test(line.trim())) {
+            compKey = cp.key; break;
+          }
         }
-        // Component name with factor only or alone
-        if (/Skating\s+Skills/i.test(line)) { lastComp = "skating"; continue; }
-        if (/Transition/i.test(line) && !line.includes("JUDGES")) { lastComp = "transitions"; continue; }
-        if (/Performance/i.test(line) && !line.includes("JUDGES")) { lastComp = "performance"; continue; }
-        if (/Choreography/i.test(line) && !line.includes("JUDGES")) { lastComp = "choreography"; continue; }
-        // Numbers on next line(s) after component name
-        if (lastComp) {
-          const nums = line.match(/[\d.]+/g);
-          if (nums && nums.length >= 3) {
-            const f = nums.map(n => parseFloat(n));
-            let j1, j2, j3;
-            if (f.length >= 5) {
-              // "factor j1 j2 j3 avg" → skip factor (index 0) and avg (index 4)
-              [j1, j2, j3] = [f[1], f[2], f[3]];
-            } else if (f.length === 4 && isPcsFactor(f[0])) {
-              // "factor j1 j2 j3" (no avg) → skip factor
-              [j1, j2, j3] = [f[1], f[2], f[3]];
-            } else if (f.length === 4) {
-              // "j1 j2 j3 avg" (factor was on name line) → skip avg
-              [j1, j2, j3] = [f[0], f[1], f[2]];
-            } else {
-              // 3 numbers: "j1 j2 j3"
-              [j1, j2, j3] = [f[0], f[1], f[2]];
+        const nums = line.match(/[\d.]+/g);
+        const f = nums ? nums.map(n => parseFloat(n)) : [];
+        if (compKey && f.length >= 3) {
+          // Component name line with enough numbers → extract judges
+          const judges = extractJudges(f);
+          if (judges) {
+            components[compKey] = [clampJ(judges[0]), clampJ(judges[1]), clampJ(judges[2]), 0, 0];
+            // Skip next line if it's just the factor (Pattern C/D)
+            if (i + 1 < lines.length) {
+              const nextTrimmed = lines[i+1].trim();
+              if (/^[\d.]+$/.test(nextTrimmed) && isPcsFactor(parseFloat(nextTrimmed))) i++;
             }
-            components[lastComp] = [clampJ(j1), clampJ(j2), clampJ(j3), 0, 0];
+            lastComp = ""; continue;
+          }
+        }
+        if (compKey) {
+          // Component name with 0-2 numbers → set lastComp for split-line parsing
+          lastComp = compKey; continue;
+        }
+        // Continuation line: numbers after component name (Pattern B/E)
+        if (lastComp && f.length >= 3) {
+          const judges = extractJudges(f);
+          if (judges) {
+            components[lastComp] = [clampJ(judges[0]), clampJ(judges[1]), clampJ(judges[2]), 0, 0];
             lastComp = ""; continue;
           }
         }
