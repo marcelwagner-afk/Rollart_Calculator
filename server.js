@@ -57,7 +57,7 @@ if (fs.existsSync(OLD_DB_FILE)) {
   }
 }
 
-let DB = { users: [], nextId: 1, skaters: [], settings: {
+let DB = { users: [], nextId: 1, skaters: [], trainingLog: [], scoreHistory: [], competitions: [], settings: {
   registrationOpen: true,
   welcomeMessage: 'Willkommen bei RollArt 2026!',
   seasonYear: 2026,
@@ -796,6 +796,165 @@ app.post('/api/ki-coach', auth, async (req, res) => {
     console.error('KI-Coach error:', err);
     res.status(500).json({ error: 'Fehler bei der KI-Analyse: ' + err.message });
   }
+});
+
+// ============================================================
+//  TRAINING LOG (Tagebuch)
+// ============================================================
+app.get('/api/training', auth, (req, res) => {
+  if (!DB.trainingLog) DB.trainingLog = [];
+  const logs = DB.trainingLog.filter(l => l.userId === req.user.id);
+  res.json({ logs: logs.sort((a,b) => b.date.localeCompare(a.date)) });
+});
+
+app.post('/api/training', auth, (req, res) => {
+  if (!DB.trainingLog) DB.trainingLog = [];
+  const { date, duration, notes, elements, goals, skaterId, skaterName } = req.body;
+  const entry = {
+    id: Date.now(),
+    userId: req.user.id,
+    date: date || new Date().toISOString().slice(0,10),
+    duration: duration || 0,
+    notes: notes || '',
+    elements: elements || [],
+    goals: goals || '',
+    skaterId: skaterId || null,
+    skaterName: skaterName || '',
+    createdAt: new Date().toISOString(),
+  };
+  DB.trainingLog.push(entry);
+  saveDB();
+  res.status(201).json({ entry });
+});
+
+app.put('/api/training/:id', auth, (req, res) => {
+  if (!DB.trainingLog) DB.trainingLog = [];
+  const id = parseInt(req.params.id);
+  const entry = DB.trainingLog.find(l => l.id === id && l.userId === req.user.id);
+  if (!entry) return res.status(404).json({ error: 'Not found' });
+  const { date, duration, notes, elements, goals, skaterId, skaterName } = req.body;
+  if (date !== undefined) entry.date = date;
+  if (duration !== undefined) entry.duration = duration;
+  if (notes !== undefined) entry.notes = notes;
+  if (elements !== undefined) entry.elements = elements;
+  if (goals !== undefined) entry.goals = goals;
+  if (skaterId !== undefined) entry.skaterId = skaterId;
+  if (skaterName !== undefined) entry.skaterName = skaterName;
+  saveDB();
+  res.json({ entry });
+});
+
+app.delete('/api/training/:id', auth, (req, res) => {
+  if (!DB.trainingLog) DB.trainingLog = [];
+  const id = parseInt(req.params.id);
+  const idx = DB.trainingLog.findIndex(l => l.id === id && l.userId === req.user.id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  DB.trainingLog.splice(idx, 1);
+  saveDB();
+  res.json({ message: 'Deleted' });
+});
+
+// ============================================================
+//  SCORE HISTORY (Verlauf)
+// ============================================================
+app.get('/api/score-history', auth, (req, res) => {
+  if (!DB.scoreHistory) DB.scoreHistory = [];
+  const history = DB.scoreHistory.filter(h => h.userId === req.user.id);
+  res.json({ history: history.sort((a,b) => a.date.localeCompare(b.date)) });
+});
+
+app.post('/api/score-history', auth, (req, res) => {
+  if (!DB.scoreHistory) DB.scoreHistory = [];
+  const { skaterId, skaterName, kategorie, segment, tes, pcs, deductions, extraPoints, total, date, label } = req.body;
+  const entry = {
+    id: Date.now(),
+    userId: req.user.id,
+    skaterId: skaterId || null,
+    skaterName: skaterName || '',
+    kategorie: kategorie || '',
+    segment: segment || '',
+    tes: tes || 0,
+    pcs: pcs || 0,
+    deductions: deductions || 0,
+    extraPoints: extraPoints || 0,
+    total: total || 0,
+    date: date || new Date().toISOString().slice(0,10),
+    label: label || '',
+    createdAt: new Date().toISOString(),
+  };
+  DB.scoreHistory.push(entry);
+  saveDB();
+  res.status(201).json({ entry });
+});
+
+app.delete('/api/score-history/:id', auth, (req, res) => {
+  if (!DB.scoreHistory) DB.scoreHistory = [];
+  const id = parseInt(req.params.id);
+  const idx = DB.scoreHistory.findIndex(h => h.id === id && h.userId === req.user.id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  DB.scoreHistory.splice(idx, 1);
+  saveDB();
+  res.json({ message: 'Deleted' });
+});
+
+// ============================================================
+//  COMPETITIONS (Kalender)
+// ============================================================
+app.get('/api/competitions', auth, (req, res) => {
+  if (!DB.competitions) DB.competitions = [];
+  const comps = DB.competitions.filter(c => c.userId === req.user.id);
+  res.json({ competitions: comps.sort((a,b) => a.date.localeCompare(b.date)) });
+});
+
+app.post('/api/competitions', auth, (req, res) => {
+  if (!DB.competitions) DB.competitions = [];
+  const { name, date, location, kategorie, notes, checklist } = req.body;
+  const entry = {
+    id: Date.now(),
+    userId: req.user.id,
+    name: name || '',
+    date: date || '',
+    location: location || '',
+    kategorie: kategorie || '',
+    notes: notes || '',
+    checklist: checklist || [
+      {item:'Content Sheet erstellt',done:false},
+      {item:'Musik abgegeben',done:false},
+      {item:'Kostüm fertig',done:false},
+      {item:'Anmeldung bestätigt',done:false},
+      {item:'Programm durchgelaufen',done:false},
+    ],
+    createdAt: new Date().toISOString(),
+  };
+  DB.competitions.push(entry);
+  saveDB();
+  res.status(201).json({ entry });
+});
+
+app.put('/api/competitions/:id', auth, (req, res) => {
+  if (!DB.competitions) DB.competitions = [];
+  const id = parseInt(req.params.id);
+  const entry = DB.competitions.find(c => c.id === id && c.userId === req.user.id);
+  if (!entry) return res.status(404).json({ error: 'Not found' });
+  const { name, date, location, kategorie, notes, checklist } = req.body;
+  if (name !== undefined) entry.name = name;
+  if (date !== undefined) entry.date = date;
+  if (location !== undefined) entry.location = location;
+  if (kategorie !== undefined) entry.kategorie = kategorie;
+  if (notes !== undefined) entry.notes = notes;
+  if (checklist !== undefined) entry.checklist = checklist;
+  saveDB();
+  res.json({ entry });
+});
+
+app.delete('/api/competitions/:id', auth, (req, res) => {
+  if (!DB.competitions) DB.competitions = [];
+  const id = parseInt(req.params.id);
+  const idx = DB.competitions.findIndex(c => c.id === id && c.userId === req.user.id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  DB.competitions.splice(idx, 1);
+  saveDB();
+  res.json({ message: 'Deleted' });
 });
 
 // ============================================================

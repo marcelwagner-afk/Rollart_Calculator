@@ -2478,8 +2478,27 @@
       return!!r.elCode;
     }).length;
 
+    // Was-wäre-wenn Snapshot
+    const [snapshot,setSnapshot]=useState(null);
+    const takeSnapshot=()=>setSnapshot({tes,pcsTotal,bonusTotal,totalScore,deductions,extraPoints,label:"Aktuell",_ts:Date.now()});
+    const diff=snapshot?{tes:tes-snapshot.tes,pcs:pcsTotal-snapshot.pcsTotal,total:totalScore-snapshot.totalScore}:null;
+
     return(
       <div style={{padding:"16px 20px",maxWidth:1200,margin:"0 auto"}}>
+        {/* Was-wäre-wenn Banner */}
+        {snapshot&&<div style={{background:"linear-gradient(135deg,#eff6ff,#f5f3ff)",border:"1px solid #c7d2fe",borderRadius:10,padding:12,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+          <div>
+            <div style={{fontSize:12,fontWeight:700,color:"#4338ca"}}>Was-wäre-wenn Vergleich</div>
+            <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>Snapshot: TES {snapshot.tes.toFixed(2)} + PCS {snapshot.pcsTotal.toFixed(2)} = {snapshot.totalScore.toFixed(2)}</div>
+          </div>
+          <div style={{display:"flex",gap:12,alignItems:"center"}}>
+            <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#6b7280"}}>TES</div><div style={{fontSize:16,fontWeight:800,color:diff.tes>=0?"#059669":"#dc2626"}}>{diff.tes>=0?"+":""}{diff.tes.toFixed(2)}</div></div>
+            <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#6b7280"}}>PCS</div><div style={{fontSize:16,fontWeight:800,color:diff.pcs>=0?"#059669":"#dc2626"}}>{diff.pcs>=0?"+":""}{diff.pcs.toFixed(2)}</div></div>
+            <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#6b7280"}}>Total</div><div style={{fontSize:20,fontWeight:800,color:diff.total>=0?"#059669":"#dc2626"}}>{diff.total>=0?"+":""}{diff.total.toFixed(2)}</div></div>
+            <button onClick={()=>setSnapshot(null)} style={{padding:"5px 10px",borderRadius:5,border:"1px solid #c7d2fe",background:"white",fontSize:11,cursor:"pointer"}}>× Schließen</button>
+          </div>
+        </div>}
+
         {/* Category + Segment + Judges */}
         <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
           <select value={kategorie} onChange={e=>changeKategorie(e.target.value)} style={{
@@ -2579,6 +2598,7 @@
           </label>
           <button onClick={addRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #059669",background:"#f0fdf4",color:"#059669",fontWeight:600,fontSize:11,cursor:"pointer"}}>+ Element</button>
           <button onClick={clearAll} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Alles löschen</button>
+          <button onClick={takeSnapshot} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #7c3aed",background:snapshot?"#7c3aed":"#f5f3ff",color:snapshot?"white":"#7c3aed",fontWeight:600,fontSize:11,cursor:"pointer"}}>{snapshot?"↻ Neuer Snapshot":"📸 Was-wäre-wenn"}</button>
           {importMsg&&<span style={{fontSize:11,color:"#059669",fontWeight:600,background:"#f0fdf4",padding:"4px 10px",borderRadius:5,border:"1px solid #86efac"}}>{importMsg}</span>}
           <div style={{marginLeft:"auto",fontSize:11,color:"#6b7280"}}>{filled} / {rows.length} Elemente</div>
         </div>
@@ -4016,6 +4036,440 @@
   }
 
   // ============================================================
+  //  DASHBOARD — Score-Verlauf, Läufer-Vergleich, Element-Erfolgsquote
+  // ============================================================
+  function DashboardPage(){
+    const [scoreHistory,setScoreHistory]=useState([]);
+    const [trainingLogs,setTrainingLogs]=useState([]);
+    const [skaters,setSkaters]=useState([]);
+    const [loading,setLoading]=useState(true);
+    const [selectedSkater,setSelectedSkater]=useState("all");
+    const [tab,setTab]=useState("verlauf"); // verlauf, vergleich, elemente
+
+    const token=localStorage.getItem('rollart_token');
+    const headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'};
+
+    useEffect(()=>{
+      Promise.all([
+        fetch('/api/score-history',{headers}).then(r=>r.json()),
+        fetch('/api/training',{headers}).then(r=>r.json()),
+        fetch('/api/skaters',{headers}).then(r=>r.json()),
+      ]).then(([sh,tl,sk])=>{
+        setScoreHistory(sh.history||[]);
+        setTrainingLogs(tl.logs||[]);
+        setSkaters(sk.skaters||[]);
+        setLoading(false);
+      }).catch(()=>setLoading(false));
+    },[]);
+
+    // Filtered history
+    const filtered=selectedSkater==="all"?scoreHistory:scoreHistory.filter(h=>h.skaterName===selectedSkater);
+    const skaterNames=[...new Set(scoreHistory.map(h=>h.skaterName).filter(Boolean))];
+
+    // SVG Line Chart
+    const ScoreChart=({data,width=700,height=220})=>{
+      if(!data.length)return <p style={{color:"#6b7280",fontSize:13,textAlign:"center",padding:20}}>Noch keine Score-Daten vorhanden. Speichere Scores über den "Score speichern" Button im Content Sheet.</p>;
+      const sorted=[...data].sort((a,b)=>a.date.localeCompare(b.date));
+      const maxT=Math.max(...sorted.map(d=>d.total),1);
+      const minT=Math.min(...sorted.map(d=>d.total),0);
+      const range=maxT-minT||1;
+      const pad={t:20,r:20,b:35,l:50};
+      const cw=width-pad.l-pad.r,ch=height-pad.t-pad.b;
+      const pts=sorted.map((d,i)=>({
+        x:pad.l+(sorted.length>1?i/(sorted.length-1):0.5)*cw,
+        y:pad.t+ch-(d.total-minT)/range*ch,
+        ...d
+      }));
+      const tesP=sorted.map((d,i)=>({x:pad.l+(sorted.length>1?i/(sorted.length-1):0.5)*cw,y:pad.t+ch-(d.tes-minT)/range*ch}));
+      const pcsP=sorted.map((d,i)=>({x:pad.l+(sorted.length>1?i/(sorted.length-1):0.5)*cw,y:pad.t+ch-(d.pcs-minT)/range*ch}));
+      const line=p=>p.map((pt,i)=>`${i===0?'M':'L'}${pt.x},${pt.y}`).join(' ');
+      return(
+        <svg viewBox={`0 0 ${width} ${height}`} style={{width:"100%",maxWidth:width,background:"white",borderRadius:8}}>
+          {[0,.25,.5,.75,1].map(f=>{const y=pad.t+ch*(1-f);return <g key={f}><line x1={pad.l} y1={y} x2={width-pad.r} y2={y} stroke="#f3f4f6" strokeWidth={1}/><text x={pad.l-6} y={y+4} textAnchor="end" fontSize={9} fill="#9ca3af">{(minT+range*f).toFixed(1)}</text></g>})}
+          {pts.map((pt,i)=><text key={i} x={pt.x} y={height-5} textAnchor="middle" fontSize={8} fill="#9ca3af" transform={`rotate(-30,${pt.x},${height-5})`}>{pt.date.slice(5)}</text>)}
+          <path d={line(tesP)} fill="none" stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.6}/>
+          <path d={line(pcsP)} fill="none" stroke="#8b5cf6" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.6}/>
+          <path d={line(pts)} fill="none" stroke="#059669" strokeWidth={2.5}/>
+          {pts.map((pt,i)=><circle key={i} cx={pt.x} cy={pt.y} r={4} fill="#059669" stroke="white" strokeWidth={2}><title>{pt.date}: Total {pt.total.toFixed(2)} (TES {pt.tes.toFixed(2)} + PCS {pt.pcs.toFixed(2)})</title></circle>)}
+          <g transform={`translate(${pad.l+10},${pad.t})`}>
+            <rect x={0} y={0} width={10} height={3} fill="#059669"/><text x={14} y={4} fontSize={9} fill="#374151">Total</text>
+            <rect x={60} y={0} width={10} height={3} fill="#3b82f6" opacity={0.6}/><text x={74} y={4} fontSize={9} fill="#374151">TES</text>
+            <rect x={105} y={0} width={10} height={3} fill="#8b5cf6" opacity={0.6}/><text x={119} y={4} fontSize={9} fill="#374151">PCS</text>
+          </g>
+        </svg>
+      );
+    };
+
+    // Skater comparison table
+    const SkaterComparison=()=>{
+      if(!skaters.length)return <p style={{color:"#6b7280",fontSize:13,textAlign:"center",padding:20}}>Keine gespeicherten Läufer vorhanden.</p>;
+      // Get latest score per skater from history
+      const latestScores={};
+      scoreHistory.forEach(h=>{
+        if(!latestScores[h.skaterName]||h.date>latestScores[h.skaterName].date) latestScores[h.skaterName]=h;
+      });
+      return(
+        <div style={{overflow:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+            <thead><tr style={{background:"#f0fdf4",borderBottom:"2px solid #059669"}}>
+              <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700}}>Läufer</th>
+              <th style={{padding:"8px 10px",textAlign:"left"}}>Kategorie</th>
+              <th style={{padding:"8px 10px",textAlign:"right"}}>TES</th>
+              <th style={{padding:"8px 10px",textAlign:"right"}}>PCS</th>
+              <th style={{padding:"8px 10px",textAlign:"right"}}>Ded</th>
+              <th style={{padding:"8px 10px",textAlign:"right",fontWeight:700}}>Total</th>
+              <th style={{padding:"8px 10px",textAlign:"right"}}>Letzter Score</th>
+            </tr></thead>
+            <tbody>
+              {skaters.sort((a,b)=>(latestScores[b.name]?.total||0)-(latestScores[a.name]?.total||0)).map(sk=>{
+                const ls=latestScores[sk.name];
+                return <tr key={sk.id} style={{borderBottom:"1px solid #f3f4f6"}}>
+                  <td style={{padding:"6px 10px",fontWeight:600}}>{sk.name}</td>
+                  <td style={{padding:"6px 10px",color:"#6b7280"}}>{CATEGORY_DEFS[sk.kategorie]?.label||sk.kategorie}</td>
+                  <td style={{padding:"6px 10px",textAlign:"right",color:"#3b82f6"}}>{ls?ls.tes.toFixed(2):"—"}</td>
+                  <td style={{padding:"6px 10px",textAlign:"right",color:"#8b5cf6"}}>{ls?ls.pcs.toFixed(2):"—"}</td>
+                  <td style={{padding:"6px 10px",textAlign:"right",color:"#dc2626"}}>{ls?ls.deductions.toFixed(2):"—"}</td>
+                  <td style={{padding:"6px 10px",textAlign:"right",fontWeight:700,color:"#059669"}}>{ls?ls.total.toFixed(2):"—"}</td>
+                  <td style={{padding:"6px 10px",textAlign:"right",color:"#9ca3af",fontSize:11}}>{ls?ls.date:"—"}</td>
+                </tr>;
+              })}
+            </tbody>
+          </table>
+        </div>
+      );
+    };
+
+    // Element success rates from training logs
+    const ElementStats=()=>{
+      const elMap={};
+      trainingLogs.forEach(log=>{
+        (log.elements||[]).forEach(el=>{
+          if(!el.code)return;
+          if(!elMap[el.code])elMap[el.code]={code:el.code,attempts:0,landed:0};
+          elMap[el.code].attempts+=(el.attempts||0);
+          elMap[el.code].landed+=(el.landed||0);
+        });
+      });
+      const els=Object.values(elMap).filter(e=>e.attempts>0).sort((a,b)=>b.attempts-a.attempts);
+      if(!els.length)return <p style={{color:"#6b7280",fontSize:13,textAlign:"center",padding:20}}>Noch keine Element-Daten. Trage Trainingseinheiten im Tagebuch ein, um Erfolgsquoten zu sehen.</p>;
+      return(
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:8}}>
+          {els.map(el=>{
+            const pct=Math.round(el.landed/el.attempts*100);
+            const color=pct>=80?"#059669":pct>=60?"#f59e0b":"#dc2626";
+            return <div key={el.code} style={{background:"white",border:"1px solid #e5e7eb",borderRadius:8,padding:10}}>
+              <div style={{fontWeight:700,fontSize:13,color:"#065f46"}}>{el.code}</div>
+              <div style={{margin:"6px 0",background:"#f3f4f6",borderRadius:4,height:8,overflow:"hidden"}}>
+                <div style={{width:pct+"%",height:"100%",background:color,borderRadius:4,transition:"width 0.3s"}}/>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
+                <span style={{color:"#6b7280"}}>{el.landed}/{el.attempts}</span>
+                <span style={{fontWeight:700,color}}>{pct}%</span>
+              </div>
+            </div>;
+          })}
+        </div>
+      );
+    };
+
+    if(loading)return <div style={{padding:40,textAlign:"center",color:"#6b7280"}}>Lade Dashboard...</div>;
+
+    return(
+      <div style={{padding:"16px 20px",maxWidth:1200,margin:"0 auto"}}>
+        {/* Tabs */}
+        <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+          {[{k:"verlauf",l:"Score-Verlauf"},{k:"vergleich",l:"Läufer-Vergleich"},{k:"elemente",l:"Element-Erfolgsquote"}].map(t=>(
+            <button key={t.k} onClick={()=>setTab(t.k)} style={{padding:"7px 16px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+              background:tab===t.k?"#059669":"#e5e7eb",color:tab===t.k?"white":"#374151"}}>{t.l}</button>
+          ))}
+          {tab==="verlauf"&&<>
+            <span style={{marginLeft:"auto",fontSize:11,color:"#6b7280"}}>Läufer:</span>
+            <select value={selectedSkater} onChange={e=>setSelectedSkater(e.target.value)} style={{padding:"5px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}>
+              <option value="all">Alle</option>
+              {skaterNames.map(n=><option key={n} value={n}>{n}</option>)}
+            </select>
+          </>}
+        </div>
+
+        {tab==="verlauf"&&<div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16}}>
+          <h3 style={{margin:"0 0 12px",fontSize:15,fontWeight:800,color:"#065f46"}}>Score-Verlauf {selectedSkater!=="all"&&`— ${selectedSkater}`}</h3>
+          <ScoreChart data={filtered}/>
+          {filtered.length>0&&<div style={{marginTop:12,overflow:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+            <thead><tr style={{borderBottom:"1px solid #e5e7eb"}}><th style={{padding:"4px 8px",textAlign:"left"}}>Datum</th><th style={{padding:"4px 8px",textAlign:"left"}}>Läufer</th><th style={{padding:"4px 8px",textAlign:"left"}}>Label</th><th style={{padding:"4px 8px",textAlign:"right"}}>TES</th><th style={{padding:"4px 8px",textAlign:"right"}}>PCS</th><th style={{padding:"4px 8px",textAlign:"right",fontWeight:700}}>Total</th></tr></thead>
+            <tbody>{[...filtered].reverse().map(h=><tr key={h.id} style={{borderBottom:"1px solid #f3f4f6"}}><td style={{padding:"3px 8px"}}>{h.date}</td><td style={{padding:"3px 8px"}}>{h.skaterName}</td><td style={{padding:"3px 8px",color:"#6b7280"}}>{h.label||"—"}</td><td style={{padding:"3px 8px",textAlign:"right",color:"#3b82f6"}}>{h.tes.toFixed(2)}</td><td style={{padding:"3px 8px",textAlign:"right",color:"#8b5cf6"}}>{h.pcs.toFixed(2)}</td><td style={{padding:"3px 8px",textAlign:"right",fontWeight:700,color:"#059669"}}>{h.total.toFixed(2)}</td></tr>)}</tbody>
+          </table></div>}
+        </div>}
+
+        {tab==="vergleich"&&<div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16}}>
+          <h3 style={{margin:"0 0 12px",fontSize:15,fontWeight:800,color:"#065f46"}}>Läufer-Vergleich</h3>
+          <SkaterComparison/>
+        </div>}
+
+        {tab==="elemente"&&<div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16}}>
+          <h3 style={{margin:"0 0 12px",fontSize:15,fontWeight:800,color:"#065f46"}}>Element-Erfolgsquote</h3>
+          <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>Basierend auf allen Trainingseinheiten im Tagebuch</p>
+          <ElementStats/>
+        </div>}
+      </div>
+    );
+  }
+
+  // ============================================================
+  //  TRAINING DIARY (Trainings-Tagebuch)
+  // ============================================================
+  function TrainingDiary(){
+    const [logs,setLogs]=useState([]);
+    const [skaters,setSkaters]=useState([]);
+    const [loading,setLoading]=useState(true);
+    const [editing,setEditing]=useState(null); // null or entry object
+    const [showForm,setShowForm]=useState(false);
+
+    const token=localStorage.getItem('rollart_token');
+    const headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'};
+
+    const emptyEntry=()=>({date:new Date().toISOString().slice(0,10),duration:60,notes:'',elements:[{code:'',attempts:0,landed:0}],goals:'',skaterId:null,skaterName:''});
+
+    const load=()=>{
+      Promise.all([
+        fetch('/api/training',{headers}).then(r=>r.json()),
+        fetch('/api/skaters',{headers}).then(r=>r.json()),
+      ]).then(([tl,sk])=>{
+        setLogs(tl.logs||[]);
+        setSkaters(sk.skaters||[]);
+        setLoading(false);
+      });
+    };
+    useEffect(()=>{load();},[]);
+
+    const save=async(entry)=>{
+      const method=entry.id?'PUT':'POST';
+      const url=entry.id?`/api/training/${entry.id}`:'/api/training';
+      await fetch(url,{method,headers,body:JSON.stringify(entry)});
+      setShowForm(false);setEditing(null);load();
+    };
+    const remove=async(id)=>{
+      if(!confirm('Eintrag löschen?'))return;
+      await fetch(`/api/training/${id}`,{method:'DELETE',headers});load();
+    };
+
+    const EntryForm=({initial,onSave,onCancel})=>{
+      const [form,setForm]=useState(initial);
+      const addEl=()=>setForm({...form,elements:[...form.elements,{code:'',attempts:0,landed:0}]});
+      const rmEl=(i)=>setForm({...form,elements:form.elements.filter((_,j)=>j!==i)});
+      const setEl=(i,k,v)=>{const els=[...form.elements];els[i]={...els[i],[k]:v};setForm({...form,elements:els});};
+      return(
+        <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:16,marginBottom:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:10}}>
+            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Datum</label><input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
+            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Dauer (Min)</label><input type="number" value={form.duration} onChange={e=>setForm({...form,duration:parseInt(e.target.value)||0})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
+            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Läufer</label><select value={form.skaterName} onChange={e=>setForm({...form,skaterName:e.target.value})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}>
+              <option value="">— Kein Läufer —</option>
+              {skaters.map(s=><option key={s.id} value={s.name}>{s.name}</option>)}
+            </select></div>
+            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Ziel</label><input value={form.goals} onChange={e=>setForm({...form,goals:e.target.value})} placeholder="z.B. 2A konsistent landen" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
+          </div>
+          <label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Geübte Elemente</label>
+          <div style={{marginTop:4,marginBottom:8}}>
+            {form.elements.map((el,i)=>(
+              <div key={i} style={{display:"flex",gap:6,marginBottom:4,alignItems:"center"}}>
+                <input value={el.code} onChange={e=>setEl(i,'code',e.target.value)} placeholder="Element (z.B. 2A, 3Lo)" style={{flex:2,padding:"5px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/>
+                <input type="number" value={el.attempts} onChange={e=>setEl(i,'attempts',parseInt(e.target.value)||0)} placeholder="Versuche" style={{flex:1,padding:"5px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/>
+                <input type="number" value={el.landed} onChange={e=>setEl(i,'landed',parseInt(e.target.value)||0)} placeholder="Gelandet" style={{flex:1,padding:"5px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/>
+                <span style={{fontSize:11,color:el.attempts>0?(el.landed/el.attempts>=0.8?"#059669":"#dc2626"):"#9ca3af",fontWeight:700,minWidth:35,textAlign:"right"}}>{el.attempts>0?Math.round(el.landed/el.attempts*100)+"%":"—"}</span>
+                <button onClick={()=>rmEl(i)} style={{background:"none",border:"none",color:"#dc2626",cursor:"pointer",fontSize:14}}>×</button>
+              </div>
+            ))}
+            <button onClick={addEl} style={{fontSize:11,color:"#059669",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>+ Element</button>
+          </div>
+          <label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Notizen</label>
+          <textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows={2} placeholder="Wie lief das Training?" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12,marginTop:4,resize:"vertical"}}/>
+          <div style={{display:"flex",gap:6,marginTop:10}}>
+            <button onClick={()=>onSave(form)} style={{padding:"7px 16px",borderRadius:5,border:"none",background:"#059669",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>Speichern</button>
+            <button onClick={onCancel} style={{padding:"7px 16px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontSize:12,cursor:"pointer"}}>Abbrechen</button>
+          </div>
+        </div>
+      );
+    };
+
+    if(loading)return <div style={{padding:40,textAlign:"center",color:"#6b7280"}}>Lade Tagebuch...</div>;
+
+    return(
+      <div style={{padding:"16px 20px",maxWidth:1000,margin:"0 auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <h2 style={{margin:0,fontSize:18,fontWeight:800,color:"#065f46"}}>Trainings-Tagebuch</h2>
+          <button onClick={()=>{setEditing(emptyEntry());setShowForm(true);}} style={{padding:"7px 16px",borderRadius:6,border:"none",background:"#059669",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Neuer Eintrag</button>
+        </div>
+
+        {showForm&&<EntryForm initial={editing} onSave={save} onCancel={()=>{setShowForm(false);setEditing(null);}}/>}
+
+        {logs.length===0?<p style={{color:"#6b7280",fontSize:13,textAlign:"center",padding:40}}>Noch keine Trainingseinheiten eingetragen.</p>:
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {logs.map(log=>(
+              <div key={log.id} style={{background:"white",borderRadius:8,border:"1px solid #e5e7eb",padding:12}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14,color:"#065f46"}}>{log.date} {log.skaterName&&<span style={{fontWeight:400,color:"#6b7280"}}>— {log.skaterName}</span>}</div>
+                    <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>{log.duration} Min {log.goals&&<span>• Ziel: {log.goals}</span>}</div>
+                  </div>
+                  <div style={{display:"flex",gap:4}}>
+                    <button onClick={()=>{setEditing(log);setShowForm(true);}} style={{padding:"4px 10px",borderRadius:4,border:"1px solid #d1d5db",background:"white",fontSize:11,cursor:"pointer"}}>Bearbeiten</button>
+                    <button onClick={()=>remove(log.id)} style={{padding:"4px 10px",borderRadius:4,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontSize:11,cursor:"pointer"}}>Löschen</button>
+                  </div>
+                </div>
+                {log.elements?.length>0&&log.elements.some(e=>e.code)&&(
+                  <div style={{marginTop:8,display:"flex",flexWrap:"wrap",gap:4}}>
+                    {log.elements.filter(e=>e.code).map((el,i)=>{
+                      const pct=el.attempts>0?Math.round(el.landed/el.attempts*100):0;
+                      const color=pct>=80?"#059669":pct>=60?"#f59e0b":"#dc2626";
+                      return <span key={i} style={{display:"inline-flex",gap:4,alignItems:"center",padding:"3px 8px",borderRadius:4,background:"#f0fdf4",border:"1px solid #d1fae5",fontSize:11}}>
+                        <strong>{el.code}</strong> <span style={{color}}>{el.landed}/{el.attempts} ({pct}%)</span>
+                      </span>;
+                    })}
+                  </div>
+                )}
+                {log.notes&&<p style={{margin:"6px 0 0",fontSize:12,color:"#374151"}}>{log.notes}</p>}
+              </div>
+            ))}
+          </div>
+        }
+      </div>
+    );
+  }
+
+  // ============================================================
+  //  COMPETITION CALENDAR (Wettkampf-Kalender)
+  // ============================================================
+  function CompetitionCalendar(){
+    const [competitions,setCompetitions]=useState([]);
+    const [loading,setLoading]=useState(true);
+    const [showForm,setShowForm]=useState(false);
+    const [editing,setEditing]=useState(null);
+
+    const token=localStorage.getItem('rollart_token');
+    const headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'};
+
+    const load=()=>{
+      fetch('/api/competitions',{headers}).then(r=>r.json()).then(d=>{
+        setCompetitions(d.competitions||[]);setLoading(false);
+      });
+    };
+    useEffect(()=>{load();},[]);
+
+    const save=async(entry)=>{
+      const method=entry.id?'PUT':'POST';
+      const url=entry.id?`/api/competitions/${entry.id}`:'/api/competitions';
+      await fetch(url,{method,headers,body:JSON.stringify(entry)});
+      setShowForm(false);setEditing(null);load();
+    };
+    const remove=async(id)=>{
+      if(!confirm('Wettkampf löschen?'))return;
+      await fetch(`/api/competitions/${id}`,{method:'DELETE',headers});load();
+    };
+    const toggleCheck=async(comp,idx)=>{
+      const cl=[...comp.checklist];cl[idx]={...cl[idx],done:!cl[idx].done};
+      await fetch(`/api/competitions/${comp.id}`,{method:'PUT',headers,body:JSON.stringify({checklist:cl})});load();
+    };
+    const addCheckItem=async(comp,item)=>{
+      const cl=[...comp.checklist,{item,done:false}];
+      await fetch(`/api/competitions/${comp.id}`,{method:'PUT',headers,body:JSON.stringify({checklist:cl})});load();
+    };
+
+    const daysUntil=(dateStr)=>{
+      const d=new Date(dateStr);const now=new Date();now.setHours(0,0,0,0);d.setHours(0,0,0,0);
+      return Math.ceil((d-now)/(1000*60*60*24));
+    };
+
+    const CompForm=({initial,onSave,onCancel})=>{
+      const empty={name:'',date:'',location:'',kategorie:'',notes:''};
+      const [form,setForm]=useState(initial||empty);
+      return(
+        <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:16,marginBottom:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Wettkampf-Name</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="z.B. Landesmeisterschaft NRW" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
+            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Datum</label><input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
+            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Ort</label><input value={form.location} onChange={e=>setForm({...form,location:e.target.value})} placeholder="z.B. Düsseldorf" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
+          </div>
+          <div style={{marginBottom:10}}><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Notizen</label><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows={2} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12,resize:"vertical"}}/></div>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>onSave(form)} style={{padding:"7px 16px",borderRadius:5,border:"none",background:"#059669",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>Speichern</button>
+            <button onClick={onCancel} style={{padding:"7px 16px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontSize:12,cursor:"pointer"}}>Abbrechen</button>
+          </div>
+        </div>
+      );
+    };
+
+    if(loading)return <div style={{padding:40,textAlign:"center",color:"#6b7280"}}>Lade Wettkämpfe...</div>;
+
+    const upcoming=competitions.filter(c=>daysUntil(c.date)>=0).sort((a,b)=>a.date.localeCompare(b.date));
+    const past=competitions.filter(c=>daysUntil(c.date)<0).sort((a,b)=>b.date.localeCompare(a.date));
+
+    return(
+      <div style={{padding:"16px 20px",maxWidth:900,margin:"0 auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <h2 style={{margin:0,fontSize:18,fontWeight:800,color:"#065f46"}}>Wettkampf-Kalender</h2>
+          <button onClick={()=>{setEditing(null);setShowForm(true);}} style={{padding:"7px 16px",borderRadius:6,border:"none",background:"#059669",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Wettkampf</button>
+        </div>
+
+        {showForm&&<CompForm initial={editing} onSave={save} onCancel={()=>{setShowForm(false);setEditing(null);}}/>}
+
+        {upcoming.length>0&&<>
+          <h3 style={{fontSize:14,fontWeight:700,color:"#065f46",margin:"16px 0 8px"}}>Anstehende Wettkämpfe</h3>
+          {upcoming.map(comp=>{
+            const days=daysUntil(comp.date);
+            const checkDone=(comp.checklist||[]).filter(c=>c.done).length;
+            const checkTotal=(comp.checklist||[]).length;
+            return <div key={comp.id} style={{background:"white",borderRadius:10,border:days<=7?"2px solid #f59e0b":"1px solid #e5e7eb",padding:16,marginBottom:10}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                <div>
+                  <div style={{fontWeight:800,fontSize:16,color:"#065f46"}}>{comp.name}</div>
+                  <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{comp.date} • {comp.location||"Ort offen"}</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontSize:28,fontWeight:800,lineHeight:1,color:days<=3?"#dc2626":days<=7?"#f59e0b":"#059669"}}>{days}</div>
+                  <div style={{fontSize:10,color:"#6b7280"}}>Tage</div>
+                </div>
+              </div>
+              {comp.notes&&<p style={{margin:"8px 0 0",fontSize:12,color:"#374151"}}>{comp.notes}</p>}
+              {/* Checklist */}
+              <div style={{marginTop:10}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#6b7280",marginBottom:4}}>Vorbereitung ({checkDone}/{checkTotal})</div>
+                <div style={{background:"#f3f4f6",borderRadius:4,height:6,marginBottom:8,overflow:"hidden"}}>
+                  <div style={{width:(checkTotal>0?checkDone/checkTotal*100:0)+"%",height:"100%",background:checkDone===checkTotal?"#059669":"#f59e0b",transition:"width 0.3s"}}/>
+                </div>
+                {(comp.checklist||[]).map((c,i)=>(
+                  <label key={i} style={{display:"flex",alignItems:"center",gap:6,padding:"3px 0",fontSize:12,cursor:"pointer"}}>
+                    <input type="checkbox" checked={c.done} onChange={()=>toggleCheck(comp,i)} style={{cursor:"pointer"}}/>
+                    <span style={{textDecoration:c.done?"line-through":"none",color:c.done?"#9ca3af":"#374151"}}>{c.item}</span>
+                  </label>
+                ))}
+                <button onClick={()=>{const item=prompt('Neuer Checklisten-Punkt:');if(item)addCheckItem(comp,item);}} style={{fontSize:11,color:"#059669",background:"none",border:"none",cursor:"pointer",fontWeight:600,marginTop:4}}>+ Punkt hinzufügen</button>
+              </div>
+              <div style={{display:"flex",gap:4,marginTop:8}}>
+                <button onClick={()=>{setEditing(comp);setShowForm(true);}} style={{padding:"4px 10px",borderRadius:4,border:"1px solid #d1d5db",background:"white",fontSize:11,cursor:"pointer"}}>Bearbeiten</button>
+                <button onClick={()=>remove(comp.id)} style={{padding:"4px 10px",borderRadius:4,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontSize:11,cursor:"pointer"}}>Löschen</button>
+              </div>
+            </div>;
+          })}
+        </>}
+
+        {past.length>0&&<>
+          <h3 style={{fontSize:14,fontWeight:700,color:"#9ca3af",margin:"16px 0 8px"}}>Vergangene Wettkämpfe</h3>
+          {past.slice(0,5).map(comp=>(
+            <div key={comp.id} style={{background:"#f9fafb",borderRadius:8,border:"1px solid #e5e7eb",padding:10,marginBottom:6,opacity:0.7}}>
+              <div style={{display:"flex",justifyContent:"space-between"}}>
+                <div><span style={{fontWeight:600,fontSize:13}}>{comp.name}</span> <span style={{fontSize:11,color:"#9ca3af"}}>{comp.date} • {comp.location}</span></div>
+                <button onClick={()=>remove(comp.id)} style={{padding:"2px 8px",borderRadius:4,border:"none",background:"none",color:"#dc2626",fontSize:11,cursor:"pointer"}}>×</button>
+              </div>
+            </div>
+          ))}
+        </>}
+
+        {competitions.length===0&&!showForm&&<p style={{color:"#6b7280",fontSize:13,textAlign:"center",padding:40}}>Noch keine Wettkämpfe eingetragen. Klicke "+ Wettkampf" um den ersten hinzuzufügen.</p>}
+      </div>
+    );
+  }
+
+  // ============================================================
   //  MAIN DASHBOARD
   // ============================================================
   function App() {
@@ -4436,8 +4890,11 @@
               {/* PAGE TABS */}
               <div className="r-nav-scroll" style={{display:"flex",gap:4,marginTop:6}}>
                 {[
+                  {key:"dashboard",label:"Dashboard"},
                   {key:"content",label:"Content Sheet"},
                   {key:"training",label:"Simulator"},
+                  {key:"tagebuch",label:"Tagebuch"},
+                  {key:"kalender",label:"Kalender"},
                   {key:"wettbewerbe",label:"Wettbewerbe"},
                   {key:"official",label:"Official Sheet"},
                   {key:"glossar",label:"Glossar & Regeln"},
@@ -4509,7 +4966,10 @@
         </div>
 
         {/* TRAINING SIMULATOR PAGE */}
+        {page==="dashboard"&&<DashboardPage/>}
         {page==="training"&&<TrainingSimulator importData={simImport} onImportDone={()=>setSimImport(null)}/>}
+        {page==="tagebuch"&&<TrainingDiary/>}
+        {page==="kalender"&&<CompetitionCalendar/>}
 
         {/* COMPETITIONS PAGE */}
         {page==="wettbewerbe"&&<CompetitionPage onLoadSkater={(data)=>setCompImport(data)}/>}
@@ -4769,6 +5229,18 @@
               setPage("official");
             }} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#1d4ed8",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
               &#9654; An Official Sheet
+            </button>
+            <button onClick={async()=>{
+              const token=localStorage.getItem('rollart_token');
+              const label=prompt('Label für diesen Score (z.B. "Training", "Wettkampf"):','Training');
+              if(label===null)return;
+              await fetch('/api/score-history',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({
+                skaterName:skater||'Unbenannt',kategorie,segment,tes:Math.round(tes*100)/100,pcs:Math.round(pcsTotal*100)/100,
+                deductions,extraPoints,total:totalScore,date:new Date().toISOString().slice(0,10),label
+              })});
+              setUploadMsg('Score gespeichert!');setTimeout(()=>setUploadMsg(''),3000);
+            }} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#f59e0b",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
+              📊 Score speichern
             </button>
             <button onClick={addRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>+ Zeile</button>
             <button onClick={removeRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>- Zeile</button>
