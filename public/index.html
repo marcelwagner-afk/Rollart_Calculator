@@ -485,8 +485,8 @@
 
   // Calculate averaged GOE from judge scores (trimmed mean for 5 judges)
   const calcJudgeGoe = (el, judgeScores, jCount) => {
-    if (!el || !judgeScores) return 0;
-    const scores = judgeScores.slice(0, jCount);
+    if (!el || !Array.isArray(judgeScores) || !jCount || jCount <= 0) return 0;
+    const scores = judgeScores.slice(0, jCount).map(g => (typeof g === 'number' && !isNaN(g)) ? g : 0);
     if (scores.every(g=>g===0)) return 0;
     const points = scores.map(g => getGoePoints(el, g));
     if (jCount===5) {
@@ -499,7 +499,8 @@
 
   // Calculate averaged PCS from judge scores (trimmed mean for 5)
   const calcPcsAvg = (scores, jCount) => {
-    const s = scores.slice(0, jCount);
+    if (!Array.isArray(scores) || !jCount || jCount <= 0) return 0;
+    const s = scores.slice(0, jCount).map(v => (typeof v === 'number' && !isNaN(v)) ? v : 0);
     if (s.every(v=>v===0)) return 0;
     if (jCount===5) {
       const sorted = [...s].sort((a,b)=>a-b);
@@ -580,13 +581,15 @@
       });
       totalBase = Math.round(totalBase * dgFactor * 100) / 100;
       totalGoe = Math.round(totalGoe * 100) / 100;
-      return { base:totalBase, goeVal:totalGoe, score:totalBase+totalGoe, mainEl:bestEl, typeDef };
+      const score = (isNaN(totalBase)?0:totalBase) + (isNaN(totalGoe)?0:totalGoe);
+      return { base:isNaN(totalBase)?0:totalBase, goeVal:isNaN(totalGoe)?0:totalGoe, score, mainEl:bestEl, typeDef };
     } else {
       const el = typeDef.data.find(e=>e.code===row.elCode);
       if (!el) return { base:0, goeVal:0, score:0, mainEl:null, typeDef };
       const base = Math.round(getBase(el, false, row.rotation) * dgFactor * 100) / 100;
       const goeVal = calcJudgeGoe(el, row.judgeGoe, jCount);
-      return { base, goeVal, score:base+goeVal, mainEl:el, typeDef };
+      const safeBase = isNaN(base)?0:base, safeGoe = isNaN(goeVal)?0:goeVal;
+      return { base:safeBase, goeVal:safeGoe, score:safeBase+safeGoe, mainEl:el, typeDef };
     }
   };
 
@@ -2337,7 +2340,15 @@
       const imported=importData.rows.map(r=>({...r,bonuses:r.bonuses||[],
         comboEls:(r.comboEls||[]).map(s=>({...s,judgeGoe:s.judgeGoe||[0,0,0,0,0]}))}));
       setRows(imported);
-      if(importData.pcs)setPcs(importData.pcs);
+      if(importData.pcs){
+        const rawPcs=importData.pcs;const safePcs={};
+        for(const key of["skating","transitions","performance","choreography"]){
+          const arr=Array.isArray(rawPcs[key])?rawPcs[key]:[0,0,0,0,0];
+          safePcs[key]=arr.map(v=>(typeof v==='number'&&!isNaN(v))?v:0);
+          while(safePcs[key].length<5)safePcs[key].push(0);
+        }
+        setPcs(safePcs);
+      }
       if(importData.deductions!==undefined)setDeductions(importData.deductions);
       if(importData.extraPoints!==undefined)setExtraPoints(importData.extraPoints);
       const filled=imported.filter(r=>{
@@ -2384,7 +2395,7 @@
       },0);
     },[pcs,judgeCount,pcsFactor]);
 
-    const totalScore=Math.round((tes+pcsTotal-deductions+extraPoints)*100)/100;
+    const totalScore=Math.round(((isNaN(tes)?0:tes)+(isNaN(pcsTotal)?0:pcsTotal)-(isNaN(deductions)?0:deductions)+(isNaN(extraPoints)?0:extraPoints))*100)/100;
 
     // Bonus summary
     const bonusSummary=useMemo(()=>{
@@ -2528,7 +2539,7 @@
                     <span style={{fontSize:11,fontWeight:600,minWidth:170}}>{comp.label}</span>
                     {Array.from({length:judgeCount}).map((_,ji)=>(
                       <select key={ji} value={pcs[comp.key][ji]} onChange={e=>{
-                        const np={...pcs};np[comp.key]=[...np[comp.key]];np[comp.key][ji]=parseFloat(e.target.value);setPcs(np);
+                        const np={...pcs};np[comp.key]=[...np[comp.key]];const val=parseFloat(e.target.value);np[comp.key][ji]=isNaN(val)?0:val;setPcs(np);
                       }} style={{...SEL,width:48,fontSize:11,padding:"3px 1px",textAlign:"center"}}>
                         {Array.from({length:41},(_,i)=>i*0.25).map(v=><option key={v} value={v}>{v.toFixed(2)}</option>)}
                       </select>
@@ -3993,7 +4004,15 @@
         setKategorie(compImport.kategorie || "senior");
         setSegment(compImport.segment || "senior_fp");
         setRows(compImport.rows || Array.from({length: SEGMENT_DEFS[compImport.segment || "senior_fp"].rows}, emptyRow));
-        setPcs(compImport.pcs || emptyPcs());
+        // Sanitize PCS: ensure all values are valid numbers
+        const rawPcs = compImport.pcs || emptyPcs();
+        const safePcs = {};
+        for (const key of ["skating","transitions","performance","choreography"]) {
+          const arr = Array.isArray(rawPcs[key]) ? rawPcs[key] : [0,0,0,0,0];
+          safePcs[key] = arr.map(v => (typeof v === 'number' && !isNaN(v)) ? v : 0);
+          while (safePcs[key].length < 5) safePcs[key].push(0);
+        }
+        setPcs(safePcs);
         setDeductions(compImport.deductions || 0);
         setExtraPoints(compImport.extraPoints || 0);
         setJudgeCount(compImport.judgeCount || 3);
@@ -4033,8 +4052,8 @@
       }, 0);
     }, [pcs, judgeCount, pcsFactor]);
 
-    // Total Score
-    const totalScore = Math.round((tes + pcsTotal - deductions + extraPoints) * 100) / 100;
+    // Total Score (safe against NaN)
+    const totalScore = Math.round(((isNaN(tes)?0:tes) + (isNaN(pcsTotal)?0:pcsTotal) - (isNaN(deductions)?0:deductions) + (isNaN(extraPoints)?0:extraPoints)) * 100) / 100;
 
     // === PDF Content Sheet Upload with OCR ===
     const handleUpload = async (e) => {
@@ -4755,7 +4774,8 @@
                           <select value={pcs[comp.key][ji]} onChange={e=>{
                             const np={...pcs};
                             np[comp.key]=[...np[comp.key]];
-                            np[comp.key][ji]=parseFloat(e.target.value);
+                            const val = parseFloat(e.target.value);
+                            np[comp.key][ji] = isNaN(val) ? 0 : val;
                             setPcs(np);
                           }} style={{...SEL, width:50, fontSize:11, padding:"3px 1px", textAlign:"center"}}>
                             {Array.from({length:41},(_,i)=>i*0.25).map(v=>(
