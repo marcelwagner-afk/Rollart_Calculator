@@ -8,6 +8,36 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8faf9; }
     select, input, button { font-family: inherit; }
+    /* Responsive: scrollable tables */
+    .r-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* Responsive: horizontal scroll nav */
+    .r-nav-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; -ms-overflow-style: none; }
+    .r-nav-scroll::-webkit-scrollbar { display: none; }
+    /* Responsive: hide on mobile */
+    @media (max-width: 640px) {
+      .r-hide-mobile { display: none !important; }
+      .r-col-mobile { flex-direction: column !important; }
+      .r-grid1-mobile { grid-template-columns: 1fr !important; }
+      .r-grid2-mobile { grid-template-columns: 1fr 1fr !important; }
+      .r-pad-mobile { padding: 10px 12px !important; }
+      .r-text-sm-mobile { font-size: 10px !important; }
+      .r-full-mobile { width: 100% !important; min-width: unset !important; }
+      .r-stack-mobile { flex-direction: column !important; height: auto !important; }
+      .r-sidebar-mobile { width: 100% !important; max-height: 200px !important; border-right: none !important; border-bottom: 1px solid #e5e7eb !important; }
+      /* Better touch targets on mobile */
+      select, input[type="text"], input[type="email"], input[type="password"], input[type="number"] {
+        min-height: 38px !important; font-size: 16px !important;
+      }
+      button { min-height: 36px; }
+    }
+    @media (max-width: 900px) {
+      .r-hide-tablet { display: none !important; }
+      .r-col-tablet { flex-direction: column !important; }
+      .r-grid1-tablet { grid-template-columns: 1fr !important; }
+      .r-grid2-tablet { grid-template-columns: 1fr 1fr !important; }
+      .r-stack-tablet { flex-direction: column !important; height: auto !important; }
+      .r-sidebar-tablet { width: 100% !important; max-height: 220px !important; border-right: none !important; border-bottom: 1px solid #e5e7eb !important; }
+    }
   </style>
 </head>
 <body>
@@ -21,7 +51,20 @@
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
 
   <script type="text/babel">
-  const { useState, useMemo, useCallback, useEffect, createContext, useContext } = React;
+  const { useState, useMemo, useCallback, useEffect, createContext, useContext, useRef } = React;
+
+  // ============================================================
+  //  RESPONSIVE HOOK
+  // ============================================================
+  function useScreen() {
+    const [w, setW] = useState(window.innerWidth);
+    useEffect(() => {
+      const onResize = () => setW(window.innerWidth);
+      window.addEventListener("resize", onResize);
+      return () => window.removeEventListener("resize", onResize);
+    }, []);
+    return { w, mobile: w <= 640, tablet: w <= 900, desktop: w > 900 };
+  }
 
   // ============================================================
   //  ELEMENT DATA — Official World Skate 2026 Values
@@ -1187,7 +1230,7 @@
         </div>
 
         {/* Official Sheet — matching original sk8info template */}
-        <div id="official-sheet-print" style={{background:"white",border:"1px solid #ccc",overflow:"hidden",boxShadow:"0 2px 8px rgba(0,0,0,.12)",maxWidth:820,margin:"0 auto"}}>
+        <div id="official-sheet-print" className="r-table-wrap" style={{background:"white",border:"1px solid #ccc",overflow:"auto",boxShadow:"0 2px 8px rgba(0,0,0,.12)",maxWidth:820,margin:"0 auto"}}>
           {/* Header: Logo area + Title */}
           <div style={{display:"flex",alignItems:"center",padding:"12px 16px 8px",gap:16,borderBottom:"1px solid #ddd",background:"#fafafa"}}>
             <div style={{minWidth:70,textAlign:"center"}}>
@@ -2390,7 +2433,7 @@
         </div>
 
         {/* Info */}
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+        <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
           <input placeholder="Name" value={skater} onChange={e=>setSkater(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
           <input placeholder="Kategorie" value={cat} onChange={e=>setCat(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
           <input placeholder="Musik" value={music} onChange={e=>setMusic(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
@@ -2465,7 +2508,7 @@
           <div style={{marginLeft:"auto",fontSize:11,color:"#6b7280"}}>{filled} / {rows.length} Elemente</div>
         </div>
 
-        <div style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:16,alignItems:"start"}}>
+        <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:16,alignItems:"start"}}>
           {/* Element cards */}
           <div>
             <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:800,color:"#065f46"}}>Programm-Elemente</h3>
@@ -3015,7 +3058,7 @@
 
         {/* === STATS === */}
         {tab==="stats"&&stats&&(<div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:16 }}>
+          <div className="r-grid2-mobile" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:16 }}>
             {[{l:"Gesamt",v:stats.total,c:"#7c3aed",b:"#f5f3ff"},{l:"Heute",v:stats.todayCount,c:"#059669",b:"#f0fdf4"},
               {l:"Diese Woche",v:stats.weekCount,c:"#2563eb",b:"#eff6ff"},{l:"Dieser Monat",v:stats.monthCount,c:"#f59e0b",b:"#fffbeb"}
             ].map((k,i)=>(
@@ -3060,7 +3103,7 @@
             style={{ ...iS, maxWidth:400, marginBottom:12 }}/>
           {editUser&&(<div style={{ ...cS, border:"2px solid #7c3aed" }}>
             <h3 style={{ margin:"0 0 10px", fontSize:14, fontWeight:700, color:"#7c3aed" }}>Bearbeiten: {editUser.email}</h3>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8, marginBottom:10 }}>
+            <div className="r-grid1-mobile r-grid2-tablet" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8, marginBottom:10 }}>
               <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Name</label>
                 <input value={editUser.name||""} onChange={e=>setEditUser({...editUser,name:e.target.value})} style={iS}/></div>
               <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Verein</label>
@@ -3561,9 +3604,9 @@
     const selectedSkater = selectedSkaterIdx !== null && selectedComp ? selectedComp.skaters[selectedSkaterIdx] : null;
 
     return (
-      <div style={{ display:"flex", height:"calc(100vh - 150px)" }}>
+      <div className="r-stack-mobile r-stack-tablet" style={{ display:"flex", height:"calc(100vh - 150px)" }}>
         {/* Left: competitions */}
-        <div style={{ width:"280px", background:"#fff", borderRight:"1px solid #e5e7eb", overflowY:"auto", padding:"12px" }}>
+        <div className="r-sidebar-mobile r-sidebar-tablet" style={{ width:"280px", background:"#fff", borderRight:"1px solid #e5e7eb", overflowY:"auto", padding:"12px" }}>
           <div style={{ marginBottom:"12px" }}>
             <label style={{ display:"flex", alignItems:"center", gap:"6px", padding:"8px 10px", borderRadius:"6px", border:"1px solid #059669", background:"#f0fdf4", color:"#059669", fontWeight:"600", fontSize:"11px", cursor:"pointer" }}>
               + Endergebnis-PDF hochladen
@@ -3595,7 +3638,8 @@
             <div>
               <h2 style={{ fontSize:"18px", fontWeight:"700", color:"#065f46", marginBottom:"4px" }}>{selectedComp.name}</h2>
               <p style={{ fontSize:"12px", color:"#6b7280", marginBottom:"16px" }}>{selectedComp.category}</p>
-              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
+              <div className="r-table-wrap">
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px", minWidth:500 }}>
                 <thead>
                   <tr style={{ background:"#f3f4f6", borderBottom:"2px solid #e5e7eb" }}>
                     {["Pl.","Name","Verein","TES","PCS","DED","Total"].map(h => (
@@ -3617,6 +3661,7 @@
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           ) : (
             <div>
@@ -3626,7 +3671,7 @@
                 <span style={{ fontSize:"12px", color:"#059669", fontWeight:"700" }}>Platz {selectedSkater.place}</span>
               </div>
               {selectedSkater.club && <p style={{ fontSize:"11px", color:"#6b7280", marginBottom:"12px" }}>{selectedSkater.club}</p>}
-              <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:"8px", marginBottom:"16px" }}>
+              <div className="r-grid2-mobile" style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:"8px", marginBottom:"16px" }}>
                 {[["TES", selectedSkater.tes], ["PCS", selectedSkater.pcs], ["DED", selectedSkater.deductions], ["Total", selectedSkater.total]].map(([label, val]) => (
                   <div key={label} style={{ padding:"10px", background:"#f0fdf4", borderRadius:"8px", borderLeft:"3px solid " + (label==="DED" && val > 0 ? "#dc2626" : "#059669") }}>
                     <div style={{ fontSize:"10px", color:"#6b7280", fontWeight:"600" }}>{label}</div>
@@ -3639,7 +3684,8 @@
               {(selectedSkater.elements || []).length > 0 && (
                 <div style={{ marginBottom:"16px" }}>
                   <h3 style={{ fontSize:"13px", fontWeight:"700", color:"#374151", marginBottom:"8px" }}>Elemente ({selectedSkater.elements.length})</h3>
-                  <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px" }}>
+                  <div className="r-table-wrap">
+                  <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px", minWidth:400 }}>
                     <thead>
                       <tr style={{ background:"#f3f4f6", borderBottom:"1px solid #e5e7eb" }}>
                         {["#","Typ","Code","Basis","QOE","Panel"].map(h => (
@@ -3666,6 +3712,7 @@
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
               {/* PCS Components */}
@@ -4094,43 +4141,44 @@
     return (
       <div style={{ background:"#f8faf9", minHeight:"100vh" }}>
         {/* HEADER */}
-        <div style={{ background:"linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)", padding:"16px 20px 12px", color:"white" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:8 }}>
-            <div>
+        <div style={{ background:"linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)", padding:"12px 16px 10px", color:"white" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:6 }}>
+            <div style={{minWidth:0,flex:1}}>
               <div style={{fontSize:10,fontWeight:600,opacity:.8,letterSpacing:2,textTransform:"uppercase"}}>World Skate</div>
-              <h1 style={{margin:0,fontSize:22,fontWeight:800}}>RollArt 2026</h1>
+              <h1 style={{margin:0,fontSize:window.innerWidth<=640?18:22,fontWeight:800}}>RollArt 2026</h1>
               {/* PAGE TABS */}
-              <div style={{display:"flex",gap:4,marginTop:6}}>
-                <button onClick={()=>setPage("official")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
-                  background:page==="official"?"white":"rgba(255,255,255,.2)",color:page==="official"?"#059669":"white"}}>Official Sheet</button>
-                <button onClick={()=>setPage("content")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
-                  background:page==="content"?"white":"rgba(255,255,255,.2)",color:page==="content"?"#059669":"white"}}>Content Elements Sheet</button>
-                <button onClick={()=>setPage("training")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
-                  background:page==="training"?"white":"rgba(255,255,255,.2)",color:page==="training"?"#059669":"white"}}>Training Simulator</button>
-                <button onClick={()=>setPage("wettbewerbe")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
-                  background:page==="wettbewerbe"?"white":"rgba(255,255,255,.2)",color:page==="wettbewerbe"?"#059669":"white"}}>Wettbewerbe</button>
-                {authCtx?.user?.role==="admin"&&<button onClick={()=>setPage("admin")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+              <div className="r-nav-scroll" style={{display:"flex",gap:4,marginTop:6}}>
+                {[
+                  {key:"official",label:"Official Sheet"},
+                  {key:"content",label:"Content Sheet"},
+                  {key:"training",label:"Simulator"},
+                  {key:"wettbewerbe",label:"Wettbewerbe"},
+                ].map(t=>(
+                  <button key={t.key} onClick={()=>setPage(t.key)} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
+                    background:page===t.key?"white":"rgba(255,255,255,.2)",color:page===t.key?"#059669":"white"}}>{t.label}</button>
+                ))}
+                {authCtx?.user?.role==="admin"&&<button onClick={()=>setPage("admin")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
                   background:page==="admin"?"white":"rgba(255,255,255,.2)",color:page==="admin"?"#dc2626":"white"}}>⚙ Admin</button>}
               </div>
             </div>
             {/* User menu */}
             {authCtx?.user && (
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <button onClick={()=>setPage("profile")} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",
+                <button onClick={()=>setPage("profile")} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",
                   borderRadius:8,border:"2px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.1)",color:"white",
                   cursor:"pointer",fontSize:12,fontWeight:600}}>
                   <span style={{width:24,height:24,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",
                     alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800}}>
                     {(authCtx.user.name||"?")[0].toUpperCase()}
                   </span>
-                  {authCtx.user.name}
+                  <span className="r-hide-mobile">{authCtx.user.name}</span>
                 </button>
               </div>
             )}
-            {page==="content"&&<div style={{textAlign:"right"}}>
+            {page==="content"&&<div style={{textAlign:"right",flexShrink:0}}>
               <div style={{fontSize:10,opacity:.8}}>Total Score</div>
-              <div style={{fontSize:34,fontWeight:800,lineHeight:1}}>{totalScore.toFixed(2)}</div>
-              <div style={{fontSize:10,opacity:.7}}>TES {tes.toFixed(2)} + PCS {pcsTotal.toFixed(2)}{deductions>0?" - Ded "+deductions.toFixed(2):""}{extraPoints>0?" + Extra "+extraPoints.toFixed(2):""}</div>
+              <div style={{fontSize:window.innerWidth<=640?22:34,fontWeight:800,lineHeight:1}}>{totalScore.toFixed(2)}</div>
+              <div className="r-hide-mobile" style={{fontSize:10,opacity:.7}}>TES {tes.toFixed(2)} + PCS {pcsTotal.toFixed(2)}{deductions>0?" - Ded "+deductions.toFixed(2):""}{extraPoints>0?" + Extra "+extraPoints.toFixed(2):""}</div>
             </div>}
           </div>
 
@@ -4178,10 +4226,10 @@
         {page==="official"&&<OfficialSheets onSendToContent={(data)=>{setOfficialImport(data);setPage("content");}}/>}
 
         {/* CONTENT SHEET PAGE */}
-        {page==="content"&&<div style={{padding:"16px 20px",maxWidth:1150,margin:"0 auto"}}>
+        {page==="content"&&<div style={{padding:"12px 16px",maxWidth:1150,margin:"0 auto"}}>
 
           {/* Info fields */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
+          <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
             <input placeholder="Name" value={skater} onChange={e=>setSkater(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
             <input placeholder="Kategorie" value={cat} onChange={e=>setCat(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
             <input placeholder="Musik / Choreographie" value={music} onChange={e=>setMusic(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
@@ -4238,7 +4286,7 @@
   <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16,marginBottom:16}}>
     <h3 style={{margin:"0 0 12px",fontSize:16,fontWeight:800,color:"#065f46"}}>Glossar & Regeln (RollArt 2026)</h3>
 
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,fontSize:12}}>
+    <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,fontSize:12}}>
       <div>
         <h4 style={{margin:"0 0 6px",fontSize:13,fontWeight:700,color:"#059669"}}>Bewertungssystem</h4>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
