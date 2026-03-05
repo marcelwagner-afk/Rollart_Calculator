@@ -943,32 +943,68 @@
     React.useEffect(()=>{
       if(!importFromContent)return;
       const d=importFromContent;
+      // Set header fields
       if(d.skater)setName(d.skater);
-      if(d.kategorie){
-        setKategorie(d.kategorie);
-        // Set appropriate sheet type
-        const catDef=CATEGORY_DEFS[d.kategorie];
-        if(catDef){
-          const segs=catDef.segments||[];
-          let newSt="sp_fp";
-          if(segs.length===1) newSt=segs[0].endsWith("_fp")?"fp12":"sp";
-          setSheetType(newSt);
-          const newSections=initSections(newSt);
-          // Map rows into first section
-          if(d.rows&&newSections.length>0){
-            const types=d.segment?.startsWith("pairs_")?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE;
-            d.rows.forEach((r,i)=>{
-              if(i<newSections[0].elements.length&&r.elCode){
-                newSections[0].elements[i]={time:"",code:r.elCode,notes:"",performed:""};
-              }
-            });
-          }
-          if(d.music)newSections[0].music=d.music;
-          setSections(newSections);
-        }
-      }
       if(d.cat)setFederation(d.cat);
       if(d.music)setChoreography(d.music);
+
+      // Determine sheet type and target section
+      const seg=d.segment||"";
+      const isPairs=seg.startsWith("pairs_");
+      const isSP=seg.endsWith("_sp");
+      const isFP=seg.endsWith("_fp");
+      const kat=d.kategorie||"senior";
+      setKategorie(kat);
+
+      const catDef=CATEGORY_DEFS[kat];
+      const segs=catDef?.segments||[];
+      const hasSP=segs.some(s=>s.endsWith("_sp"));
+      const hasFP=segs.some(s=>s.endsWith("_fp"));
+
+      // Pick the right sheet type
+      let newSt;
+      if(isPairs){
+        if(hasSP&&hasFP) newSt="pairs_sp_fp";
+        else if(hasSP) newSt="pairs_sp";
+        else newSt="pairs_fp";
+      } else {
+        if(hasSP&&hasFP) newSt="sp_fp";
+        else if(hasSP) newSt="sp";
+        else{
+          // FP only — pick correct row count
+          const fpSeg=segs.find(s=>s.endsWith("_fp"));
+          const fpRows=SEGMENT_DEFS[fpSeg]?.rows||12;
+          newSt=fpRows<=9?"fp9":"fp12";
+        }
+      }
+      setSheetType(newSt);
+      const newSections=initSections(newSt);
+
+      // Determine which section index to fill (0=SP or only section, 1=FP if sp_fp)
+      let targetIdx=0;
+      if(newSt==="sp_fp"||newSt==="pairs_sp_fp"){
+        targetIdx=isFP?1:0; // section 0=SP, section 1=FP
+      }
+
+      // Map rows: typeCode → code select, elCode → notes for reference
+      if(d.rows&&newSections[targetIdx]){
+        const filledRows=d.rows.filter(r=>r.typeCode||r.elCode);
+        filledRows.forEach((r,i)=>{
+          if(i<newSections[targetIdx].elements.length){
+            newSections[targetIdx].elements[i]={
+              time:"",
+              code:r.typeCode||"", // Official Sheet uses type codes (CoJ, SJu, CSp, etc.)
+              notes:r.elCode||"",  // Put specific element code in notes for reference
+              performed:"",
+            };
+          }
+        });
+      }
+
+      // Set music on the target section
+      if(d.music&&newSections[targetIdx]) newSections[targetIdx].music=d.music;
+
+      setSections(newSections);
     },[importFromContent]);
 
     // jsPDF-based PDF generation matching original World Skate template exactly
