@@ -500,13 +500,19 @@
   // Calculate averaged PCS from judge scores (trimmed mean for 5)
   const calcPcsAvg = (scores, jCount) => {
     if (!Array.isArray(scores) || !jCount || jCount <= 0) return 0;
-    const s = scores.slice(0, jCount).map(v => (typeof v === 'number' && !isNaN(v)) ? v : 0);
+    // Sanitize: must be number, not NaN, and in valid PCS range 0-10
+    const s = scores.slice(0, jCount).map(v => {
+      if (typeof v !== 'number' || isNaN(v) || v < 0 || v > 10) return 0;
+      return v;
+    });
     if (s.every(v=>v===0)) return 0;
     if (jCount===5) {
       const sorted = [...s].sort((a,b)=>a-b);
-      return Math.round((sorted.slice(1,4).reduce((a,v)=>a+v,0)/3)*100)/100;
+      const avg = sorted.slice(1,4).reduce((a,v)=>a+v,0)/3;
+      return isNaN(avg) ? 0 : Math.round(avg*100)/100;
     }
-    return Math.round((s.reduce((a,v)=>a+v,0)/jCount)*100)/100;
+    const avg = s.reduce((a,v)=>a+v,0)/jCount;
+    return isNaN(avg) ? 0 : Math.round(avg*100)/100;
   };
 
   // Program Component definitions
@@ -1877,7 +1883,7 @@
 
       // 6. PCS potential
       const pcsComps=PCS_COMPONENTS.map(comp=>{
-        const avg=calcPcsAvg(pcs[comp.key],judgeCount)||0;
+        const avg=calcPcsAvg(pcs[comp.key],judgeCount);
         return{key:comp.key,label:comp.label,avg};
       });
       const lowest=pcsComps.reduce((min,c)=>c.avg<min.avg?c:min,pcsComps[0]);
@@ -2344,7 +2350,10 @@
         const rawPcs=importData.pcs;const safePcs={};
         for(const key of["skating","transitions","performance","choreography"]){
           const arr=Array.isArray(rawPcs[key])?rawPcs[key]:[0,0,0,0,0];
-          safePcs[key]=arr.map(v=>(typeof v==='number'&&!isNaN(v))?v:0);
+          safePcs[key]=arr.map(v=>{
+            const n=(typeof v==='number'&&!isNaN(v))?v:0;
+            return(n<0||n>10)?0:n;
+          });
           while(safePcs[key].length<5)safePcs[key].push(0);
         }
         setPcs(safePcs);
@@ -2390,8 +2399,9 @@
     // PCS
     const pcsTotal=useMemo(()=>{
       return PCS_COMPONENTS.reduce((sum,comp)=>{
-        const avg=calcPcsAvg(pcs[comp.key],judgeCount)||0;
-        return sum+(avg*pcsFactor)||0;
+        const avg=calcPcsAvg(pcs[comp.key],judgeCount);
+        const sc=Math.round(avg*pcsFactor*100)/100;
+        return sum+(isNaN(sc)?0:sc);
       },0);
     },[pcs,judgeCount,pcsFactor]);
 
@@ -2532,8 +2542,8 @@
             <div style={{background:"white",borderRadius:10,border:"2px solid #93c5fd",padding:12,marginTop:16}}>
               <h3 style={{margin:"0 0 8px",fontSize:14,fontWeight:800,color:"#1e40af"}}>Program Components (Faktor {pcsFactor.toFixed(1)})</h3>
               {PCS_COMPONENTS.map(comp=>{
-                const avg=calcPcsAvg(pcs[comp.key],judgeCount)||0;
-                const sc=Math.round(avg*pcsFactor*100)/100||0;
+                const avg=calcPcsAvg(pcs[comp.key],judgeCount);
+                const sc=Math.round(avg*pcsFactor*100)/100;
                 return(
                   <div key={comp.key} style={{display:"flex",gap:6,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
                     <span style={{fontSize:11,fontWeight:600,minWidth:170}}>{comp.label}</span>
@@ -3444,11 +3454,13 @@
       let lastComp = "";
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
+        // Helper: clamp PCS judge value to valid range 0-10
+        const clampJ = (v) => (isNaN(v) || v < 0 || v > 10) ? 0 : v;
         // Same line: "Transitions/Linking Footwork/Movement 0.8 2.00 2.50 2.50 2.33"
         const pm = line.match(/(Skating\s+Skills|Transition[^\d]*|Performance[^\d]*|Choreography[^\d]*?)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/i);
         if (pm) {
           const cn = pm[1].toLowerCase();
-          const j1 = parseFloat(pm[3]), j2 = parseFloat(pm[4]), j3 = parseFloat(pm[5]);
+          const j1 = clampJ(parseFloat(pm[3])), j2 = clampJ(parseFloat(pm[4])), j3 = clampJ(parseFloat(pm[5]));
           if (cn.includes("skating")) components.skating = [j1,j2,j3,0,0];
           else if (cn.includes("transition")) components.transitions = [j1,j2,j3,0,0];
           else if (cn.includes("performance")) components.performance = [j1,j2,j3,0,0];
@@ -3465,7 +3477,7 @@
           const nums = line.match(/[\d.]+/g);
           if (nums && nums.length >= 4) {
             const f = nums.map(n => parseFloat(n));
-            const [j1, j2, j3] = f.length >= 5 ? [f[1], f[2], f[3]] : [f[0], f[1], f[2]];
+            const [j1, j2, j3] = f.length >= 5 ? [clampJ(f[1]), clampJ(f[2]), clampJ(f[3])] : [clampJ(f[0]), clampJ(f[1]), clampJ(f[2])];
             components[lastComp] = [j1, j2, j3, 0, 0];
             lastComp = ""; continue;
           }
@@ -3735,14 +3747,18 @@
       const minRows = SEGMENT_DEFS[seg]?.rows || 10;
       while (rows.length < minRows) rows.push(emptyRow());
 
-      // Map PCS components from parsed data
+      // Map PCS components from parsed data (clamp to valid 0-10 range)
+      const clampPcs = (arr) => (arr || [0,0,0,0,0]).map(v => {
+        const n = typeof v === 'number' && !isNaN(v) ? v : 0;
+        return n < 0 ? 0 : n > 10 ? 0 : n;
+      });
       const pcs = emptyPcs();
       if (skater.components) {
         if (Array.isArray(skater.components.skating)) {
-          pcs.skating = [...skater.components.skating];
-          pcs.transitions = [...(skater.components.transitions || pcs.transitions)];
-          pcs.performance = [...(skater.components.performance || pcs.performance)];
-          pcs.choreography = [...(skater.components.choreography || pcs.choreography)];
+          pcs.skating = clampPcs(skater.components.skating);
+          pcs.transitions = clampPcs(skater.components.transitions || pcs.transitions);
+          pcs.performance = clampPcs(skater.components.performance || pcs.performance);
+          pcs.choreography = clampPcs(skater.components.choreography || pcs.choreography);
         } else {
           // Components might be numeric values from PDF → fill all judge slots
           const compMap = {"skating":"skating", "transitions":"transitions", "performance":"performance", "choreography":"choreography",
@@ -4015,12 +4031,15 @@
         setKategorie(compImport.kategorie || "senior");
         setSegment(compImport.segment || "senior_fp");
         setRows(compImport.rows || Array.from({length: SEGMENT_DEFS[compImport.segment || "senior_fp"].rows}, emptyRow));
-        // Sanitize PCS: ensure all values are valid numbers
+        // Sanitize PCS: ensure all values are valid numbers in 0-10 range
         const rawPcs = compImport.pcs || emptyPcs();
         const safePcs = {};
         for (const key of ["skating","transitions","performance","choreography"]) {
           const arr = Array.isArray(rawPcs[key]) ? rawPcs[key] : [0,0,0,0,0];
-          safePcs[key] = arr.map(v => (typeof v === 'number' && !isNaN(v)) ? v : 0);
+          safePcs[key] = arr.map(v => {
+            const n = (typeof v === 'number' && !isNaN(v)) ? v : 0;
+            return (n < 0 || n > 10) ? 0 : n;
+          });
           while (safePcs[key].length < 5) safePcs[key].push(0);
         }
         setPcs(safePcs);
@@ -4058,8 +4077,9 @@
     const pcsFactor = PCS_FACTORS[segment] || 1.0;
     const pcsTotal = useMemo(() => {
       return PCS_COMPONENTS.reduce((sum, comp) => {
-        const avg = calcPcsAvg(pcs[comp.key], judgeCount) || 0;
-        return sum + (avg * pcsFactor) || 0;
+        const avg = calcPcsAvg(pcs[comp.key], judgeCount);
+        const sc = Math.round(avg * pcsFactor * 100) / 100;
+        return sum + (isNaN(sc) ? 0 : sc);
       }, 0);
     }, [pcs, judgeCount, pcsFactor]);
 
@@ -4230,8 +4250,8 @@
       lines.push("=== PROGRAM COMPONENT SCORE ===");
       lines.push(`Faktor: ${pcsFactor.toFixed(1)}`);
       PCS_COMPONENTS.forEach(comp=>{
-        const avg = calcPcsAvg(pcs[comp.key], judgeCount)||0;
-        const sc = Math.round(avg*pcsFactor*100)/100||0;
+        const avg = calcPcsAvg(pcs[comp.key], judgeCount);
+        const sc = Math.round(avg*pcsFactor*100)/100;
         const jScores = pcs[comp.key].slice(0,judgeCount).map(v=>(v||0).toFixed(2).padStart(5)).join(" ");
         lines.push(`${comp.label.padEnd(30)} | ${jScores} | Avg: ${avg.toFixed(2)} | Score: ${sc.toFixed(2)}`);
       });
@@ -4774,8 +4794,8 @@
               </thead>
               <tbody>
                 {PCS_COMPONENTS.map(comp => {
-                  const avg = calcPcsAvg(pcs[comp.key], judgeCount) || 0;
-                  const compScore = Math.round(avg * pcsFactor * 100) / 100 || 0;
+                  const avg = calcPcsAvg(pcs[comp.key], judgeCount);
+                  const compScore = Math.round(avg * pcsFactor * 100) / 100;
                   return (
                     <tr key={comp.key} style={{borderBottom:"1px solid #e5e7eb"}}>
                       <td style={{padding:"8px 10px",fontSize:12,fontWeight:600}}>{comp.label}</td>
