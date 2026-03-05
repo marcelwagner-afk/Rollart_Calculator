@@ -91,7 +91,11 @@ if (fs.existsSync(DB_FILE)) {
 
 const saveDB = () => {
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(DB, null, 2));
+    // Atomares Schreiben: erst temp-Datei, dann umbenennen
+    // So wird die DB nicht korrupt bei Crash/Stromausfall
+    const tmpFile = DB_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(DB, null, 2));
+    fs.renameSync(tmpFile, DB_FILE);
   } catch(e) { console.error('DB save error:', e.message); }
 };
 
