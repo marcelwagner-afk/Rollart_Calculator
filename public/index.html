@@ -524,21 +524,34 @@
   ];
 
   // PCS factor per segment
-  const PCS_FACTORS = {
-    "tots_fp":0.8, "minis_fp":1.0,
-    "espoirs_sp":0.8, "espoirs_fp":1.2,
-    "cadets_sp":0.8, "cadets_fp":1.2,
-    "jeunesse_sp":0.8, "jeunesse_fp":1.4,
-    "junior_sp":0.8, "junior_fp":1.6,
-    "senior_sp":0.8, "senior_fp":1.6,
-    "pairs_tots_fp":0.8, "pairs_minis_fp":0.8,
-    "pairs_espoirs_sp":0.8, "pairs_espoirs_fp":1.0,
-    "pairs_cadets_sp":0.8, "pairs_cadets_fp":1.0,
-    "pairs_youth_sp":0.8, "pairs_youth_fp":1.2,
-    "pairs_junior_sp":0.8, "pairs_junior_fp":1.4,
-    "pairs_senior_sp":0.8, "pairs_senior_fp":1.4,
-    // Legacy
-    "sp":0.8, "fp9":1.2, "fp12":1.6,
+  // PCS factor per segment + gender (World Skate 2026 Artistic Impression regulation pp.3-4)
+  // geschlecht: "damen" | "herren" (only matters for Cadet+ FP singles)
+  const getPcsFactor = (segment, geschlecht) => {
+    // Pairs: own factors (same for ladies & men pairs)
+    if (segment.startsWith("pairs_")) {
+      const f = {"pairs_tots_fp":0.8,"pairs_minis_fp":0.8,
+        "pairs_espoirs_sp":0.8,"pairs_espoirs_fp":1.0,
+        "pairs_cadets_sp":1.0,"pairs_cadets_fp":1.4,
+        "pairs_jeunesse_sp":1.0,"pairs_jeunesse_fp":1.4,
+        "pairs_junior_sp":1.0,"pairs_junior_fp":1.8,
+        "pairs_senior_sp":1.0,"pairs_senior_fp":1.8};
+      return f[segment] || 0.8;
+    }
+    // Tots & Minis: always 0.8 (no SP, FP only)
+    if (segment==="tots_fp"||segment==="minis_fp") return 0.8;
+    // Espoir: SP 0.8, FP 1.0 (same for ladies & men)
+    if (segment==="espoirs_sp") return 0.8;
+    if (segment==="espoirs_fp") return 1.0;
+    // Cadet through Senior: SP always 1.0, FP differs by gender
+    if (segment.endsWith("_sp")) return 1.0;
+    const h = geschlecht==="herren";
+    const fpFactors = {
+      "cadets_fp": h?1.4:1.2,     // Herren 1.4, Damen 1.2
+      "jeunesse_fp": h?1.6:1.4,   // Herren 1.6, Damen 1.4
+      "junior_fp": h?1.8:1.6,     // Herren 1.8, Damen 1.6
+      "senior_fp": h?1.8:1.6,     // Herren 1.8, Damen 1.6
+    };
+    return fpFactors[segment] || 0.8;
   };
 
   // ============================================================
@@ -1708,7 +1721,7 @@
     },
   };
 
-  function KiCoach({rows,types,segment,judgeCount,elements,tes,pcsTotal,bonusTotal,pcs,kategorie,deductions,extraPoints}){
+  function KiCoach({rows,types,segment,judgeCount,elements,tes,pcsTotal,bonusTotal,pcs,kategorie,deductions,extraPoints,geschlecht}){
     const [open,setOpen]=useState(true);
     const [tab,setTab]=useState("rules"); // rules, optimize, training, ki
     const [kiMsg,setKiMsg]=useState("");
@@ -1751,7 +1764,7 @@
 
     const rules=SEGMENT_RULES[segment]||SEGMENT_RULES["senior_fp"];
     const isPairs=segment.startsWith("pairs_");
-    const pcsFactor=PCS_FACTORS[segment]||1.0;
+    const pcsFactor=getPcsFactor(segment,geschlecht||"damen");
     const catKey=SEGMENT_DEFS[segment]?.category||"senior";
     const catDef=CATEGORY_DEFS[catKey]||CATEGORY_DEFS["senior"];
 
@@ -2315,6 +2328,7 @@
   function TrainingSimulator({importData,onImportDone}){
     const [kategorie,setKategorie]=useState("senior");
     const [segment,setSegment]=useState("senior_fp");
+    const [geschlecht,setGeschlecht]=useState("damen");
     const [skater,setSkater]=useState("");
     const [cat,setCat]=useState("");
     const [music,setMusic]=useState("");
@@ -2324,7 +2338,7 @@
     const isPairs=segment.startsWith("pairs_");
     const segDef=SEGMENT_DEFS[segment];
     const types=isPairs?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE;
-    const pcsFactor=PCS_FACTORS[segment]||1.0;
+    const pcsFactor=getPcsFactor(segment,geschlecht);
 
     const emptyRow=()=>({typeCode:"",elCode:"",judgeGoe:[0,0,0,0,0],rotation:"normal",comboEls:[],nv:false,dg:false,bonuses:[]});
     const emptyPcs=()=>({skating:[0,0,0,0,0],transitions:[0,0,0,0,0],performance:[0,0,0,0,0],choreography:[0,0,0,0,0]});
@@ -2338,6 +2352,7 @@
       if(!importData)return;
       if(importData.kategorie)setKategorie(importData.kategorie);
       setSegment(importData.segment);
+      if(importData.geschlecht)setGeschlecht(importData.geschlecht);
       setSkater(importData.skater||"");
       setCat(importData.cat||"");
       setMusic(importData.music||"");
@@ -2446,6 +2461,13 @@
             <button key={seg} onClick={()=>changeSegment(seg)} style={{padding:"6px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",
               background:segment===seg?"#059669":"#e5e7eb",color:segment===seg?"white":"#374151"}}>{SEGMENT_DEFS[seg]?.label}</button>
           ))}
+          {!isPairs&&<>
+            <span style={{fontSize:11,color:"#6b7280"}}>Geschlecht:</span>
+            {[{k:"damen",l:"Damen"},{k:"herren",l:"Herren"}].map(g=>(
+              <button key={g.k} onClick={()=>setGeschlecht(g.k)} style={{padding:"5px 12px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+                background:geschlecht===g.k?"#7c3aed":"#e5e7eb",color:geschlecht===g.k?"white":"#374151"}}>{g.l}</button>
+            ))}
+          </>}
           <span style={{marginLeft:"auto",fontSize:11,color:"#6b7280"}}>Judges:</span>
           {[3,5].map(n=>(
             <button key={n} onClick={()=>setJudgeCount(n)} style={{padding:"5px 12px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
@@ -2653,7 +2675,7 @@
             {/* KI-Coach */}
             <KiCoach rows={rows} types={types} segment={segment} judgeCount={judgeCount}
               elements={elements} tes={tes} pcsTotal={pcsTotal} bonusTotal={bonusTotal} pcs={pcs}
-              kategorie={kategorie} deductions={deductions} extraPoints={extraPoints}/>
+              kategorie={kategorie} deductions={deductions} extraPoints={extraPoints} geschlecht={geschlecht}/>
           </div>
         </div>
       </div>
@@ -3977,6 +3999,7 @@
     const [music, setMusic] = useState("");
     const [uploadMsg, setUploadMsg] = useState("");
     const [judgeCount, setJudgeCount] = useState(3);
+    const [geschlecht, setGeschlecht] = useState("damen");
 
     // Program Components: each component has scores for up to 5 judges
     const emptyPcs = () => ({
@@ -4069,6 +4092,7 @@
         setMusic(compImport.music || "");
         setKategorie(compImport.kategorie || "senior");
         setSegment(compImport.segment || "senior_fp");
+        if(compImport.geschlecht)setGeschlecht(compImport.geschlecht);
         setRows(compImport.rows || Array.from({length: SEGMENT_DEFS[compImport.segment || "senior_fp"].rows}, emptyRow));
         // Sanitize PCS: ensure all values are valid numbers in 0-10 range
         const rawPcs = compImport.pcs || emptyPcs();
@@ -4113,7 +4137,7 @@
     }).length;
 
     // Compute PCS
-    const pcsFactor = PCS_FACTORS[segment] || 1.0;
+    const pcsFactor = getPcsFactor(segment, geschlecht);
     const pcsTotal = useMemo(() => {
       return PCS_COMPONENTS.reduce((sum, comp) => {
         const avg = calcPcsAvg(pcs[comp.key], judgeCount);
@@ -4324,7 +4348,7 @@
       setSavingSkater(true);
       try {
         const token = localStorage.getItem('rollart_token');
-        const payload = { name: skater, kategorie, verein: cat || "", music, segment, rows: rows.map(r=>({...r, bonuses:r.bonuses||[]})), pcs, deductions, extraPoints, judgeCount, officialSheet: null };
+        const payload = { name: skater, kategorie, geschlecht, verein: cat || "", music, segment, rows: rows.map(r=>({...r, bonuses:r.bonuses||[]})), pcs, deductions, extraPoints, judgeCount, officialSheet: null };
         const res = await fetch('/api/skaters', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -4348,6 +4372,7 @@
       setMusic(sk.music || "");
       setKategorie(sk.kategorie || "senior");
       setSegment(sk.segment || "senior_fp");
+      if(sk.geschlecht)setGeschlecht(sk.geschlecht);
       // Rows mit bonuses-Feld sicherstellen
       const loadedRows = (sk.rows || []).map(r => ({...r, bonuses: r.bonuses || [], comboEls: r.comboEls || []}));
       const neededRows = SEGMENT_DEFS[sk.segment || "senior_fp"]?.rows || 16;
@@ -4430,6 +4455,16 @@
                 color:segment===seg?"#059669":"white",
               }}>{SEGMENT_DEFS[seg]?.label} ({SEGMENT_DEFS[seg]?.rows})</button>
             ))}
+            {!segment.startsWith("pairs_")&&<>
+              <span style={{fontSize:11,opacity:.8}}>Geschlecht:</span>
+              {[{k:"damen",l:"D"},{k:"herren",l:"H"}].map(g=>(
+                <button key={g.k} onClick={()=>setGeschlecht(g.k)} style={{
+                  padding:"5px 10px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+                  background:geschlecht===g.k?"white":"rgba(255,255,255,.2)",
+                  color:geschlecht===g.k?"#7c3aed":"white",
+                }}>{g.l}</button>
+              ))}
+            </>}
             <span style={{marginLeft:"auto",fontSize:11,opacity:.8}}>Judges:</span>
             {[3,5].map(n=>(
               <button key={n} onClick={()=>setJudgeCount(n)} style={{
@@ -4476,7 +4511,7 @@
             <button onClick={saveSkater} disabled={savingSkater} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#3b82f6",color:"white",fontWeight:600,fontSize:11,cursor:"pointer",opacity:savingSkater?0.6:1}}>💾 Läufer speichern</button>
             <button onClick={()=>setShowSkaterModal(true)} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#10b981",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>📂 Läufer laden</button>
             <button onClick={()=>{
-              setSimImport({kategorie,segment,skater,cat,music,judgeCount,rows:rows.map(r=>({...r})),pcs:{...pcs,skating:[...pcs.skating],transitions:[...pcs.transitions],performance:[...pcs.performance],choreography:[...pcs.choreography]},deductions,extraPoints,_ts:Date.now()});
+              setSimImport({kategorie,segment,geschlecht,skater,cat,music,judgeCount,rows:rows.map(r=>({...r})),pcs:{...pcs,skating:[...pcs.skating],transitions:[...pcs.transitions],performance:[...pcs.performance],choreography:[...pcs.choreography]},deductions,extraPoints,_ts:Date.now()});
               setPage("training");
             }} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#7c3aed",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
               &#9654; An Simulator
