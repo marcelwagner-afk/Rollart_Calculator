@@ -3451,11 +3451,13 @@
       }
 
       // PCS components (handle both same-line and split-line formats)
+      // Helper: clamp PCS judge value to valid range 0-10
+      const clampJ = (v) => (isNaN(v) || v < 0 || v > 10) ? 0 : v;
+      // Helper: detect PCS factor values (0.8, 1.0, 1.2, 1.4, 1.6)
+      const isPcsFactor = (v) => [0.8, 1.0, 1.2, 1.4, 1.6].some(f => Math.abs(v - f) < 0.01);
       let lastComp = "";
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        // Helper: clamp PCS judge value to valid range 0-10
-        const clampJ = (v) => (isNaN(v) || v < 0 || v > 10) ? 0 : v;
         // Same line: "Transitions/Linking Footwork/Movement 0.8 2.00 2.50 2.50 2.33"
         const pm = line.match(/(Skating\s+Skills|Transition[^\d]*|Performance[^\d]*|Choreography[^\d]*?)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/i);
         if (pm) {
@@ -3472,13 +3474,26 @@
         if (/Transition/i.test(line) && !line.includes("JUDGES")) { lastComp = "transitions"; continue; }
         if (/Performance/i.test(line) && !line.includes("JUDGES")) { lastComp = "performance"; continue; }
         if (/Choreography/i.test(line) && !line.includes("JUDGES")) { lastComp = "choreography"; continue; }
-        // Numbers on next line after component name
+        // Numbers on next line(s) after component name
         if (lastComp) {
           const nums = line.match(/[\d.]+/g);
-          if (nums && nums.length >= 4) {
+          if (nums && nums.length >= 3) {
             const f = nums.map(n => parseFloat(n));
-            const [j1, j2, j3] = f.length >= 5 ? [clampJ(f[1]), clampJ(f[2]), clampJ(f[3])] : [clampJ(f[0]), clampJ(f[1]), clampJ(f[2])];
-            components[lastComp] = [j1, j2, j3, 0, 0];
+            let j1, j2, j3;
+            if (f.length >= 5) {
+              // "factor j1 j2 j3 avg" → skip factor (index 0) and avg (index 4)
+              [j1, j2, j3] = [f[1], f[2], f[3]];
+            } else if (f.length === 4 && isPcsFactor(f[0])) {
+              // "factor j1 j2 j3" (no avg) → skip factor
+              [j1, j2, j3] = [f[1], f[2], f[3]];
+            } else if (f.length === 4) {
+              // "j1 j2 j3 avg" (factor was on name line) → skip avg
+              [j1, j2, j3] = [f[0], f[1], f[2]];
+            } else {
+              // 3 numbers: "j1 j2 j3"
+              [j1, j2, j3] = [f[0], f[1], f[2]];
+            }
+            components[lastComp] = [clampJ(j1), clampJ(j2), clampJ(j3), 0, 0];
             lastComp = ""; continue;
           }
         }
