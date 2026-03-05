@@ -3157,13 +3157,553 @@
   }
 
   // ============================================================
+  //  COMPETITIONS PAGE
+  // ============================================================
+  function CompetitionPage({ onLoadSkater }) {
+    const [competitions, setCompetitions] = useState([]);
+    const [selectedCompIdx, setSelectedCompIdx] = useState(null);
+    const [selectedSkaterIdx, setSelectedSkaterIdx] = useState(null);
+    const [uploading, setUploading] = useState(false);
+    const [uploadMsg, setUploadMsg] = useState("");
+
+    useEffect(() => {
+      const stored = localStorage.getItem("rollart_competitions");
+      if (stored) { try { setCompetitions(JSON.parse(stored)); } catch(e){} }
+    }, []);
+    useEffect(() => {
+      localStorage.setItem("rollart_competitions", JSON.stringify(competitions));
+    }, [competitions]);
+
+    // --- PDF TEXT EXTRACTION ---
+    const extractPageText = async (pdfPage) => {
+      const content = await pdfPage.getTextContent();
+      const byY = {};
+      content.items.forEach(it => {
+        const y = Math.round(it.transform[5]);
+        if (!byY[y]) byY[y] = [];
+        byY[y].push({ t: it.str.trim(), x: Math.round(it.transform[4]) });
+      });
+      return Object.keys(byY).sort((a, b) => b - a).map(y =>
+        byY[y].sort((a, b) => a.x - b.x).map(i => i.t).filter(t => t).join(" ")
+      ).join("\n");
+    };
+
+    // --- CATEGORY MAPPING ---
+    const parseCategory = (text) => {
+      const t = (text || "").toUpperCase();
+      const sp = t.includes("SHORT");
+      if (t.includes("TOTS") || t.includes("SCHÜLER D") || t.includes("SCHULER D")) return { kategorie:"tots", segment: sp?"tots_sp":"tots_fp" };
+      if (t.includes("MINIS") || t.includes("SCHÜLER C") || t.includes("SCHULER C") || /JAHRGANG\s+201[45]/.test(t)) return { kategorie:"minis", segment: sp?"minis_sp":"minis_fp" };
+      if (t.includes("ESPOIRS") || t.includes("SCHÜLER B")) return { kategorie:"espoirs", segment: sp?"espoirs_sp":"espoirs_fp" };
+      if (t.includes("CADETS") || t.includes("KADETT")) return { kategorie:"cadets", segment: sp?"cadets_sp":"cadets_fp" };
+      if (t.includes("YOUTH") || t.includes("JUGEND")) return { kategorie:"youth", segment: sp?"youth_sp":"youth_fp" };
+      if (t.includes("JUNIOR") || t.includes("JUNIOREN")) return { kategorie:"junior", segment: sp?"junior_sp":"junior_fp" };
+      return { kategorie:"senior", segment: sp?"senior_sp":"senior_fp" };
+    };
+
+    // --- SKATER NAME DETECTION ---
+    const isSkaterName = (line) => {
+      const t = line.trim();
+      if (t.length < 4) return false;
+      const words = t.split(/\s+/).filter(w => w.length > 0);
+      if (words.length < 2) return false;
+      const noise = ["JUDGES","DETAILS","SKATER","TECHNICAL","PANEL","RESULTS","FINAL","RESULT",
+        "WORLDSKATE","ROLLART","PROGRAM","COMPONENT","ELEMENT","SEGMENT","RANK","VERIFIED",
+        "FREE","SKATING","SHORT","LADIES","MEN","PAIRS","EXECUTED","BASE","SCORES","INFO",
+        "VALUE","FACTOR","DEDUCTIONS","TOTAL","REFEREE","JUDGE","SPECIALIST","DATA","OPERATOR",
+        "CONTROLLER","ASSISTANT","EVENT","MANAGER","GER","FREIBURG","RANGLISTENWETTBEWERB",
+        "KÜRLAUFEN","FOOTWORK","SEQUENCE","COMPOSITION","CHOREOGRAPHY","PERFORMANCE","EXECUTION",
+        "TRANSITIONS","LINKING","MOVEMENT","CREDIT","DISTRIBUTION","BONUS","EDGE","BREAK","HALF"];
+      const allUpper = words.every(w => w === w.toUpperCase() && /[A-ZÄÖÜÉÈÀÁÂ]/.test(w));
+      if (!allUpper) return false;
+      if (words.some(w => noise.includes(w))) return false;
+      return true;
+    };
+
+    // --- PARSE ONE JUDGES DETAILS PAGE ---
+    const parseJudgesDetailsPage = (pageText) => {
+      const lines = pageText.split("\n").map(l => l.trim()).filter(l => l);
+      let name = "", rank = 0, tes = 0, pcsTotal = 0, ded = 0, total = 0;
+      const elements = [];
+      const components = { skating:[0,0,0,0,0], transitions:[0,0,0,0,0], performance:[0,0,0,0,0], choreography:[0,0,0,0,0] };
+
+      // Find rank + name
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const mA = line.match(/^(\d+)\s+([A-ZÄÖÜÉÈÀÁÂ][A-ZÄÖÜÉÈÀÁÂ\s-]+?)\s+score\b/);
+        if (mA && mA[2].trim().split(/\s+/).length >= 2) { rank = parseInt(mA[1]); name = mA[2].trim(); break; }
+        if (isSkaterName(line) && i + 1 < lines.length) {
+          const mB = lines[i + 1].match(/^(\d+)\s+score\b/);
+          if (mB) { name = line.trim(); rank = parseInt(mB[1]); break; }
+        }
+      }
+
+      // Find summary scores (line with 3-4 decimals, minimal text)
+      for (const line of lines) {
+        const nums = line.match(/-?\d+\.\d+/g);
+        if (nums && nums.length >= 3 && nums.length <= 5) {
+          const textPart = line.replace(/-?\d+\.\d+/g, "").replace(/\s+/g, "");
+          if (textPart.length < 3) {
+            if (nums.length >= 4) { tes = parseFloat(nums[0]); pcsTotal = parseFloat(nums[1]); ded = Math.abs(parseFloat(nums[2])); total = parseFloat(nums[3]); }
+            else { tes = parseFloat(nums[0]); pcsTotal = parseFloat(nums[1]); total = parseFloat(nums[2]); }
+            break;
+          }
+        }
+      }
+
+      // Find element section
+      let elemStart = -1, elemEnd = -1;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes("Executed Element")) elemStart = i + 1;
+        if (elemStart > 0 && elemEnd < 0 && (lines[i].includes("Program Components") || (lines[i].includes("Skating Skills") && !lines[i].includes("Element")))) elemEnd = i;
+      }
+      if (elemStart > 0 && elemEnd < 0) {
+        for (let i = elemStart; i < lines.length; i++) {
+          if (lines[i].includes("Factor") && !lines[i].includes("Element")) { elemEnd = i; break; }
+        }
+        if (elemEnd < 0) elemEnd = lines.length;
+      }
+
+      if (elemStart > 0 && elemEnd > elemStart) {
+        const eLines = lines.slice(elemStart, elemEnd);
+        let curEl = null, curType = null;
+        const saveEl = () => { if (curEl && (curEl.subElements.length > 0 || curEl.elCode)) elements.push(curEl); };
+        const mkEl = (num, type, tc) => ({ num, type, typeCode:tc, elCode:"", subElements:[], totalBase:0, totalPanel:0, judges:[0,0,0] });
+
+        // Try extracting code+scores from same line as element type
+        const extractInline = (line, type) => {
+          const after = line.substring(line.indexOf(type) + type.length).trim();
+          // Only match real element codes (digit-prefixed: 1Lo, 1F, etc. or St1/StB/NL*/CSp/SSp)
+          const cm = after.match(/^([1-4][A-Z][a-z]*|NL[A-Z][a-z]+|St[1B]|FoSq\d?|ChSt\d?|[CS]Sp\d?)\b/);
+          if (cm) {
+            const code = cm[1];
+            const afterCode = after.substring(cm[0].length);
+            const nums = afterCode.match(/([-+]?\d+\.?\d*)/g);
+            if (nums && nums.length >= 6) {
+              const f = nums.map(n => parseFloat(n));
+              return { code, base: f[0], j1: Math.round(f[2]), j2: Math.round(f[3]), j3: Math.round(f[4]), panel: f[5] };
+            }
+            if (nums && nums.length >= 2) {
+              const f = nums.map(n => parseFloat(n));
+              return { code, base: f[0], j1:0, j2:0, j3:0, panel: f[f.length-1] };
+            }
+            return { code, base:0, j1:0, j2:0, j3:0, panel:0 };
+          }
+          return null;
+        };
+
+        for (let i = 0; i < eLines.length; i++) {
+          const line = eLines[i];
+          // New top-level element?
+          const ne = line.match(/^(\d+)\s+(Jump|ComboJump|ComboSpin|Step Sequence|Spin)\b/);
+          if (ne) {
+            saveEl();
+            const num = parseInt(ne[1]), type = ne[2];
+            const tc = type === "ComboSpin" ? "CSp" : type === "Spin" ? "SSp" : type === "Step Sequence" ? "FoSq" : "CoJ";
+            curEl = mkEl(num, type, tc);
+            curType = type;
+            const inl = extractInline(line, type);
+            if (inl && inl.code) {
+              curEl.elCode = inl.code;
+              if (inl.base > 0 || inl.panel > 0) {
+                curEl.subElements.push(inl); curEl.totalBase += inl.base; curEl.totalPanel += inl.panel;
+              }
+            }
+            continue;
+          }
+          if (!curEl) continue;
+
+          // Code line: "1Lo 0.90 0 0 0 0.90"
+          const cl = line.match(/^([1-4][A-Z][a-z]*(?:\s*<?<?<?))\s+([\d.]+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([\d.]+)/);
+          if (cl) {
+            const code = cl[1].replace(/[<>\s]/g, ""), base = parseFloat(cl[2]);
+            const j1 = parseInt(cl[3]), j2 = parseInt(cl[4]), j3 = parseInt(cl[5]), panel = parseFloat(cl[6]);
+            curEl.subElements.push({ code, base, j1, j2, j3, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
+            if (!curEl.elCode) curEl.elCode = code;
+            continue;
+          }
+
+          // ComboJump sub with name: "1F Flip 0.86 0.00 0 0 0 0.86"
+          const cs = line.match(/^([1-4][A-Z][a-z]*(?:\s*<?<?<?)?)\s+[A-Z][a-z]+(?:\s+[A-Za-z]*)?\s+([\d.]+)\s+([-+]?[\d.]+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([\d.]+)/);
+          if (cs) {
+            const code = cs[1].replace(/[<>\s]/g, ""), base = parseFloat(cs[2]);
+            const j1 = parseInt(cs[4]), j2 = parseInt(cs[5]), j3 = parseInt(cs[6]), panel = parseFloat(cs[7]);
+            curEl.subElements.push({ code, base, j1, j2, j3, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
+            if (!curEl.elCode) curEl.elCode = code;
+            continue;
+          }
+
+          // Step code: "St1 2.30 -1 -1 -1 2.00"
+          const sl = line.match(/^(St[1B]|FoSq\d?|ChSt\d?)\s+([\d.]+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([\d.]+)/);
+          if (sl) {
+            const code = sl[1], base = parseFloat(sl[2]);
+            const j1 = parseInt(sl[3]), j2 = parseInt(sl[4]), j3 = parseInt(sl[5]), panel = parseFloat(sl[6]);
+            curEl.subElements.push({ code, base, j1, j2, j3, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
+            if (!curEl.elCode) curEl.elCode = code;
+            continue;
+          }
+
+          // Spin positions (ComboSpin/Spin)
+          if (curType === "ComboSpin" || curType === "Spin") {
+            // Format 1: "S Sit Spin 0.80 -0.17 0.63" (3 nums)
+            const sp1 = line.match(/^([SUCLN][A-Za-z]*)\s+.*?([\d.]+)\s+([-+]?[\d.]+)\s+([\d.]+)\s*$/);
+            if (sp1) {
+              const base = parseFloat(sp1[2]), panel = parseFloat(sp1[4]);
+              curEl.subElements.push({ code: sp1[1], base, j1:0, j2:0, j3:0, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
+              continue;
+            }
+            // Format 2: "S 0.80 0.70" (2 nums, name on separate line)
+            const sp2 = line.match(/^([SUCLN][A-Za-z]*)\s+([\d.]+)\s+([\d.]+)\s*$/);
+            if (sp2) {
+              const base = parseFloat(sp2[2]), panel = parseFloat(sp2[3]);
+              curEl.subElements.push({ code: sp2[1], base, j1:0, j2:0, j3:0, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
+              continue;
+            }
+            // NLUpr/NLSit: "NLUpr 0.00 0.00" or "NLUpr Upright Spin No level 0.00 0.00"
+            const nls = line.match(/^(NL[A-Za-z]+)\s+.*?([\d.]+)\s+([\d.]+)\s*$/);
+            if (nls) {
+              const base = parseFloat(nls[2]), panel = parseFloat(nls[3]);
+              curEl.subElements.push({ code: nls[1], base, j1:0, j2:0, j3:0, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
+              continue;
+            }
+          }
+
+          // Standalone Spin: "NLUpr Upright Spin No level 0.00 0.00 -3 -3 -3 0.00"
+          if (curType === "Spin") {
+            const ss = line.match(/^(NL[A-Za-z]+|[CS]Sp\d?)\s+.*?([\d.]+)\s+([-+]?[\d.]+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([\d.]+)/);
+            if (ss) {
+              const code = ss[1], base = parseFloat(ss[2]);
+              const j1 = parseInt(ss[4]), j2 = parseInt(ss[5]), j3 = parseInt(ss[6]), panel = parseFloat(ss[7]);
+              curEl.subElements.push({ code, base, j1, j2, j3, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
+              if (!curEl.elCode) curEl.elCode = code;
+              continue;
+            }
+          }
+        }
+        saveEl();
+      }
+
+      // PCS components (handle both same-line and split-line formats)
+      let lastComp = "";
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        // Same line: "Transitions/Linking Footwork/Movement 0.8 2.00 2.50 2.50 2.33"
+        const pm = line.match(/(Skating\s+Skills|Transition[^\d]*|Performance[^\d]*|Choreography[^\d]*?)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/i);
+        if (pm) {
+          const cn = pm[1].toLowerCase();
+          const j1 = parseFloat(pm[3]), j2 = parseFloat(pm[4]), j3 = parseFloat(pm[5]);
+          if (cn.includes("skating")) components.skating = [j1,j2,j3,0,0];
+          else if (cn.includes("transition")) components.transitions = [j1,j2,j3,0,0];
+          else if (cn.includes("performance")) components.performance = [j1,j2,j3,0,0];
+          else if (cn.includes("choreography")) components.choreography = [j1,j2,j3,0,0];
+          lastComp = ""; continue;
+        }
+        // Component name with factor only or alone
+        if (/Skating\s+Skills/i.test(line)) { lastComp = "skating"; continue; }
+        if (/Transition/i.test(line) && !line.includes("JUDGES")) { lastComp = "transitions"; continue; }
+        if (/Performance/i.test(line) && !line.includes("JUDGES")) { lastComp = "performance"; continue; }
+        if (/Choreography/i.test(line) && !line.includes("JUDGES")) { lastComp = "choreography"; continue; }
+        // Numbers on next line after component name
+        if (lastComp) {
+          const nums = line.match(/[\d.]+/g);
+          if (nums && nums.length >= 4) {
+            const f = nums.map(n => parseFloat(n));
+            const [j1, j2, j3] = f.length >= 5 ? [f[1], f[2], f[3]] : [f[0], f[1], f[2]];
+            components[lastComp] = [j1, j2, j3, 0, 0];
+            lastComp = ""; continue;
+          }
+        }
+      }
+
+      // Deductions
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const line = lines[i];
+        const fm = line.match(/Falls:\s*([-+]?[\d.]+)/);
+        if (fm) ded = Math.max(ded, Math.abs(parseFloat(fm[1])));
+        const cm = line.match(/Costume Violation:\s*([-+]?[\d.]+)/);
+        if (cm) ded += Math.abs(parseFloat(cm[1]));
+      }
+
+      return { name, rank, tes, pcs: pcsTotal, ded, total, elements, components };
+    };
+
+    // --- CLUB EXTRACTION FROM RESULTS DETAILS ---
+    const parseClubsFromResults = (pageText) => {
+      const clubs = {};
+      const lines = pageText.split("\n").map(l => l.trim()).filter(l => l);
+      const clubLines = [], nameLines = [];
+      for (let i = 0; i < lines.length; i++) {
+        const cm = lines[i].match(/(.+?\([A-ZÄÖÜ]+\))/);
+        if (cm) clubLines.push({ idx: i, club: cm[1].trim().replace(/^\d+\s*/, "") });
+        if (isSkaterName(lines[i])) nameLines.push({ idx: i, name: lines[i].trim() });
+      }
+      for (const nl of nameLines) {
+        let bestDist = 999, bestClub = "";
+        for (const cl of clubLines) {
+          const d = Math.abs(cl.idx - nl.idx);
+          if (d < bestDist) { bestDist = d; bestClub = cl.club; }
+        }
+        if (bestClub && bestDist <= 3) clubs[nl.name] = bestClub;
+      }
+      return clubs;
+    };
+
+    // --- MAIN PDF PARSER ---
+    const parsePDF = async (file) => {
+      try {
+        const ab = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+        const pageTexts = [];
+        for (let p = 1; p <= pdf.numPages; p++) {
+          const page = await pdf.getPage(p);
+          pageTexts.push(await extractPageText(page));
+        }
+
+        // Page 1: competition info
+        const p1 = pageTexts[0] || "";
+        let compName = "", compDate = "", categoryText = "";
+        for (const line of p1.split("\n")) {
+          if (line.includes("Ranglistenwettbewerb") || line.includes("Championship")) compName = line.trim();
+          if (/\d{2}\/\d{2}\/\d{4}/.test(line)) compDate = line.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] || "";
+          if ((line.includes("Free Skating") || line.includes("Short Program") || line.includes("Pairs")) && !line.includes("FINAL")) categoryText = line.trim();
+        }
+        if (!compName && categoryText) compName = categoryText;
+        if (compDate) compName += " - " + compDate;
+        const { kategorie, segment } = parseCategory(categoryText + " " + p1);
+
+        // Clubs from RESULTS DETAILS
+        const rIdx = pageTexts.findIndex(p => p.includes("RESULTS DETAILS"));
+        const clubs = rIdx >= 0 ? parseClubsFromResults(pageTexts[rIdx]) : {};
+
+        // Parse each JUDGES DETAILS page
+        const skaters = [];
+        for (let idx = 0; idx < pageTexts.length; idx++) {
+          const text = pageTexts[idx];
+          if (!text.includes("JUDGES DETAILS PER SKATER") || !text.includes("Rank") || !text.includes("Segment")) continue;
+          // Must have summary scores line
+          const hasScores = text.split("\n").some(l => {
+            const nums = l.match(/-?\d+\.\d+/g);
+            return nums && nums.length >= 3 && l.replace(/-?\d+\.\d+/g, "").replace(/\s+/g, "").length < 3;
+          });
+          if (!hasScores) continue;
+
+          const parsed = parseJudgesDetailsPage(text);
+          if (parsed.name && parsed.rank > 0) {
+            skaters.push({
+              name: parsed.name, club: clubs[parsed.name] || "",
+              kategorie, segment, place: parsed.rank,
+              total: parsed.total, tes: parsed.tes, pcs: parsed.pcs, deductions: parsed.ded,
+              elements: parsed.elements.map(el => ({
+                typeCode: el.typeCode, elCode: el.elCode, type: el.type,
+                base: el.totalBase,
+                qoe: Math.round((el.totalPanel - el.totalBase) * 100) / 100,
+                judges: el.subElements.length > 0 ? [el.subElements[0].j1, el.subElements[0].j2, el.subElements[0].j3] : [0,0,0],
+                panel: el.totalPanel,
+                subElements: (el.subElements || []).map(s => ({ code: s.code, base: s.base })),
+              })),
+              components: parsed.components,
+            });
+          }
+        }
+        skaters.sort((a, b) => a.place - b.place);
+        return { name: compName, category: categoryText, skaters };
+      } catch (err) {
+        throw new Error("PDF-Parsing fehlgeschlagen: " + err.message);
+      }
+    };
+
+    const emptyPcs = () => ({ skating:[0,0,0,0,0], transitions:[0,0,0,0,0], performance:[0,0,0,0,0], choreography:[0,0,0,0,0] });
+
+    const handleUpload = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      e.target.value = "";
+      setUploading(true); setUploadMsg("PDF wird analysiert...");
+      try {
+        const comp = await parsePDF(file);
+        if (comp.skaters.length === 0) throw new Error("Keine Läufer im PDF gefunden");
+        setCompetitions(prev => [...prev, { ...comp, id: Date.now() }]);
+        setUploadMsg(comp.skaters.length + " Läufer erfolgreich importiert!");
+        setTimeout(() => setUploadMsg(""), 3000);
+      } catch (err) { setUploadMsg("Fehler: " + err.message); }
+      setUploading(false);
+    };
+
+    const handleDeleteComp = (idx) => {
+      setCompetitions(prev => prev.filter((_, i) => i !== idx));
+      if (selectedCompIdx === idx) { setSelectedCompIdx(null); setSelectedSkaterIdx(null); }
+      else if (selectedCompIdx > idx) setSelectedCompIdx(prev => prev - 1);
+    };
+
+    const handleLoadSkater = (skater) => {
+      if (!onLoadSkater) return;
+      // Map elements to simulator rows
+      const rows = (skater.elements || []).map(el => {
+        const isCombo = el.type === "ComboJump" && el.subElements && el.subElements.length > 1;
+        return {
+          typeCode: el.typeCode,
+          elCode: isCombo ? "" : (el.elCode || ""),
+          judgeGoe: el.judges || [0,0,0,0,0],
+          rotation: "normal",
+          comboEls: isCombo ? el.subElements.map(s => ({ code: s.code || "" })) : [],
+          nv: false, dg: false, bonuses: [],
+        };
+      });
+      onLoadSkater({
+        name: skater.name, verein: skater.club || "",
+        kategorie: skater.kategorie, segment: skater.segment,
+        rows, pcs: skater.components || emptyPcs(),
+        deductions: skater.deductions || 0, extraPoints: 0, judgeCount: 3,
+      });
+    };
+
+    const selectedComp = selectedCompIdx !== null ? competitions[selectedCompIdx] : null;
+    const selectedSkater = selectedSkaterIdx !== null && selectedComp ? selectedComp.skaters[selectedSkaterIdx] : null;
+
+    return (
+      <div style={{ display:"flex", height:"calc(100vh - 150px)" }}>
+        {/* Left: competitions */}
+        <div style={{ width:"280px", background:"#fff", borderRight:"1px solid #e5e7eb", overflowY:"auto", padding:"12px" }}>
+          <div style={{ marginBottom:"12px" }}>
+            <label style={{ display:"flex", alignItems:"center", gap:"6px", padding:"8px 10px", borderRadius:"6px", border:"1px solid #059669", background:"#f0fdf4", color:"#059669", fontWeight:"600", fontSize:"11px", cursor:"pointer" }}>
+              + Endergebnis-PDF hochladen
+              <input type="file" accept=".pdf" onChange={handleUpload} disabled={uploading} style={{ display:"none" }} />
+            </label>
+          </div>
+          {uploadMsg && <div style={{ fontSize:"10px", color: uploadMsg.includes("Fehler") ? "#dc2626" : "#059669", marginBottom:"8px", padding:"4px" }}>{uploadMsg}</div>}
+          <div style={{ fontSize:"10px", fontWeight:"600", color:"#6b7280", textTransform:"uppercase", marginBottom:"8px" }}>Wettbewerbe ({competitions.length})</div>
+          {competitions.map((comp, idx) => (
+            <div key={comp.id} style={{ padding:"8px 10px", borderRadius:"6px", background: selectedCompIdx===idx ? "#f0fdf4" : "white", border: selectedCompIdx===idx ? "2px solid #059669" : "1px solid #e5e7eb", marginBottom:"6px", fontSize:"12px" }}>
+              <div onClick={() => { setSelectedCompIdx(idx); setSelectedSkaterIdx(null); }} style={{ cursor:"pointer" }}>
+                <div style={{ fontWeight:"600", color:"#065f46" }}>{comp.name}</div>
+                <div style={{ fontSize:"10px", color:"#6b7280", marginTop:"2px" }}>{comp.category} — {comp.skaters?.length || 0} Läufer</div>
+              </div>
+              <button onClick={() => handleDeleteComp(idx)} style={{ marginTop:"4px", padding:"3px 8px", borderRadius:"4px", border:"1px solid #fca5a5", background:"#fef2f2", color:"#dc2626", fontWeight:"600", fontSize:"9px", cursor:"pointer", width:"100%" }}>Löschen</button>
+            </div>
+          ))}
+        </div>
+
+        {/* Right: details */}
+        <div style={{ flex:1, overflowY:"auto", padding:"20px" }}>
+          {!selectedComp ? (
+            <div style={{ textAlign:"center", color:"#6b7280", paddingTop:"40px" }}>
+              <div style={{ fontSize:"40px", marginBottom:"12px" }}>🏆</div>
+              <div style={{ fontSize:"14px", fontWeight:"600" }}>Wettbewerb auswählen oder Endergebnis-PDF hochladen</div>
+              <div style={{ fontSize:"11px", color:"#9ca3af", marginTop:"4px" }}>RollArt Endergebnis-PDFs werden automatisch ausgewertet</div>
+            </div>
+          ) : !selectedSkater ? (
+            <div>
+              <h2 style={{ fontSize:"18px", fontWeight:"700", color:"#065f46", marginBottom:"4px" }}>{selectedComp.name}</h2>
+              <p style={{ fontSize:"12px", color:"#6b7280", marginBottom:"16px" }}>{selectedComp.category}</p>
+              <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px" }}>
+                <thead>
+                  <tr style={{ background:"#f3f4f6", borderBottom:"2px solid #e5e7eb" }}>
+                    {["Pl.","Name","Verein","TES","PCS","DED","Total"].map(h => (
+                      <th key={h} style={{ padding:"8px", textAlign: h==="Name"||h==="Verein" ? "left" : "right", fontWeight:"700", color:"#374151" }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selectedComp.skaters || []).map((sk, idx) => (
+                    <tr key={idx} onClick={() => setSelectedSkaterIdx(idx)} style={{ borderBottom:"1px solid #f3f4f6", cursor:"pointer", background: selectedSkaterIdx===idx ? "#f0fdf4" : "white" }}>
+                      <td style={{ padding:"8px", fontWeight:"700", color:"#065f46", textAlign:"right" }}>{sk.place}</td>
+                      <td style={{ padding:"8px", fontWeight:"600" }}>{sk.name}</td>
+                      <td style={{ padding:"8px", color:"#6b7280", fontSize:"11px" }}>{sk.club}</td>
+                      <td style={{ padding:"8px", textAlign:"right" }}>{(sk.tes||0).toFixed(2)}</td>
+                      <td style={{ padding:"8px", textAlign:"right" }}>{(sk.pcs||0).toFixed(2)}</td>
+                      <td style={{ padding:"8px", textAlign:"right", color: sk.deductions > 0 ? "#dc2626" : undefined }}>{sk.deductions > 0 ? "-"+(sk.deductions||0).toFixed(2) : "0.00"}</td>
+                      <td style={{ padding:"8px", textAlign:"right", fontWeight:"700", color:"#059669" }}>{(sk.total||0).toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div>
+              <button onClick={() => setSelectedSkaterIdx(null)} style={{ padding:"5px 10px", borderRadius:"5px", border:"1px solid #d1d5db", background:"white", fontSize:"11px", fontWeight:"600", cursor:"pointer", marginBottom:"12px" }}>← Zurück</button>
+              <div style={{ display:"flex", alignItems:"baseline", gap:"12px", marginBottom:"6px" }}>
+                <h2 style={{ fontSize:"16px", fontWeight:"700", color:"#065f46" }}>{selectedSkater.name}</h2>
+                <span style={{ fontSize:"12px", color:"#059669", fontWeight:"700" }}>Platz {selectedSkater.place}</span>
+              </div>
+              {selectedSkater.club && <p style={{ fontSize:"11px", color:"#6b7280", marginBottom:"12px" }}>{selectedSkater.club}</p>}
+              <div style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:"8px", marginBottom:"16px" }}>
+                {[["TES", selectedSkater.tes], ["PCS", selectedSkater.pcs], ["DED", selectedSkater.deductions], ["Total", selectedSkater.total]].map(([label, val]) => (
+                  <div key={label} style={{ padding:"10px", background:"#f0fdf4", borderRadius:"8px", borderLeft:"3px solid " + (label==="DED" && val > 0 ? "#dc2626" : "#059669") }}>
+                    <div style={{ fontSize:"10px", color:"#6b7280", fontWeight:"600" }}>{label}</div>
+                    <div style={{ fontSize:"18px", fontWeight:"700", color: label==="Total" ? "#059669" : label==="DED" && val > 0 ? "#dc2626" : "#065f46" }}>
+                      {label==="DED" && val > 0 ? "-" : ""}{(val||0).toFixed(2)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {(selectedSkater.elements || []).length > 0 && (
+                <div style={{ marginBottom:"16px" }}>
+                  <h3 style={{ fontSize:"13px", fontWeight:"700", color:"#374151", marginBottom:"8px" }}>Elemente ({selectedSkater.elements.length})</h3>
+                  <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px" }}>
+                    <thead>
+                      <tr style={{ background:"#f3f4f6", borderBottom:"1px solid #e5e7eb" }}>
+                        {["#","Typ","Code","Basis","QOE","Panel"].map(h => (
+                          <th key={h} style={{ padding:"6px", textAlign: h==="#"||h==="Typ"||h==="Code" ? "left" : "right", fontWeight:"600", color:"#374151" }}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedSkater.elements.map((el, idx) => (
+                        <tr key={idx} style={{ borderBottom:"1px solid #f3f4f6" }}>
+                          <td style={{ padding:"6px", color:"#6b7280" }}>{idx+1}</td>
+                          <td style={{ padding:"6px", fontSize:"10px", color:"#6b7280" }}>
+                            {el.type === "ComboJump" ? "Kombi" : el.type === "ComboSpin" ? "KSpin" : el.type === "Step Sequence" ? "Step" : el.type === "Spin" ? "Spin" : "Jump"}
+                          </td>
+                          <td style={{ padding:"6px", fontWeight:"600" }}>
+                            {el.type === "ComboJump" && el.subElements?.length > 1
+                              ? el.subElements.map(s => s.code).join("+")
+                              : el.elCode || "—"}
+                          </td>
+                          <td style={{ padding:"6px", textAlign:"right" }}>{(el.base||0).toFixed(2)}</td>
+                          <td style={{ padding:"6px", textAlign:"right", color: el.qoe > 0 ? "#059669" : el.qoe < 0 ? "#dc2626" : "#6b7280" }}>{el.qoe > 0 ? "+" : ""}{(el.qoe||0).toFixed(2)}</td>
+                          <td style={{ padding:"6px", textAlign:"right", fontWeight:"600" }}>{(el.panel||0).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {/* PCS Components */}
+              <div style={{ marginBottom:"16px" }}>
+                <h3 style={{ fontSize:"13px", fontWeight:"700", color:"#374151", marginBottom:"8px" }}>Program Components</h3>
+                <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"11px" }}>
+                  <thead><tr style={{ background:"#f3f4f6" }}><th style={{ padding:"6px", textAlign:"left" }}>Komponente</th><th style={{ padding:"6px" }}>J1</th><th style={{ padding:"6px" }}>J2</th><th style={{ padding:"6px" }}>J3</th></tr></thead>
+                  <tbody>
+                    {[["Skating Skills", "skating"], ["Transitions", "transitions"], ["Performance", "performance"], ["Choreography", "choreography"]].map(([label, key]) => (
+                      <tr key={key} style={{ borderBottom:"1px solid #f3f4f6" }}>
+                        <td style={{ padding:"6px" }}>{label}</td>
+                        <td style={{ padding:"6px", textAlign:"center" }}>{(selectedSkater.components?.[key]?.[0]||0).toFixed(2)}</td>
+                        <td style={{ padding:"6px", textAlign:"center" }}>{(selectedSkater.components?.[key]?.[1]||0).toFixed(2)}</td>
+                        <td style={{ padding:"6px", textAlign:"center" }}>{(selectedSkater.components?.[key]?.[2]||0).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button onClick={() => handleLoadSkater(selectedSkater)} style={{ padding:"10px 20px", borderRadius:"6px", border:"none", background:"#059669", color:"white", fontWeight:"700", fontSize:"13px", cursor:"pointer" }}>
+                ▶ Im Simulator laden
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
   //  MAIN DASHBOARD
   // ============================================================
   function App() {
     const authCtx = useAuth();
-    const [page, setPage] = useState("official"); // "content", "official", "training", "profile"
+    const [page, setPage] = useState("official"); // "content", "official", "training", "profile", "wettbewerbe"
     const [simImport, setSimImport] = useState(null);
     const [officialImport, setOfficialImport] = useState(null);
+    const [compImport, setCompImport] = useState(null);
     const [kategorie, setKategorie] = useState("senior");
     const [segment, setSegment] = useState("senior_fp");
     const [skater, setSkater] = useState("");
@@ -3254,6 +3794,24 @@
         setOfficialImport(null);
       }
     }, [officialImport]);
+
+    // Handle competition import
+    useEffect(() => {
+      if (compImport) {
+        setSkater(compImport.name || "");
+        setCat(compImport.verein || "");
+        setMusic(compImport.music || "");
+        setKategorie(compImport.kategorie || "senior");
+        setSegment(compImport.segment || "senior_fp");
+        setRows(compImport.rows || Array.from({length: SEGMENT_DEFS[compImport.segment || "senior_fp"].rows}, emptyRow));
+        setPcs(compImport.pcs || emptyPcs());
+        setDeductions(compImport.deductions || 0);
+        setExtraPoints(compImport.extraPoints || 0);
+        setJudgeCount(compImport.judgeCount || 3);
+        setPage("content");
+        setCompImport(null);
+      }
+    }, [compImport]);
 
     const updateRow = useCallback((i, data) => {
       setRows(prev => prev.map((r,j)=>j===i?data:r));
@@ -3549,6 +4107,8 @@
                   background:page==="content"?"white":"rgba(255,255,255,.2)",color:page==="content"?"#059669":"white"}}>Content Elements Sheet</button>
                 <button onClick={()=>setPage("training")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
                   background:page==="training"?"white":"rgba(255,255,255,.2)",color:page==="training"?"#059669":"white"}}>Training Simulator</button>
+                <button onClick={()=>setPage("wettbewerbe")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
+                  background:page==="wettbewerbe"?"white":"rgba(255,255,255,.2)",color:page==="wettbewerbe"?"#059669":"white"}}>Wettbewerbe</button>
                 {authCtx?.user?.role==="admin"&&<button onClick={()=>setPage("admin")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
                   background:page==="admin"?"white":"rgba(255,255,255,.2)",color:page==="admin"?"#dc2626":"white"}}>⚙ Admin</button>}
               </div>
@@ -3604,6 +4164,9 @@
 
         {/* TRAINING SIMULATOR PAGE */}
         {page==="training"&&<TrainingSimulator importData={simImport} onImportDone={()=>setSimImport(null)}/>}
+
+        {/* COMPETITIONS PAGE */}
+        {page==="wettbewerbe"&&<CompetitionPage onLoadSkater={(data)=>setCompImport(data)}/>}
 
         {/* ADMIN PAGE */}
         {page==="admin"&&authCtx?.user?.role==="admin"&&<AdminDashboard onClose={()=>setPage("official")}/>}
