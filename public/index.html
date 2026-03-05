@@ -1877,7 +1877,7 @@
 
       // 6. PCS potential
       const pcsComps=PCS_COMPONENTS.map(comp=>{
-        const avg=calcPcsAvg(pcs[comp.key],judgeCount);
+        const avg=calcPcsAvg(pcs[comp.key],judgeCount)||0;
         return{key:comp.key,label:comp.label,avg};
       });
       const lowest=pcsComps.reduce((min,c)=>c.avg<min.avg?c:min,pcsComps[0]);
@@ -2390,8 +2390,8 @@
     // PCS
     const pcsTotal=useMemo(()=>{
       return PCS_COMPONENTS.reduce((sum,comp)=>{
-        const avg=calcPcsAvg(pcs[comp.key],judgeCount);
-        return sum+avg*pcsFactor;
+        const avg=calcPcsAvg(pcs[comp.key],judgeCount)||0;
+        return sum+(avg*pcsFactor)||0;
       },0);
     },[pcs,judgeCount,pcsFactor]);
 
@@ -2532,8 +2532,8 @@
             <div style={{background:"white",borderRadius:10,border:"2px solid #93c5fd",padding:12,marginTop:16}}>
               <h3 style={{margin:"0 0 8px",fontSize:14,fontWeight:800,color:"#1e40af"}}>Program Components (Faktor {pcsFactor.toFixed(1)})</h3>
               {PCS_COMPONENTS.map(comp=>{
-                const avg=calcPcsAvg(pcs[comp.key],judgeCount);
-                const sc=Math.round(avg*pcsFactor*100)/100;
+                const avg=calcPcsAvg(pcs[comp.key],judgeCount)||0;
+                const sc=Math.round(avg*pcsFactor*100)/100||0;
                 return(
                   <div key={comp.key} style={{display:"flex",gap:6,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
                     <span style={{fontSize:11,fontWeight:600,minWidth:170}}>{comp.label}</span>
@@ -3244,13 +3244,14 @@
 
     // --- CATEGORY MAPPING ---
     const parseCategory = (text) => {
-      const t = (text || "").toUpperCase();
+      // Normalize Unicode (decomposed → precomposed) and uppercase
+      const t = (text || "").normalize("NFC").toUpperCase();
       const sp = t.includes("SHORT");
-      if (t.includes("TOTS") || t.includes("SCHÜLER D") || t.includes("SCHULER D")) return { kategorie:"tots", segment: sp?"tots_sp":"tots_fp" };
-      if (t.includes("MINIS") || t.includes("SCHÜLER C") || t.includes("SCHULER C") || /JAHRGANG\s+201[45]/.test(t)) return { kategorie:"minis", segment: sp?"minis_sp":"minis_fp" };
-      if (t.includes("ESPOIRS") || t.includes("SCHÜLER B")) return { kategorie:"espoirs", segment: sp?"espoirs_sp":"espoirs_fp" };
+      if (t.includes("TOTS") || t.includes("SCHÜLER D") || t.includes("SCHULER D") || t.includes("SCH\u00DCLER D")) return { kategorie:"tots", segment: sp?"tots_sp":"tots_fp" };
+      if (t.includes("MINIS") || t.includes("SCHÜLER C") || t.includes("SCHULER C") || t.includes("SCH\u00DCLER C") || /JAHRGANG\s+201[45]/.test(t)) return { kategorie:"minis", segment: sp?"minis_sp":"minis_fp" };
+      if (t.includes("ESPOIRS") || t.includes("SCHÜLER B") || t.includes("SCHULER B") || t.includes("SCH\u00DCLER B")) return { kategorie:"espoirs", segment: sp?"espoirs_sp":"espoirs_fp" };
       if (t.includes("CADETS") || t.includes("KADETT")) return { kategorie:"cadets", segment: sp?"cadets_sp":"cadets_fp" };
-      if (t.includes("YOUTH") || t.includes("JUGEND")) return { kategorie:"youth", segment: sp?"youth_sp":"youth_fp" };
+      if (t.includes("YOUTH") || t.includes("JUGEND") || t.includes("JEUNESSE")) return { kategorie:"jeunesse", segment: sp?"jeunesse_sp":"jeunesse_fp" };
       if (t.includes("JUNIOR") || t.includes("JUNIOREN")) return { kategorie:"junior", segment: sp?"junior_sp":"junior_fp" };
       return { kategorie:"senior", segment: sp?"senior_sp":"senior_fp" };
     };
@@ -3519,9 +3520,19 @@
         const p1 = pageTexts[0] || "";
         let compName = "", compDate = "", categoryText = "";
         for (const line of p1.split("\n")) {
-          if (line.includes("Ranglistenwettbewerb") || line.includes("Championship")) compName = line.trim();
+          if (line.includes("Ranglistenwettbewerb") || line.includes("Championship") || line.includes("Meisterschaft")) compName = line.trim();
           if (/\d{2}\/\d{2}\/\d{4}/.test(line)) compDate = line.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] || "";
           if ((line.includes("Free Skating") || line.includes("Short Program") || line.includes("Pairs")) && !line.includes("FINAL")) categoryText = line.trim();
+        }
+        // Also check JUDGES pages for category if page 1 didn't have it
+        if (!categoryText) {
+          for (const pt of pageTexts) {
+            const firstLine = (pt || "").split("\n")[0] || "";
+            if (firstLine.includes("Free Skating") || firstLine.includes("Short Program") || firstLine.includes("Pairs")) {
+              categoryText = firstLine.trim();
+              break;
+            }
+          }
         }
         if (!compName && categoryText) compName = categoryText;
         if (compDate) compName += " - " + compDate;
@@ -3886,7 +3897,7 @@
                 </table>
               </div>
               <button onClick={() => handleLoadSkater(selectedSkater)} style={{ padding:"10px 20px", borderRadius:"6px", border:"none", background:"#059669", color:"white", fontWeight:"700", fontSize:"13px", cursor:"pointer" }}>
-                ▶ Im Simulator laden
+                ▶ Ins Content Sheet laden
               </button>
             </div>
           )}
@@ -4047,8 +4058,8 @@
     const pcsFactor = PCS_FACTORS[segment] || 1.0;
     const pcsTotal = useMemo(() => {
       return PCS_COMPONENTS.reduce((sum, comp) => {
-        const avg = calcPcsAvg(pcs[comp.key], judgeCount);
-        return sum + avg * pcsFactor;
+        const avg = calcPcsAvg(pcs[comp.key], judgeCount) || 0;
+        return sum + (avg * pcsFactor) || 0;
       }, 0);
     }, [pcs, judgeCount, pcsFactor]);
 
@@ -4219,9 +4230,9 @@
       lines.push("=== PROGRAM COMPONENT SCORE ===");
       lines.push(`Faktor: ${pcsFactor.toFixed(1)}`);
       PCS_COMPONENTS.forEach(comp=>{
-        const avg = calcPcsAvg(pcs[comp.key], judgeCount);
-        const sc = Math.round(avg*pcsFactor*100)/100;
-        const jScores = pcs[comp.key].slice(0,judgeCount).map(v=>v.toFixed(2).padStart(5)).join(" ");
+        const avg = calcPcsAvg(pcs[comp.key], judgeCount)||0;
+        const sc = Math.round(avg*pcsFactor*100)/100||0;
+        const jScores = pcs[comp.key].slice(0,judgeCount).map(v=>(v||0).toFixed(2).padStart(5)).join(" ");
         lines.push(`${comp.label.padEnd(30)} | ${jScores} | Avg: ${avg.toFixed(2)} | Score: ${sc.toFixed(2)}`);
       });
       lines.push(`PCS: ${pcsTotal.toFixed(2)}`);
@@ -4409,7 +4420,7 @@
               setSimImport({kategorie,segment,skater,cat,music,judgeCount,rows:rows.map(r=>({...r})),pcs:{...pcs,skating:[...pcs.skating],transitions:[...pcs.transitions],performance:[...pcs.performance],choreography:[...pcs.choreography]},deductions,extraPoints,_ts:Date.now()});
               setPage("training");
             }} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#7c3aed",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
-              &#9654; An Simulator senden
+              &#9654; An Simulator
             </button>
             <button onClick={addRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>+ Zeile</button>
             <button onClick={removeRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>- Zeile</button>
@@ -4763,8 +4774,8 @@
               </thead>
               <tbody>
                 {PCS_COMPONENTS.map(comp => {
-                  const avg = calcPcsAvg(pcs[comp.key], judgeCount);
-                  const compScore = Math.round(avg * pcsFactor * 100) / 100;
+                  const avg = calcPcsAvg(pcs[comp.key], judgeCount) || 0;
+                  const compScore = Math.round(avg * pcsFactor * 100) / 100 || 0;
                   return (
                     <tr key={comp.key} style={{borderBottom:"1px solid #e5e7eb"}}>
                       <td style={{padding:"8px 10px",fontSize:12,fontWeight:600}}>{comp.label}</td>
