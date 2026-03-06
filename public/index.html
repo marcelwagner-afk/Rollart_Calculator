@@ -26,9 +26,15 @@
       .r-sidebar-mobile { width: 100% !important; max-height: 200px !important; border-right: none !important; border-bottom: 1px solid #e5e7eb !important; }
       /* Better touch targets on mobile */
       select, input[type="text"], input[type="email"], input[type="password"], input[type="number"] {
-        min-height: 38px !important; font-size: 16px !important;
+        min-height: 36px !important; font-size: 14px !important;
       }
-      button { min-height: 36px; }
+      input[type="date"] { min-height: 36px !important; font-size: 14px !important; }
+      button { min-height: 32px; }
+      /* Table cells more compact on mobile */
+      .r-table-wrap table th, .r-table-wrap table td { padding: 4px 3px !important; font-size: 11px !important; }
+      .r-table-wrap select { font-size: 11px !important; min-height: 30px !important; padding: 2px 1px !important; }
+      /* Competition/diary cards */
+      .r-compact-mobile { padding: 10px !important; }
     }
     @media (max-width: 900px) {
       .r-hide-tablet { display: none !important; }
@@ -2639,7 +2645,7 @@
           <div style={{marginLeft:"auto",fontSize:11,color:"#6b7280"}}>{filled} / {rows.length} Elemente</div>
         </div>
 
-        <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 300px",gap:16,alignItems:"start"}}>
+        <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:window.innerWidth<=640?"1fr":"1fr 300px",gap:window.innerWidth<=640?10:16,alignItems:"start"}}>
           {/* Element cards */}
           <div>
             <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:800,color:"#065f46"}}>Programm-Elemente</h3>
@@ -4145,8 +4151,8 @@
         if(!latestScores[h.skaterName]||h.date>latestScores[h.skaterName].date) latestScores[h.skaterName]=h;
       });
       return(
-        <div style={{overflow:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+        <div className="r-table-wrap" style={{overflow:"auto",WebkitOverflowScrolling:"touch"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:500}}>
             <thead><tr style={{background:"#f0fdf4",borderBottom:"2px solid #059669"}}>
               <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700}}>Läufer</th>
               <th style={{padding:"8px 10px",textAlign:"left"}}>Kategorie</th>
@@ -4295,7 +4301,7 @@
       const setEl=(i,k,v)=>{const els=[...form.elements];els[i]={...els[i],[k]:v};setForm({...form,elements:els});};
       return(
         <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:16,marginBottom:12}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:10}}>
+          <div className="r-grid2-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:10}}>
             <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Datum</label><input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
             <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Dauer (Min)</label><input type="number" value={form.duration} onChange={e=>setForm({...form,duration:parseInt(e.target.value)||0})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
             <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Läufer</label><select value={form.skaterName} onChange={e=>setForm({...form,skaterName:e.target.value})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}>
@@ -4420,7 +4426,7 @@
       const [form,setForm]=useState(initial||empty);
       return(
         <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:16,marginBottom:12}}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+          <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
             <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Wettkampf-Name</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="z.B. Landesmeisterschaft NRW" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
             <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Datum</label><input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
             <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Ort</label><input value={form.location} onChange={e=>setForm({...form,location:e.target.value})} placeholder="z.B. Düsseldorf" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
@@ -4501,6 +4507,89 @@
         </>}
 
         {competitions.length===0&&!showForm&&<p style={{color:"#6b7280",fontSize:13,textAlign:"center",padding:40}}>Noch keine Wettkämpfe eingetragen. Klicke "+ Wettkampf" um den ersten hinzuzufügen.</p>}
+      </div>
+    );
+  }
+
+  // ============================================================
+  //  ANLEITUNG (User Guide)
+  // ============================================================
+  function AnleitungPage(){
+    const scr=useScreen();
+    const Section=({icon,title,children})=>(
+      <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:scr.mobile?12:20,marginBottom:12}}>
+        <h3 style={{margin:"0 0 10px",fontSize:scr.mobile?14:16,fontWeight:800,color:"#065f46"}}>{icon} {title}</h3>
+        <div style={{fontSize:scr.mobile?12:13,color:"#374151",lineHeight:1.7}}>{children}</div>
+      </div>
+    );
+    const Tip=({children})=><div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:6,padding:"8px 12px",margin:"8px 0",fontSize:12,color:"#92400e"}}><strong>Tipp:</strong> {children}</div>;
+    const Key=({children})=><span style={{display:"inline-block",background:"#f0fdf4",border:"1px solid #86efac",borderRadius:4,padding:"1px 8px",fontSize:11,fontWeight:700,color:"#065f46"}}>{children}</span>;
+
+    return(
+      <div style={{padding:scr.mobile?"10px 12px":"16px 20px",maxWidth:900,margin:"0 auto"}}>
+        <div style={{textAlign:"center",marginBottom:20}}>
+          <h2 style={{margin:0,fontSize:scr.mobile?20:24,fontWeight:800,color:"#065f46"}}>Anleitung — RollArt 2026</h2>
+          <p style={{margin:"6px 0 0",fontSize:13,color:"#6b7280"}}>Alles, was du wissen musst, um das Beste aus deinem Trainings-Tool herauszuholen.</p>
+        </div>
+
+        <Section icon="1." title="Content Sheet — Score berechnen">
+          <p>Das <strong>Content Sheet</strong> ist das Herzstück der App. Hier gibst du ein komplettes Programm ein und berechnest den Score nach offiziellen World Skate 2026 Regeln.</p>
+          <p style={{marginTop:8}}><strong>So gehst du vor:</strong></p>
+          <p style={{marginTop:4}}>Wähle zunächst oben die <Key>Kategorie</Key> (z.B. Cadets, Junior, Senior) und das <Key>Segment</Key> (Short Program oder Free Program). Bei Einzel-Programmen kannst du zusätzlich das <Key>Geschlecht</Key> (D/H) einstellen — das beeinflusst den PCS-Faktor bei Cadets+ im Free Program.</p>
+          <p style={{marginTop:4}}>Trage den Namen, Verein/Kategorie und Musik ein. Dann wähle für jede Zeile den <Key>Typ</Key> (SJu = Sprung, CSp = Spin, etc.) und das <Key>Element</Key> (z.B. 2A, 3Lo). Die Rotation und der Basiswert werden automatisch berechnet.</p>
+          <p style={{marginTop:4}}>Jeder Judge vergibt einen <Key>QOE</Key>-Wert von -3 bis +3. Stelle die Anzahl der Judges auf 3 oder 5 ein. Bei NV (No Value) wird das Element nicht gewertet, bei DG (Downgrade) auf halben Basiswert herabgestuft.</p>
+          <p style={{marginTop:4}}>Unter der Tabelle findest du die <Key>Program Components</Key> (PCS): Skating Skills, Transitions, Performance und Choreography. Jeder Judge bewertet auf einer Skala von 0.00 bis 10.00.</p>
+          <Tip>Nutze "Score speichern" um deinen aktuellen Score im Dashboard zu tracken. So siehst du deinen Fortschritt über die Zeit!</Tip>
+        </Section>
+
+        <Section icon="2." title="Simulator — Programm optimieren">
+          <p>Der <strong>Simulator</strong> lässt dich ein Programm aus dem Content Sheet oder einem Wettkampf importieren und mit verschiedenen Element-Kombinationen experimentieren.</p>
+          <p style={{marginTop:4}}>Du siehst alle verfügbaren Elemente (Sprünge, Spins, Schritte, etc.) und kannst diese per Drag & Drop oder Auswahl dem Programm hinzufügen.</p>
+          <p style={{marginTop:8}}><strong>Was-wäre-wenn-Modus:</strong> Klicke auf <Key>Snapshot erstellen</Key>, um den aktuellen Stand zu speichern. Ändere dann Elemente und sieh sofort die Differenz zum Original — ideal um verschiedene Programm-Varianten zu vergleichen.</p>
+          <Tip>Nutze "An Simulator" im Content Sheet, um dein aktuelles Programm direkt in den Simulator zu übertragen.</Tip>
+        </Section>
+
+        <Section icon="3." title="Dashboard — Fortschritt verfolgen">
+          <p>Das <strong>Dashboard</strong> zeigt dir drei Ansichten:</p>
+          <p style={{marginTop:4}}><strong>Score-Verlauf:</strong> Ein Diagramm deiner gespeicherten Scores über die Zeit. Du siehst Total, TES und PCS als separate Linien — so erkennst du Trends und Verbesserungen.</p>
+          <p style={{marginTop:4}}><strong>Läufer-Vergleich:</strong> Vergleiche alle gespeicherten Läufer nebeneinander mit ihren besten Scores, Kategorien und letztem Training.</p>
+          <p style={{marginTop:4}}><strong>Element-Erfolgsquote:</strong> Basierend auf deinem Trainings-Tagebuch siehst du, welche Elemente du wie oft landest — z.B. "2A: 75% Erfolgsquote".</p>
+        </Section>
+
+        <Section icon="4." title="Trainings-Tagebuch — Elemente tracken">
+          <p>Im <strong>Tagebuch</strong> dokumentierst du jede Trainingseinheit. Für jedes Element (z.B. 2A, 3Lo, CCSp) trägst du ein, wie viele Versuche du hattest und wie viele gelandet sind.</p>
+          <p style={{marginTop:4}}>Die App berechnet automatisch die Erfolgsquote pro Element. So siehst du schwarz auf weiß, welche Elemente gut sitzen und woran du noch arbeiten musst.</p>
+          <Tip>Diese Daten fließen in die Element-Erfolgsquote im Dashboard ein — je mehr du einträgst, desto aussagekräftiger!</Tip>
+        </Section>
+
+        <Section icon="5." title="Wettkampf-Kalender — Vorbereitung planen">
+          <p>Trage im <strong>Kalender</strong> deine kommenden Wettkämpfe ein mit Datum und Ort. Die App zeigt dir einen Countdown und du kannst eine Checkliste anlegen.</p>
+          <p style={{marginTop:4}}>Typische Checklisten-Punkte: Musik auf USB, Kostüm geprüft, Startgeld bezahlt, Anreise geplant, etc. So vergisst du nichts!</p>
+        </Section>
+
+        <Section icon="6." title="Wettbewerbe — PDF importieren">
+          <p>Unter <strong>Wettbewerbe</strong> kannst du offizielle Ergebnis-PDFs von World Skate Turnieren hochladen. Die App erkennt automatisch die Elemente, Scores und PCS-Werte und importiert sie.</p>
+          <p style={{marginTop:4}}>Du kannst importierte Daten direkt ins Content Sheet oder den Simulator laden, um sie zu analysieren oder zu vergleichen.</p>
+        </Section>
+
+        <Section icon="7." title="Official Sheet — Wettkampfprotokoll">
+          <p>Das <strong>Official Sheet</strong> entspricht dem offiziellen Wettkampfprotokoll für Chief of Judges, Substitute Judges und Content Specialists.</p>
+          <p style={{marginTop:4}}>Nutze "An Official Sheet" im Content Sheet, um dein Programm dorthin zu übertragen. Du kannst auch Daten vom Official Sheet ins Content Sheet zurückschicken.</p>
+        </Section>
+
+        <Section icon="8." title="Glossar & Regeln">
+          <p>Im <strong>Glossar</strong> findest du alle wichtigen Abkürzungen und Begriffe erklärt: QOE, TES, PCS, PE, NV, DG und mehr. Außerdem eine Übersicht aller Elemente mit ihren Codes und Basiswerten — praktisch zum Nachschlagen.</p>
+        </Section>
+
+        <Section icon="9." title="Läufer speichern & laden">
+          <p>Im Content Sheet kannst du über <Key>Läufer speichern</Key> das komplette Programm (inkl. aller Elemente, PCS-Werte, Abzüge) auf dem Server sichern. Über <Key>Läufer laden</Key> holst du es jederzeit zurück.</p>
+          <p style={{marginTop:4}}>Jeder Trainer kann beliebig viele Läufer-Profile anlegen — ideal um mehrere Schützlinge zu betreuen.</p>
+        </Section>
+
+        <div style={{background:"#f0fdf4",border:"2px solid #059669",borderRadius:10,padding:scr.mobile?12:20,textAlign:"center"}}>
+          <div style={{fontSize:scr.mobile?16:18,fontWeight:800,color:"#065f46",marginBottom:6}}>Viel Erfolg beim Training!</div>
+          <p style={{fontSize:12,color:"#6b7280",margin:0}}>RollArt 2026 — Dein Werkzeug für den perfekten Score. Basierend auf den offiziellen World Skate Artistic Impression Regeln 2026.</p>
+        </div>
       </div>
     );
   }
@@ -4918,7 +5007,7 @@
     return (
       <div style={{ background:"#f8faf9", minHeight:"100vh" }}>
         {/* HEADER */}
-        <div style={{ background:"linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)", padding:"12px 16px 10px", color:"white" }}>
+        <div style={{ background:"linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)", padding:window.innerWidth<=640?"10px 10px 8px":"12px 16px 10px", color:"white" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:6 }}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{fontSize:10,fontWeight:600,opacity:.8,letterSpacing:2,textTransform:"uppercase"}}>World Skate</div>
@@ -4934,8 +5023,9 @@
                   {key:"wettbewerbe",label:"Wettbewerbe"},
                   {key:"official",label:"Official Sheet"},
                   {key:"glossar",label:"Glossar & Regeln"},
+                  {key:"anleitung",label:"Anleitung"},
                 ].map(t=>(
-                  <button key={t.key} onClick={()=>setPage(t.key)} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
+                  <button key={t.key} onClick={()=>setPage(t.key)} style={{padding:window.innerWidth<=640?"4px 9px":"5px 14px",borderRadius:6,border:"none",fontSize:window.innerWidth<=640?10:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
                     background:page===t.key?"white":"rgba(255,255,255,.2)",color:page===t.key?"#059669":"white"}}>{t.label}</button>
                 ))}
                 {authCtx?.user?.role==="admin"&&<button onClick={()=>setPage("admin")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
@@ -4964,7 +5054,7 @@
           </div>
 
           {/* Category + Segment selector + Judge count */}
-          {page==="content"&&<div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap",alignItems:"center"}}>
+          {page==="content"&&<div style={{display:"flex",gap:window.innerWidth<=640?4:6,marginTop:window.innerWidth<=640?6:10,flexWrap:"wrap",alignItems:"center"}}>
             <select value={kategorie} onChange={e=>changeKategorie(e.target.value)} style={{
               padding:"6px 10px",borderRadius:6,border:"2px solid rgba(255,255,255,.3)",fontSize:12,fontWeight:700,
               background:"rgba(255,255,255,.15)",color:"white",cursor:"pointer",
@@ -5002,6 +5092,7 @@
         </div>
 
         {/* TRAINING SIMULATOR PAGE */}
+        {page==="anleitung"&&<AnleitungPage/>}
         {page==="dashboard"&&<DashboardPage/>}
         {page==="training"&&<TrainingSimulator importData={simImport} onImportDone={()=>setSimImport(null)}/>}
         {page==="tagebuch"&&<TrainingDiary/>}
@@ -5236,7 +5327,7 @@
         {page==="official"&&<OfficialSheets onSendToContent={(data)=>{setOfficialImport(data);setPage("content");}} importFromContent={officialExport}/>}
 
         {/* CONTENT SHEET PAGE */}
-        {page==="content"&&<div style={{padding:"12px 16px",maxWidth:1150,margin:"0 auto"}}>
+        {page==="content"&&<div style={{padding:window.innerWidth<=640?"8px 8px":"12px 16px",maxWidth:1150,margin:"0 auto"}}>
 
           {/* Info fields */}
           <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
@@ -5246,7 +5337,7 @@
           </div>
 
           {/* Actions */}
-          <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+          <div style={{display:"flex",gap:window.innerWidth<=640?4:6,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
             <label style={{padding:"6px 12px",borderRadius:5,border:"1px solid #059669",background:"#f0fdf4",color:"#059669",fontWeight:600,fontSize:11,cursor:"pointer"}}>
               Content Sheet (PDF/TXT)
               <input type="file" accept=".pdf,.txt" onChange={handleUpload} style={{display:"none"}}/>
@@ -5311,8 +5402,8 @@
 
 
           {/* TABLE */}
-          <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",overflow:"auto"}}>
-            <table style={{width:"100%",borderCollapse:"collapse",minWidth:850}}>
+          <div className="r-table-wrap" style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",overflow:"auto",WebkitOverflowScrolling:"touch"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",minWidth:680}}>
               <thead>
                 <tr style={{background:"#f0fdf4",borderBottom:"2px solid #059669"}}>
                   <th style={{...hdr,textAlign:"center",width:32}}>#</th>
@@ -5347,7 +5438,7 @@
           </div>
 
           {/* PROGRAM COMPONENTS */}
-          <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",overflow:"auto",marginTop:16}}>
+          <div className="r-table-wrap" style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",overflow:"auto",marginTop:16,WebkitOverflowScrolling:"touch"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead>
                 <tr style={{background:"#eff6ff",borderBottom:"2px solid #3b82f6"}}>
@@ -5403,10 +5494,10 @@
           </div>
 
           {/* DEDUCTIONS & EXTRA */}
-          <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16,marginTop:16}}>
-  <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
-    <div style={{display:"flex",alignItems:"center",gap:8}}>
-      <span style={{fontSize:13,fontWeight:700,color:"#dc2626"}}>Abzüge (PE):</span>
+          <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:window.innerWidth<=640?10:16,marginTop:16}}>
+  <div style={{display:"flex",gap:window.innerWidth<=640?8:12,flexWrap:"wrap",alignItems:"center"}}>
+    <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+      <span style={{fontSize:window.innerWidth<=640?11:13,fontWeight:700,color:"#dc2626"}}>Abzüge (PE):</span>
       <button onClick={()=>setDeductions(d=>Math.round((d+0.5)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:700,fontSize:12,cursor:"pointer"}}>+0.5</button>
       <button onClick={()=>setDeductions(d=>Math.round((d+1.0)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:700,fontSize:12,cursor:"pointer"}}>+1.0</button>
       <input type="number" min="0" step="0.1" value={deductions} onChange={e=>setDeductions(parseFloat(e.target.value)||0)}
@@ -5414,8 +5505,8 @@
       <button onClick={()=>setDeductions(d=>Math.max(0,Math.round((d-0.5)*100)/100))} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:700,fontSize:12,cursor:"pointer"}}>-0.5</button>
       <button onClick={()=>setDeductions(0)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
     </div>
-    <div style={{display:"flex",alignItems:"center",gap:8}}>
-      <span style={{fontSize:13,fontWeight:700,color:"#059669"}}>Extra Punkte:</span>
+    <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
+      <span style={{fontSize:window.innerWidth<=640?11:13,fontWeight:700,color:"#059669"}}>Extra Punkte:</span>
       <button onClick={()=>setExtraPoints(d=>Math.round((d+0.5)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #86efac",background:"#f0fdf4",color:"#059669",fontWeight:700,fontSize:12,cursor:"pointer"}}>+0.5</button>
       <button onClick={()=>setExtraPoints(d=>Math.round((d+1.0)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #86efac",background:"#f0fdf4",color:"#059669",fontWeight:700,fontSize:12,cursor:"pointer"}}>+1.0</button>
       <input type="number" min="0" step="0.1" value={extraPoints} onChange={e=>setExtraPoints(parseFloat(e.target.value)||0)}
@@ -5423,7 +5514,7 @@
       <button onClick={()=>setExtraPoints(d=>Math.max(0,Math.round((d-0.5)*100)/100))} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:700,fontSize:12,cursor:"pointer"}}>-0.5</button>
       <button onClick={()=>setExtraPoints(0)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
     </div>
-    <div style={{background:"#f0fdf4",borderRadius:8,border:"2px solid #059669",padding:"8px 16px",marginLeft:"auto"}}>
+    <div style={{background:"#f0fdf4",borderRadius:8,border:"2px solid #059669",padding:"8px 16px",marginLeft:window.innerWidth<=640?0:"auto",width:window.innerWidth<=640?"100%":"auto",textAlign:"center"}}>
       <span style={{fontSize:12,fontWeight:600,color:"#065f46"}}>Total Score: </span>
       <span style={{fontSize:22,fontWeight:800,color:"#059669"}}>{totalScore.toFixed(2)}</span>
     </div>
