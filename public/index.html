@@ -2840,7 +2840,19 @@
         background: 'linear-gradient(135deg,#065f46,#059669)', color: 'white', fontSize: 18, fontWeight: 600 }
     }, 'RollArt wird geladen...');
 
-    return React.createElement(AuthContext.Provider, { value: { user, login, register, logout, updateProfile, changePassword } }, children);
+    // Helper: License-Status berechnen
+    const getLicenseStatus = () => {
+      if (!user || !user.license) return { valid: true, plan: 'full' };
+      const lic = user.license;
+      if (!lic.active) return { valid: false, reason: 'inactive', plan: lic.plan };
+      if (lic.expiresAt) {
+        const now = new Date().toISOString().split('T')[0];
+        if (now > lic.expiresAt) return { valid: false, reason: 'expired', expiresAt: lic.expiresAt, plan: lic.plan };
+      }
+      return { valid: true, plan: lic.plan || 'full', expiresAt: lic.expiresAt };
+    };
+
+    return React.createElement(AuthContext.Provider, { value: { user, login, register, logout, updateProfile, changePassword, getLicenseStatus } }, children);
   }
 
   // ============================================================
@@ -3123,6 +3135,10 @@
     const [editUser, setEditUser] = useState(null);
     const [resetPw, setResetPw] = useState({});
     const [searchTerm, setSearchTerm] = useState("");
+    const [showCreateUser, setShowCreateUser] = useState(false);
+    const [newUserForm, setNewUserForm] = useState({email:"",name:"",verein:"",kategorie:"",plan:"full",expiresAt:"",sendEmail:true});
+    const [createdPw, setCreatedPw] = useState(null); // nach Erstellung angezeigtes PW
+    const [creating, setCreating] = useState(false);
 
     const load = async () => {
       setLoading(true);
@@ -3133,7 +3149,7 @@
       setLoading(false);
     };
     useEffect(() => { load(); }, []);
-    const showMsg = (m) => { setMsg(m); setTimeout(() => setMsg(""), 3000); };
+    const showMsg = (m) => { setMsg(m); setTimeout(() => setMsg(""), 4000); };
 
     const updateUserRole = async (id, role) => {
       try { await api('/api/admin/users/' + id, { method: 'PUT', body: JSON.stringify({ role }) }); showMsg("Rolle geaendert"); load(); }
@@ -3151,6 +3167,11 @@
         showMsg("Passwort zurueckgesetzt"); setResetPw(p => ({ ...p, [id]: "" })); }
       catch (e) { showMsg("Fehler: " + e.message); }
     };
+    const sendCredentials = async (id) => {
+      try { const d = await api('/api/admin/users/' + id + '/send-credentials', { method: 'POST' });
+        showMsg(d.emailSent ? "Zugangsdaten per E-Mail gesendet" : "Neues PW: " + d.generatedPassword + " (E-Mail nicht konfiguriert)"); }
+      catch (e) { showMsg("Fehler: " + e.message); }
+    };
     const saveSettings = async () => {
       try { const d = await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify(settings) });
         setSettings(d.settings); showMsg("Einstellungen gespeichert"); }
@@ -3158,9 +3179,25 @@
     };
     const saveUserEdit = async () => {
       if (!editUser) return;
-      try { await api('/api/admin/users/' + editUser.id, { method: 'PUT', body: JSON.stringify({
-        name: editUser.name, verein: editUser.verein, kategorie: editUser.kategorie, role: editUser.role }) });
+      const body = { name: editUser.name, verein: editUser.verein, kategorie: editUser.kategorie, role: editUser.role,
+        license: { plan: editUser._licPlan || 'full', expiresAt: editUser._licExpires || null, active: editUser._licActive !== false } };
+      try { await api('/api/admin/users/' + editUser.id, { method: 'PUT', body: JSON.stringify(body) });
         showMsg("User aktualisiert"); setEditUser(null); load(); }
+      catch (e) { showMsg("Fehler: " + e.message); }
+    };
+    const createUser = async () => {
+      setCreating(true);
+      try {
+        const d = await api('/api/admin/users', { method: 'POST', body: JSON.stringify(newUserForm) });
+        setCreatedPw(d.generatedPassword);
+        showMsg(d.emailSent ? "Benutzer erstellt und E-Mail gesendet" : "Benutzer erstellt (E-Mail nicht gesendet)");
+        load();
+      } catch (e) { showMsg("Fehler: " + e.message); }
+      setCreating(false);
+    };
+    const updateLicense = async (id, licUpdate) => {
+      try { await api('/api/admin/users/' + id, { method: 'PUT', body: JSON.stringify({ license: licUpdate }) });
+        showMsg("Lizenz aktualisiert"); load(); }
       catch (e) { showMsg("Fehler: " + e.message); }
     };
 
@@ -3168,6 +3205,15 @@
       u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.verein?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    // License status helper
+    const licStatus = (u) => {
+      const lic = u.license || { plan:'full', active:true, expiresAt:null };
+      if (!lic.active) return { label:"Gesperrt", color:"#6b7280", bg:"#f3f4f6" };
+      if (lic.expiresAt && lic.expiresAt < new Date().toISOString().split('T')[0]) return { label:"Abgelaufen", color:"#dc2626", bg:"#fef2f2" };
+      return { label:"Aktiv", color:"#059669", bg:"#f0fdf4" };
+    };
+    const planLabel = (p) => p==='einzel'?'Einzellauf':p==='pairs'?'Paarlauf':'Voll';
 
     const tabS = (t) => ({ padding:"8px 16px", borderRadius:"8px 8px 0 0", border:"none", fontSize:12, fontWeight:700,
       cursor:"pointer", background:tab===t?"white":"transparent", color:tab===t?"#7c3aed":"#9ca3af",
@@ -3178,7 +3224,7 @@
     if (loading) return <div style={{ padding:40, textAlign:"center", color:"#6b7280" }}>Laden...</div>;
 
     return (
-      <div style={{ padding:"16px 20px", maxWidth:1000, margin:"0 auto" }}>
+      <div style={{ padding:"16px 20px", maxWidth:1100, margin:"0 auto" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
           <div>
             <h2 style={{ margin:0, fontSize:22, fontWeight:800, color:"#7c3aed" }}>Admin Dashboard</h2>
@@ -3205,6 +3251,29 @@
               </div>
             ))}
           </div>
+          {/* License Stats */}
+          {stats.licenseStats&&(<div style={{ ...cS, marginBottom:16 }}>
+            <h3 style={{ margin:"0 0 12px", fontSize:14, fontWeight:700, color:"#374151" }}>Lizenzen</h3>
+            <div className="r-grid2-mobile" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:12 }}>
+              <div style={{ background:"#f0fdf4", borderRadius:8, padding:12, textAlign:"center", border:"1px solid #d1fae533" }}>
+                <div style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Aktiv</div>
+                <div style={{ fontSize:24, fontWeight:800, color:"#059669" }}>{stats.licenseStats.active}</div>
+              </div>
+              <div style={{ background:"#fef2f2", borderRadius:8, padding:12, textAlign:"center", border:"1px solid #fca5a533" }}>
+                <div style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Abgelaufen</div>
+                <div style={{ fontSize:24, fontWeight:800, color:"#dc2626" }}>{stats.licenseStats.expired}</div>
+              </div>
+              <div style={{ background:"#f3f4f6", borderRadius:8, padding:12, textAlign:"center", border:"1px solid #d1d5db33" }}>
+                <div style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Gesperrt</div>
+                <div style={{ fontSize:24, fontWeight:800, color:"#6b7280" }}>{stats.licenseStats.inactive}</div>
+              </div>
+            </div>
+            <div style={{ display:"flex", gap:16, fontSize:12, color:"#6b7280" }}>
+              <span>Voll: <strong style={{color:"#7c3aed"}}>{stats.licenseStats.planFull}</strong></span>
+              <span>Einzellauf: <strong style={{color:"#059669"}}>{stats.licenseStats.planEinzel}</strong></span>
+              <span>Paarlauf: <strong style={{color:"#7c3aed"}}>{stats.licenseStats.planPairs}</strong></span>
+            </div>
+          </div>)}
           <div style={cS}>
             <h3 style={{ margin:"0 0 12px", fontSize:14, fontWeight:700, color:"#374151" }}>Registrierungen (14 Tage)</h3>
             <div style={{ display:"flex", alignItems:"flex-end", gap:4, height:100 }}>
@@ -3236,8 +3305,64 @@
 
         {/* === USERS === */}
         {tab==="users"&&(<div>
-          <input placeholder="Suche Name, Email, Verein..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}
-            style={{ ...iS, maxWidth:400, marginBottom:12 }}/>
+          <div style={{ display:"flex", gap:8, marginBottom:12, flexWrap:"wrap", alignItems:"center" }}>
+            <input placeholder="Suche Name, Email, Verein..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}
+              style={{ ...iS, maxWidth:400, flex:1 }}/>
+            <button onClick={()=>{setShowCreateUser(true);setCreatedPw(null);setNewUserForm({email:"",name:"",verein:"",kategorie:"",plan:"full",expiresAt:"",sendEmail:true});}}
+              style={{ padding:"8px 16px", borderRadius:6, border:"none", background:"#059669", color:"white", fontWeight:700, fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>
+              + Neuer Benutzer
+            </button>
+          </div>
+
+          {/* CREATE USER FORM */}
+          {showCreateUser&&(<div style={{ ...cS, border:"2px solid #059669", marginBottom:16 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+              <h3 style={{ margin:0, fontSize:14, fontWeight:700, color:"#059669" }}>Neuen Benutzer anlegen</h3>
+              <button onClick={()=>{setShowCreateUser(false);setCreatedPw(null);}} style={{ padding:"4px 10px", borderRadius:4, border:"1px solid #d1d5db", background:"white", fontSize:11, cursor:"pointer" }}>X</button>
+            </div>
+            {createdPw ? (
+              <div>
+                <div style={{ background:"#f0fdf4", border:"1px solid #d1fae5", borderRadius:8, padding:16, marginBottom:12 }}>
+                  <div style={{ fontSize:13, fontWeight:700, color:"#059669", marginBottom:8 }}>Benutzer erfolgreich erstellt!</div>
+                  <div style={{ fontSize:12, marginBottom:4 }}>Email: <strong>{newUserForm.email}</strong></div>
+                  <div style={{ fontSize:12, marginBottom:8 }}>Generiertes Passwort: <code style={{ background:"#e5e7eb", padding:"2px 8px", borderRadius:4, fontSize:14, fontWeight:700, letterSpacing:1 }}>{createdPw}</code></div>
+                  <button onClick={()=>{navigator.clipboard.writeText(createdPw);showMsg("Passwort kopiert!");}} style={{ padding:"4px 12px", borderRadius:4, border:"1px solid #059669", background:"white", color:"#059669", fontSize:11, fontWeight:600, cursor:"pointer" }}>Passwort kopieren</button>
+                </div>
+                <button onClick={()=>{setShowCreateUser(false);setCreatedPw(null);}} style={{ padding:"6px 14px", borderRadius:6, border:"none", background:"#e5e7eb", color:"#374151", fontWeight:600, fontSize:12, cursor:"pointer" }}>Schliessen</button>
+              </div>
+            ) : (
+              <div>
+                <div className="r-grid1-mobile" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:10 }}>
+                  <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Name *</label>
+                    <input value={newUserForm.name} onChange={e=>setNewUserForm({...newUserForm,name:e.target.value})} placeholder="Vor- und Nachname" style={iS}/></div>
+                  <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Email *</label>
+                    <input type="email" value={newUserForm.email} onChange={e=>setNewUserForm({...newUserForm,email:e.target.value})} placeholder="coach@verein.de" style={iS}/></div>
+                  <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Verein</label>
+                    <input value={newUserForm.verein} onChange={e=>setNewUserForm({...newUserForm,verein:e.target.value})} placeholder="z.B. RRV Eppingen" style={iS}/></div>
+                  <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Kategorie</label>
+                    <input value={newUserForm.kategorie} onChange={e=>setNewUserForm({...newUserForm,kategorie:e.target.value})} placeholder="z.B. Senior" style={iS}/></div>
+                  <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Plan</label>
+                    <select value={newUserForm.plan} onChange={e=>setNewUserForm({...newUserForm,plan:e.target.value})} style={{ ...iS, cursor:"pointer" }}>
+                      <option value="full">Voll (Einzel + Paar)</option><option value="einzel">Nur Einzellauf</option><option value="pairs">Nur Paarlauf</option></select></div>
+                  <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Gueltig bis</label>
+                    <input type="date" value={newUserForm.expiresAt} onChange={e=>setNewUserForm({...newUserForm,expiresAt:e.target.value})} style={iS}/></div>
+                </div>
+                <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer", marginBottom:12, fontSize:12 }}>
+                  <input type="checkbox" checked={newUserForm.sendEmail} onChange={e=>setNewUserForm({...newUserForm,sendEmail:e.target.checked})} style={{ width:16, height:16 }}/>
+                  Zugangsdaten per E-Mail senden
+                </label>
+                <div style={{ display:"flex", gap:6 }}>
+                  <button onClick={createUser} disabled={creating||!newUserForm.email||!newUserForm.name}
+                    style={{ padding:"8px 18px", borderRadius:6, border:"none", background:creating?"#9ca3af":"#059669", color:"white", fontWeight:700, fontSize:12, cursor:creating?"wait":"pointer" }}>
+                    {creating?"Erstelle...":"Benutzer erstellen"}
+                  </button>
+                  <button onClick={()=>setShowCreateUser(false)} style={{ padding:"8px 14px", borderRadius:6, border:"1px solid #d1d5db", background:"white", color:"#374151", fontWeight:600, fontSize:12, cursor:"pointer" }}>Abbrechen</button>
+                </div>
+              </div>
+            )}
+          </div>)}
+
+          {/* EDIT USER */}
           {editUser&&(<div style={{ ...cS, border:"2px solid #7c3aed" }}>
             <h3 style={{ margin:"0 0 10px", fontSize:14, fontWeight:700, color:"#7c3aed" }}>Bearbeiten: {editUser.email}</h3>
             <div className="r-grid1-mobile r-grid2-tablet" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8, marginBottom:10 }}>
@@ -3251,34 +3376,52 @@
                 <select value={editUser.role||"user"} onChange={e=>setEditUser({...editUser,role:e.target.value})} style={{ ...iS, cursor:"pointer" }}>
                   <option value="user">User</option><option value="admin">Admin</option></select></div>
             </div>
+            <div className="r-grid1-mobile" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:8, marginBottom:10 }}>
+              <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Plan</label>
+                <select value={editUser._licPlan||(editUser.license||{}).plan||"full"} onChange={e=>setEditUser({...editUser,_licPlan:e.target.value})} style={{ ...iS, cursor:"pointer" }}>
+                  <option value="full">Voll (Einzel + Paar)</option><option value="einzel">Nur Einzellauf</option><option value="pairs">Nur Paarlauf</option></select></div>
+              <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Gueltig bis</label>
+                <input type="date" value={editUser._licExpires!=null?editUser._licExpires:(editUser.license||{}).expiresAt||""} onChange={e=>setEditUser({...editUser,_licExpires:e.target.value})} style={iS}/></div>
+              <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Status</label>
+                <select value={editUser._licActive!=null?editUser._licActive:(editUser.license||{}).active!==false?"true":"false"} onChange={e=>setEditUser({...editUser,_licActive:e.target.value==="true"})} style={{ ...iS, cursor:"pointer" }}>
+                  <option value="true">Aktiv</option><option value="false">Gesperrt</option></select></div>
+            </div>
             <div style={{ display:"flex", gap:6 }}>
               <button onClick={saveUserEdit} style={{ padding:"6px 14px", borderRadius:6, border:"none", background:"#7c3aed", color:"white", fontWeight:700, fontSize:12, cursor:"pointer" }}>Speichern</button>
               <button onClick={()=>setEditUser(null)} style={{ padding:"6px 14px", borderRadius:6, border:"1px solid #d1d5db", background:"white", color:"#374151", fontWeight:600, fontSize:12, cursor:"pointer" }}>Abbrechen</button>
             </div>
           </div>)}
           <div style={{ overflowX:"auto" }}>
-            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, minWidth:800 }}>
               <thead><tr style={{ background:"#f3f4f6" }}>
-                {["ID","Name","Email","Verein","Kat.","Rolle","Datum","Aktionen"].map(h=>
-                  <th key={h} style={{ padding:"8px 10px", textAlign:"left", fontWeight:700, color:"#374151", borderBottom:"2px solid #e5e7eb" }}>{h}</th>)}
+                {["ID","Name","Email","Verein","Rolle","Plan","Status","Gueltig bis","Aktionen"].map(h=>
+                  <th key={h} style={{ padding:"8px 8px", textAlign:"left", fontWeight:700, color:"#374151", borderBottom:"2px solid #e5e7eb", fontSize:11 }}>{h}</th>)}
               </tr></thead>
               <tbody>
-                {filteredUsers.map(u=>(
+                {filteredUsers.map(u=>{
+                  const ls=licStatus(u);
+                  const lic=u.license||{};
+                  return(
                   <tr key={u.id} style={{ borderBottom:"1px solid #f3f4f6" }}>
-                    <td style={{ padding:"6px 10px", color:"#6b7280" }}>{u.id}</td>
-                    <td style={{ padding:"6px 10px", fontWeight:600 }}>{u.name}</td>
-                    <td style={{ padding:"6px 10px" }}>{u.email}</td>
-                    <td style={{ padding:"6px 10px" }}>{u.verein}</td>
-                    <td style={{ padding:"6px 10px" }}>{u.kategorie}</td>
-                    <td style={{ padding:"6px 10px" }}>
+                    <td style={{ padding:"6px 8px", color:"#6b7280" }}>{u.id}</td>
+                    <td style={{ padding:"6px 8px", fontWeight:600 }}>{u.name}</td>
+                    <td style={{ padding:"6px 8px", fontSize:11 }}>{u.email}</td>
+                    <td style={{ padding:"6px 8px" }}>{u.verein}</td>
+                    <td style={{ padding:"6px 8px" }}>
                       <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700,
                         background:u.role==="admin"?"#f5f3ff":"#f0fdf4", color:u.role==="admin"?"#7c3aed":"#059669" }}>{u.role}</span></td>
-                    <td style={{ padding:"6px 10px", fontSize:11, color:"#6b7280" }}>{u.created_at?new Date(u.created_at).toLocaleDateString("de-DE"):"-"}</td>
-                    <td style={{ padding:"6px 10px" }}>
+                    <td style={{ padding:"6px 8px" }}>
+                      <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700,
+                        background:lic.plan==="einzel"?"#f0fdf4":lic.plan==="pairs"?"#f5f3ff":"#eff6ff",
+                        color:lic.plan==="einzel"?"#059669":lic.plan==="pairs"?"#7c3aed":"#2563eb" }}>
+                        {planLabel(lic.plan)}</span></td>
+                    <td style={{ padding:"6px 8px" }}>
+                      <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:ls.bg, color:ls.color }}>{ls.label}</span></td>
+                    <td style={{ padding:"6px 8px", fontSize:11, color:"#6b7280" }}>{lic.expiresAt||"Unbegrenzt"}</td>
+                    <td style={{ padding:"6px 8px" }}>
                       <div style={{ display:"flex", gap:3, flexWrap:"wrap" }}>
-                        <button onClick={()=>setEditUser({...u})} style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #7c3aed", background:"#f5f3ff", color:"#7c3aed", fontSize:10, fontWeight:600, cursor:"pointer" }}>Edit</button>
-                        {u.role==="user"?<button onClick={()=>updateUserRole(u.id,"admin")} style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #f59e0b", background:"#fffbeb", color:"#92400e", fontSize:10, fontWeight:600, cursor:"pointer" }}>Admin</button>
-                          :u.id!==user?.id?<button onClick={()=>updateUserRole(u.id,"user")} style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #6b7280", background:"#f9fafb", color:"#374151", fontSize:10, fontWeight:600, cursor:"pointer" }}>User</button>:null}
+                        <button onClick={()=>{const e={...u};e._licPlan=(u.license||{}).plan||'full';e._licExpires=(u.license||{}).expiresAt||'';e._licActive=(u.license||{}).active!==false;setEditUser(e);}} style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #7c3aed", background:"#f5f3ff", color:"#7c3aed", fontSize:10, fontWeight:600, cursor:"pointer" }}>Edit</button>
+                        <button onClick={()=>sendCredentials(u.id)} title="Neues PW generieren & per E-Mail senden" style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #2563eb", background:"#eff6ff", color:"#2563eb", fontSize:10, fontWeight:600, cursor:"pointer" }}>Senden</button>
                         {u.id!==user?.id&&<button onClick={()=>deleteUser(u.id,u.name)} style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #fca5a5", background:"#fef2f2", color:"#dc2626", fontSize:10, fontWeight:600, cursor:"pointer" }}>Del</button>}
                       </div>
                       <div style={{ display:"flex", gap:3, marginTop:3 }}>
@@ -3287,8 +3430,8 @@
                         <button onClick={()=>doResetPassword(u.id)} style={{ padding:"2px 5px", borderRadius:3, border:"1px solid #f59e0b", background:"#fffbeb", color:"#92400e", fontSize:9, fontWeight:600, cursor:"pointer" }}>Reset</button>
                       </div>
                     </td>
-                  </tr>
-                ))}
+                  </tr>);
+                })}
               </tbody>
             </table>
           </div>
@@ -4603,25 +4746,33 @@
   // ============================================================
   //  ÜBERSICHTSSEITE (Landing Page mit Disziplin-Kacheln)
   // ============================================================
-  function UebersichtPage({onSelect}){
+  function UebersichtPage({onSelect, license}){
     const scr=useScreen();
-    const Kachel=({icon,title,subtitle,desc,categories,color,onClick})=>(
-      <div onClick={onClick} style={{
-        flex:1,minWidth:scr.mobile?0:280,cursor:"pointer",background:"white",borderRadius:16,
-        border:"2px solid #e5e7eb",padding:scr.mobile?20:32,textAlign:"center",
-        transition:"all .2s",boxShadow:"0 2px 8px rgba(0,0,0,.06)",
-      }} onMouseEnter={e=>{e.currentTarget.style.borderColor=color;e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.12)";}}
-         onMouseLeave={e=>{e.currentTarget.style.borderColor="#e5e7eb";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
-        <div style={{fontSize:scr.mobile?48:64,marginBottom:12,lineHeight:1}}>{icon}</div>
-        <h2 style={{margin:"0 0 4px",fontSize:scr.mobile?18:22,fontWeight:800,color:"#065f46"}}>{title}</h2>
-        <div style={{fontSize:12,fontWeight:600,color,marginBottom:10}}>{subtitle}</div>
+    const plan = license?.plan || 'full';
+    const Kachel=({icon,title,subtitle,desc,categories,color,onClick,locked})=>(
+      <div onClick={locked?undefined:onClick} style={{
+        flex:1,minWidth:scr.mobile?0:280,cursor:locked?"default":"pointer",background:locked?"#f9fafb":"white",borderRadius:16,
+        border:locked?"2px dashed #d1d5db":"2px solid #e5e7eb",padding:scr.mobile?20:32,textAlign:"center",
+        transition:"all .2s",boxShadow:"0 2px 8px rgba(0,0,0,.06)",opacity:locked?0.6:1,position:"relative",
+      }} onMouseEnter={locked?undefined:e=>{e.currentTarget.style.borderColor=color;e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.12)";}}
+         onMouseLeave={locked?undefined:e=>{e.currentTarget.style.borderColor="#e5e7eb";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
+        {locked&&<div style={{position:"absolute",top:12,right:12,background:"#f3f4f6",borderRadius:8,padding:"4px 10px",fontSize:10,fontWeight:700,color:"#6b7280",border:"1px solid #d1d5db"}}>Nicht im Plan</div>}
+        <div style={{fontSize:scr.mobile?48:64,marginBottom:12,lineHeight:1,filter:locked?"grayscale(1)":"none"}}>{icon}</div>
+        <h2 style={{margin:"0 0 4px",fontSize:scr.mobile?18:22,fontWeight:800,color:locked?"#9ca3af":"#065f46"}}>{title}</h2>
+        <div style={{fontSize:12,fontWeight:600,color:locked?"#9ca3af":color,marginBottom:10}}>{subtitle}</div>
         <p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:14}}>{desc}</p>
         <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center"}}>
-          {categories.map(c=><span key={c} style={{background:"#f0fdf4",border:"1px solid #d1fae5",borderRadius:4,padding:"2px 8px",fontSize:10,fontWeight:600,color:"#065f46"}}>{c}</span>)}
+          {categories.map(c=><span key={c} style={{background:locked?"#f3f4f6":"#f0fdf4",border:locked?"1px solid #d1d5db":"1px solid #d1fae5",borderRadius:4,padding:"2px 8px",fontSize:10,fontWeight:600,color:locked?"#9ca3af":"#065f46"}}>{c}</span>)}
         </div>
-        <div style={{marginTop:16,padding:"10px 24px",borderRadius:8,background:color,color:"white",fontWeight:700,fontSize:14,display:"inline-block"}}>
-          Auswählen
-        </div>
+        {locked ? (
+          <div style={{marginTop:16,padding:"10px 24px",borderRadius:8,background:"#e5e7eb",color:"#6b7280",fontWeight:700,fontSize:13,display:"inline-block"}}>
+            Gesperrt
+          </div>
+        ) : (
+          <div style={{marginTop:16,padding:"10px 24px",borderRadius:8,background:color,color:"white",fontWeight:700,fontSize:14,display:"inline-block"}}>
+            Auswählen
+          </div>
+        )}
       </div>
     );
 
@@ -4642,6 +4793,7 @@
             categories={["Tots","Minis","Espoirs","Cadets","Jeunesse","Junior","Senior"]}
             color="#059669"
             onClick={()=>onSelect("einzel")}
+            locked={plan==="pairs"}
           />
           <Kachel
             icon={<svg viewBox="0 0 120 100" width={scr.mobile?56:72} height={scr.mobile?48:60} style={{margin:"0 auto",display:"block"}}><circle cx="40" cy="22" r="10" fill="#7c3aed"/><path d="M28 36 Q40 32 52 36 L50 62 Q44 75 40 82 Q36 75 30 62 Z" fill="#7c3aed" opacity=".85"/><circle cx="80" cy="22" r="10" fill="#7c3aed"/><path d="M68 36 Q80 32 92 36 L90 62 Q84 75 80 82 Q76 75 70 62 Z" fill="#7c3aed" opacity=".85"/><path d="M52 45 L68 45" stroke="#7c3aed" strokeWidth="2" strokeDasharray="3,2"/></svg>}
@@ -4651,6 +4803,7 @@
             categories={["Pairs Tots","Pairs Minis","Pairs Espoirs","Pairs Cadets","Pairs Youth","Pairs Junior","Pairs Senior"]}
             color="#7c3aed"
             onClick={()=>onSelect("pairs")}
+            locked={plan==="einzel"}
           />
         </div>
 
@@ -4665,6 +4818,33 @@
   // ============================================================
   //  MAIN DASHBOARD
   // ============================================================
+  function LicenseExpiredScreen({ reason, expiresAt, onLogout }) {
+    return (
+      <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center",
+        background:"linear-gradient(135deg,#1f2937 0%,#374151 100%)", padding:20 }}>
+        <div style={{ background:"white", borderRadius:16, padding:32, maxWidth:440, width:"100%", textAlign:"center",
+          boxShadow:"0 20px 60px rgba(0,0,0,.3)" }}>
+          <div style={{ fontSize:48, marginBottom:16 }}>&#128274;</div>
+          <h2 style={{ margin:"0 0 8px", fontSize:22, fontWeight:800, color:"#dc2626" }}>
+            {reason==='expired' ? 'Lizenz abgelaufen' : 'Konto deaktiviert'}
+          </h2>
+          <p style={{ fontSize:14, color:"#6b7280", lineHeight:1.6, marginBottom:16 }}>
+            {reason==='expired'
+              ? `Deine Lizenz ist am ${expiresAt ? new Date(expiresAt).toLocaleDateString('de-DE') : '—'} abgelaufen.`
+              : 'Dein Konto wurde vom Administrator deaktiviert.'}
+          </p>
+          <p style={{ fontSize:13, color:"#6b7280", marginBottom:24 }}>
+            Bitte kontaktiere deinen Administrator, um dein Konto zu verlängern oder freizuschalten.
+          </p>
+          <button onClick={onLogout} style={{ padding:"10px 24px", borderRadius:8, border:"none",
+            background:"#e5e7eb", color:"#374151", fontWeight:700, fontSize:14, cursor:"pointer" }}>
+            Abmelden
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   function App() {
     const authCtx = useAuth();
     const [disziplin, setDisziplin] = useState(null); // null = Übersicht, "einzel" | "pairs"
@@ -4706,6 +4886,10 @@
 
     // Handle disziplin selection from Übersicht
     const selectDisziplin = (d) => {
+      // Prevent selecting a locked discipline
+      const ls = authCtx?.getLicenseStatus ? authCtx.getLicenseStatus() : { valid: true, plan: 'full' };
+      if (ls.plan === 'einzel' && d === 'pairs') return;
+      if (ls.plan === 'pairs' && d === 'einzel') return;
       setDisziplin(d);
       if(d==="pairs"){
         setKategorie("pairs_senior");
@@ -5098,6 +5282,12 @@
     // ============================================================
     const hdr = { padding:"8px 4px", fontSize:10, fontWeight:700, color:"#065f46", textTransform:"uppercase", letterSpacing:0.5 };
 
+    // License check — show blocked screen if expired/inactive (except admins)
+    const licenseStatus = authCtx?.getLicenseStatus ? authCtx.getLicenseStatus() : { valid: true, plan: 'full' };
+    if (authCtx?.user?.role !== 'admin' && !licenseStatus.valid) {
+      return <LicenseExpiredScreen reason={licenseStatus.reason} expiresAt={licenseStatus.expiresAt} onLogout={authCtx.logout} />;
+    }
+
     // If no disziplin selected, show Übersichtsseite
     if(!disziplin){
       return(
@@ -5123,7 +5313,7 @@
               )}
             </div>
           </div>
-          <UebersichtPage onSelect={selectDisziplin}/>
+          <UebersichtPage onSelect={selectDisziplin} license={licenseStatus}/>
         </div>
       );
     }

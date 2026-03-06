@@ -9,7 +9,12 @@
       "role": "admin",
       "id": 1,
       "created_at": "2026-03-04T14:56:43.294Z",
-      "updated_at": "2026-03-04T14:56:43.294Z"
+      "updated_at": "2026-03-04T14:56:43.294Z",
+      "license": {
+        "plan": "full",
+        "expiresAt": null,
+        "active": true
+      }
     },
     {
       "email": "test@test.de",
@@ -20,10 +25,47 @@
       "role": "user",
       "id": 3,
       "created_at": "2026-03-06T10:08:01.472Z",
-      "updated_at": "2026-03-06T10:08:01.472Z"
+      "updated_at": "2026-03-06T10:08:01.472Z",
+      "license": {
+        "plan": "full",
+        "expiresAt": null,
+        "active": true
+      }
+    },
+    {
+      "email": "coach_a@test.de",
+      "password": "$2a$10$haJJIuF/1NEb8.57BHI2medlk5aULgFMiE0./2WqTgPee.Gd/w7.u",
+      "name": "Coach Alpha",
+      "verein": "",
+      "kategorie": "",
+      "role": "user",
+      "id": 4,
+      "created_at": "2026-03-06T10:57:40.518Z",
+      "updated_at": "2026-03-06T10:57:40.518Z",
+      "license": {
+        "plan": "full",
+        "expiresAt": null,
+        "active": true
+      }
+    },
+    {
+      "email": "coach_b@test.de",
+      "password": "$2a$10$RjPJqf1Oz.kTAVs7Go4rqOieSZ5JIvUwWDGQatlzKLbLhxEy4zIDO",
+      "name": "Coach Beta",
+      "verein": "",
+      "kategorie": "",
+      "role": "user",
+      "id": 5,
+      "created_at": "2026-03-06T10:57:40.583Z",
+      "updated_at": "2026-03-06T10:57:40.583Z",
+      "license": {
+        "plan": "full",
+        "expiresAt": null,
+        "active": true
+      }
     }
   ],
-  "nextId": 4,
+  "nextId": 7,
   "skaters": [
     {
       "id": 1772641378036,
@@ -80,6 +122,82 @@
       "officialSheet": null,
       "createdAt": "2026-03-06T10:08:12.891Z",
       "updatedAt": "2026-03-06T10:08:12.891Z"
+    },
+    {
+      "id": 1772794660615,
+      "userId": 4,
+      "name": "Geheim-Läuferin A",
+      "kategorie": "junior",
+      "geschlecht": "damen",
+      "disziplin": "einzel",
+      "verein": "",
+      "music": "",
+      "segment": "senior_fp",
+      "rows": [],
+      "pcs": {},
+      "deductions": 0,
+      "extraPoints": 0,
+      "judgeCount": 3,
+      "officialSheet": null,
+      "createdAt": "2026-03-06T10:57:40.615Z",
+      "updatedAt": "2026-03-06T10:57:40.615Z"
+    },
+    {
+      "id": 1772794660637,
+      "userId": 5,
+      "name": "Geheim-Läufer B",
+      "kategorie": "senior",
+      "geschlecht": "damen",
+      "disziplin": "einzel",
+      "verein": "",
+      "music": "",
+      "segment": "senior_fp",
+      "rows": [],
+      "pcs": {},
+      "deductions": 0,
+      "extraPoints": 0,
+      "judgeCount": 3,
+      "officialSheet": null,
+      "createdAt": "2026-03-06T10:57:40.637Z",
+      "updatedAt": "2026-03-06T10:57:40.637Z"
+    },
+    {
+      "id": 1772797028873,
+      "userId": 6,
+      "name": "Test Einzel",
+      "kategorie": "",
+      "geschlecht": "damen",
+      "disziplin": "einzel",
+      "verein": "",
+      "music": "",
+      "segment": "senior_fp",
+      "rows": [],
+      "pcs": {},
+      "deductions": 0,
+      "extraPoints": 0,
+      "judgeCount": 3,
+      "officialSheet": null,
+      "createdAt": "2026-03-06T11:37:08.873Z",
+      "updatedAt": "2026-03-06T11:37:08.873Z"
+    },
+    {
+      "id": 1772797029049,
+      "userId": 6,
+      "name": "Test Pair 2",
+      "kategorie": "",
+      "geschlecht": "damen",
+      "disziplin": "pairs",
+      "verein": "",
+      "music": "",
+      "segment": "pairs_senior_fp",
+      "rows": [],
+      "pcs": {},
+      "deductions": 0,
+      "extraPoints": 0,
+      "judgeCount": 3,
+      "officialSheet": null,
+      "createdAt": "2026-03-06T11:37:09.049Z",
+      "updatedAt": "2026-03-06T11:37:09.049Z"
     }
   ],
   "nextSkaterId": 1,
@@ -108,6 +226,42 @@
       "skaterId": null,
       "skaterName": "Anna Testerin",
       "createdAt": "2026-03-06T10:08:26.495Z"
+    },
+    {
+      "id": 1772794660622,
+      "userId": 4,
+      "date": "2026-03-06",
+      "duration": 0,
+      "notes": "",
+      "elements": [
+        {
+          "code": "3Lo",
+          "attempts": 8,
+          "landed": 6
+        }
+      ],
+      "goals": "",
+      "skaterId": null,
+      "skaterName": "Geheim-Läuferin A",
+      "createdAt": "2026-03-06T10:57:40.622Z"
+    },
+    {
+      "id": 1772794660642,
+      "userId": 5,
+      "date": "2026-03-06",
+      "duration": 0,
+      "notes": "",
+      "elements": [
+        {
+          "code": "2A",
+          "attempts": 5,
+          "landed": 5
+        }
+      ],
+      "goals": "",
+      "skaterId": null,
+      "skaterName": "Geheim-Läufer B",
+      "createdAt": "2026-03-06T10:57:40.642Z"
     }
   ],
   "scoreHistory": [
@@ -144,6 +298,38 @@
         }
       ],
       "createdAt": "2026-03-06T10:08:26.514Z"
+    },
+    {
+      "id": 1772794660629,
+      "userId": 4,
+      "name": "WM Alpha",
+      "date": "2026-06-01",
+      "location": "",
+      "kategorie": "",
+      "notes": "",
+      "checklist": [
+        {
+          "item": "Content Sheet erstellt",
+          "done": false
+        },
+        {
+          "item": "Musik abgegeben",
+          "done": false
+        },
+        {
+          "item": "Kostüm fertig",
+          "done": false
+        },
+        {
+          "item": "Anmeldung bestätigt",
+          "done": false
+        },
+        {
+          "item": "Programm durchgelaufen",
+          "done": false
+        }
+      ],
+      "createdAt": "2026-03-06T10:57:40.629Z"
     }
   ]
 }

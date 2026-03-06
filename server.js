@@ -9,11 +9,79 @@ const jwt = require('jsonwebtoken');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+
+// Optional: nodemailer für E-Mail-Versand
+let nodemailer = null;
+try { nodemailer = require('nodemailer'); } catch(e) { console.log('  ℹ️  nodemailer nicht installiert — E-Mail-Versand deaktiviert'); }
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 // WICHTIG: In Produktion JWT_SECRET als Umgebungsvariable setzen!
 const JWT_SECRET = process.env.JWT_SECRET || 'rollart-dev-secret-nur-lokal-verwenden';
+
+// ============================================================
+//  E-MAIL & PASSWORT HELPER
+// ============================================================
+function generatePassword(length = 12) {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let pw = '';
+  for (let i = 0; i < length; i++) pw += chars[crypto.randomInt(chars.length)];
+  return pw;
+}
+
+function createMailTransporter() {
+  if (!nodemailer) return null;
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT) || 587;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (!host || !user || !pass) return null;
+  return nodemailer.createTransport({ host, port, secure: port === 465, auth: { user, pass } });
+}
+
+async function sendEmail(to, subject, html) {
+  const transporter = createMailTransporter();
+  if (!transporter) return { sent: false, reason: 'SMTP nicht konfiguriert' };
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@rollart.de';
+  try {
+    await transporter.sendMail({ from, to, subject, html });
+    console.log(`  📧 E-Mail gesendet an ${to}: ${subject}`);
+    return { sent: true };
+  } catch (err) {
+    console.error(`  ❌ E-Mail-Fehler an ${to}:`, err.message);
+    return { sent: false, reason: err.message };
+  }
+}
+
+function welcomeEmailHtml(name, email, password, loginUrl) {
+  return `<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px">
+    <h2 style="color:#065f46">Willkommen bei RollArt 2026!</h2>
+    <p>Hallo <strong>${name}</strong>,</p>
+    <p>Dein Konto wurde erstellt. Hier sind deine Zugangsdaten:</p>
+    <div style="background:#f0fdf4;border:1px solid #d1fae5;border-radius:8px;padding:16px;margin:16px 0">
+      <p style="margin:4px 0"><strong>Email:</strong> ${email}</p>
+      <p style="margin:4px 0"><strong>Passwort:</strong> <code style="background:#e5e7eb;padding:2px 6px;border-radius:4px">${password}</code></p>
+    </div>
+    <p>Bitte ändere dein Passwort nach dem ersten Login.</p>
+    ${loginUrl ? `<p><a href="${loginUrl}" style="display:inline-block;padding:10px 24px;background:#059669;color:white;border-radius:8px;text-decoration:none;font-weight:bold">Jetzt anmelden</a></p>` : ''}
+    <p style="color:#6b7280;font-size:12px;margin-top:20px">RollArt Dashboard — Artistic Roller Skating Scoring Platform</p>
+  </div>`;
+}
+
+function passwordResetEmailHtml(name, email, password) {
+  return `<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:20px">
+    <h2 style="color:#065f46">Neues Passwort — RollArt 2026</h2>
+    <p>Hallo <strong>${name}</strong>,</p>
+    <p>Dein Passwort wurde zurückgesetzt. Hier sind deine neuen Zugangsdaten:</p>
+    <div style="background:#f0fdf4;border:1px solid #d1fae5;border-radius:8px;padding:16px;margin:16px 0">
+      <p style="margin:4px 0"><strong>Email:</strong> ${email}</p>
+      <p style="margin:4px 0"><strong>Neues Passwort:</strong> <code style="background:#e5e7eb;padding:2px 6px;border-radius:4px">${password}</code></p>
+    </div>
+    <p>Bitte ändere dein Passwort nach dem Login.</p>
+    <p style="color:#6b7280;font-size:12px;margin-top:20px">RollArt Dashboard — Artistic Roller Skating Scoring Platform</p>
+  </div>`;
+}
 
 // ============================================================
 //  DATABASE SETUP — Daten werden in data/ gespeichert
@@ -201,6 +269,15 @@ if (Array.isArray(DB.skaters)) {
     if (!sk.geschlecht) { sk.geschlecht = 'damen'; migrated = true; }
   });
 }
+// Migrate users: add license field
+if (Array.isArray(DB.users)) {
+  DB.users.forEach(u => {
+    if (!u.license) {
+      u.license = { plan: 'full', expiresAt: null, active: true };
+      migrated = true;
+    }
+  });
+}
 if (migrated) {
   console.log('  🔄 DB migriert: fehlende Collections ergänzt');
   // Sofort speichern damit die Struktur persistiert wird
@@ -265,6 +342,44 @@ const auth = (req, res, next) => {
   }
 };
 
+// License check middleware — prüft ob Lizenz aktiv und nicht abgelaufen
+const checkLicense = (req, res, next) => {
+  const user = dbGetUser(req.user.id);
+  if (!user) return res.status(404).json({ error: 'Benutzer nicht gefunden' });
+  // Admins sind immer freigeschaltet
+  if (user.role === 'admin') return next();
+  const lic = user.license || { plan: 'full', expiresAt: null, active: true };
+  if (!lic.active) {
+    return res.status(403).json({ error: 'Dein Konto ist deaktiviert. Kontaktiere deinen Administrator.', code: 'LICENSE_INACTIVE' });
+  }
+  if (lic.expiresAt) {
+    const now = new Date().toISOString().split('T')[0];
+    if (now > lic.expiresAt) {
+      return res.status(403).json({ error: 'Deine Lizenz ist abgelaufen. Kontaktiere deinen Administrator.', code: 'LICENSE_EXPIRED' });
+    }
+  }
+  next();
+};
+
+// Disziplin-Gating: prüft ob der User Zugriff auf die Disziplin hat
+const checkDisziplinAccess = (req, res, next) => {
+  const user = dbGetUser(req.user.id);
+  if (!user || user.role === 'admin') return next();
+  const plan = (user.license || {}).plan || 'full';
+  if (plan === 'full') return next();
+  // Prüfe bei Skater-Operationen ob Segment zur Lizenz passt
+  const segment = req.body?.segment || '';
+  const disziplin = req.body?.disziplin || '';
+  const isPairs = segment.startsWith('pairs_') || disziplin === 'pairs';
+  if (plan === 'einzel' && isPairs) {
+    return res.status(403).json({ error: 'Paarlauf ist in deinem Plan nicht enthalten.', code: 'PLAN_RESTRICTED' });
+  }
+  if (plan === 'pairs' && !isPairs && segment) {
+    return res.status(403).json({ error: 'Einzellauf ist in deinem Plan nicht enthalten.', code: 'PLAN_RESTRICTED' });
+  }
+  next();
+};
+
 // ============================================================
 //  AUTH ENDPOINTS
 // ============================================================
@@ -297,9 +412,11 @@ app.post('/api/register', (req, res) => {
 
   // Hash password and create user
   const hash = bcrypt.hashSync(password, 10);
+  const defaultLicense = { plan: 'full', expiresAt: null, active: true };
   const newUser = dbAddUser({
     email: email.toLowerCase(), password: hash, name,
-    verein: verein || '', kategorie: kategorie || '', role: 'user'
+    verein: verein || '', kategorie: kategorie || '', role: 'user',
+    license: defaultLicense
   });
 
   const token = jwt.sign(
@@ -310,7 +427,7 @@ app.post('/api/register', (req, res) => {
 
   res.status(201).json({
     token,
-    user: { id: newUser.id, email: newUser.email, name, verein: newUser.verein, kategorie: newUser.kategorie, role: newUser.role }
+    user: { id: newUser.id, email: newUser.email, name, verein: newUser.verein, kategorie: newUser.kategorie, role: newUser.role, license: defaultLicense }
   });
 });
 
@@ -335,7 +452,8 @@ app.post('/api/login', (req, res) => {
 
   res.json({
     token,
-    user: { id: user.id, email: user.email, name: user.name, verein: user.verein, kategorie: user.kategorie, role: user.role }
+    user: { id: user.id, email: user.email, name: user.name, verein: user.verein, kategorie: user.kategorie, role: user.role,
+      license: user.license || { plan: 'full', expiresAt: null, active: true } }
   });
 });
 
@@ -427,7 +545,23 @@ app.get('/api/admin/stats', auth, adminAuth, (req, res) => {
   const topKategorien = Object.entries(katMap).sort((a, b) => b[1] - a[1]).slice(0, 10)
     .map(([name, count]) => ({ name, count }));
 
-  res.json({ total, todayCount, weekCount, monthCount, admins, daily, topVereine, topKategorien });
+  // License stats
+  const now2 = new Date().toISOString().split('T')[0];
+  const licActive = DB.users.filter(u => {
+    const lic = u.license || { active: true, expiresAt: null };
+    return lic.active && (!lic.expiresAt || lic.expiresAt >= now2);
+  }).length;
+  const licExpired = DB.users.filter(u => {
+    const lic = u.license || { active: true, expiresAt: null };
+    return lic.active && lic.expiresAt && lic.expiresAt < now2;
+  }).length;
+  const licInactive = DB.users.filter(u => (u.license || {}).active === false).length;
+  const planFull = DB.users.filter(u => (u.license || {}).plan === 'full' || !(u.license || {}).plan).length;
+  const planEinzel = DB.users.filter(u => (u.license || {}).plan === 'einzel').length;
+  const planPairs = DB.users.filter(u => (u.license || {}).plan === 'pairs').length;
+
+  res.json({ total, todayCount, weekCount, monthCount, admins, daily, topVereine, topKategorien,
+    licenseStats: { active: licActive, expired: licExpired, inactive: licInactive, planFull, planEinzel, planPairs } });
 });
 
 // GET /api/admin/users — List all users
@@ -436,15 +570,26 @@ app.get('/api/admin/users', auth, adminAuth, (req, res) => {
   res.json({ users, total: users.length });
 });
 
-// PUT /api/admin/users/:id — Update user (role, name, verein, etc.)
+// PUT /api/admin/users/:id — Update user (role, name, verein, license, etc.)
 app.put('/api/admin/users/:id', auth, adminAuth, (req, res) => {
   const id = parseInt(req.params.id);
-  const { name, verein, kategorie, role } = req.body;
+  const { name, verein, kategorie, role, license } = req.body;
   const updates = {};
   if (name !== undefined) updates.name = name;
   if (verein !== undefined) updates.verein = verein;
   if (kategorie !== undefined) updates.kategorie = kategorie;
   if (role !== undefined && ['user', 'admin'].includes(role)) updates.role = role;
+  // License-Update
+  if (license !== undefined) {
+    const user = dbGetUser(id);
+    if (user) {
+      const currentLic = user.license || { plan: 'full', expiresAt: null, active: true };
+      if (license.plan !== undefined && ['full', 'einzel', 'pairs'].includes(license.plan)) currentLic.plan = license.plan;
+      if (license.expiresAt !== undefined) currentLic.expiresAt = license.expiresAt || null;
+      if (license.active !== undefined) currentLic.active = !!license.active;
+      updates.license = currentLic;
+    }
+  }
 
   if (Object.keys(updates).length === 0) {
     return res.status(400).json({ error: 'Keine Aenderungen' });
@@ -468,16 +613,78 @@ app.delete('/api/admin/users/:id', auth, adminAuth, (req, res) => {
 });
 
 // POST /api/admin/users/:id/reset-password — Reset user password
-app.post('/api/admin/users/:id/reset-password', auth, adminAuth, (req, res) => {
+app.post('/api/admin/users/:id/reset-password', auth, adminAuth, async (req, res) => {
   const id = parseInt(req.params.id);
-  const { newPassword } = req.body;
-  if (!newPassword || newPassword.length < 6) {
+  const { newPassword, sendEmail: shouldSend } = req.body;
+  const pw = newPassword || generatePassword();
+  if (pw.length < 6) {
     return res.status(400).json({ error: 'Passwort muss mindestens 6 Zeichen haben' });
   }
-  const hash = bcrypt.hashSync(newPassword, 10);
+  const hash = bcrypt.hashSync(pw, 10);
   const user = dbUpdateUser(id, { password: hash });
   if (!user) return res.status(404).json({ error: 'User nicht gefunden' });
-  res.json({ message: 'Passwort zurueckgesetzt' });
+
+  let emailSent = false;
+  if (shouldSend) {
+    const result = await sendEmail(user.email, 'Neues Passwort — RollArt 2026', passwordResetEmailHtml(user.name, user.email, pw));
+    emailSent = result.sent;
+  }
+  res.json({ message: 'Passwort zurueckgesetzt', generatedPassword: pw, emailSent });
+});
+
+// POST /api/admin/users — Create new user (Admin creates account)
+app.post('/api/admin/users', auth, adminAuth, async (req, res) => {
+  const { email, name, verein, kategorie, plan, expiresAt, sendEmail: shouldSend } = req.body;
+
+  if (!email || !name) {
+    return res.status(400).json({ error: 'Email und Name sind Pflichtfelder' });
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Ungueltige Email-Adresse' });
+  }
+  if (dbFindUser(email.toLowerCase())) {
+    return res.status(409).json({ error: 'Email ist bereits registriert' });
+  }
+
+  const pw = generatePassword();
+  const hash = bcrypt.hashSync(pw, 10);
+  const license = {
+    plan: ['full', 'einzel', 'pairs'].includes(plan) ? plan : 'full',
+    expiresAt: expiresAt || null,
+    active: true,
+  };
+
+  const newUser = dbAddUser({
+    email: email.toLowerCase(), password: hash, name,
+    verein: verein || '', kategorie: kategorie || '', role: 'user',
+    license
+  });
+
+  let emailSent = false;
+  if (shouldSend) {
+    const loginUrl = process.env.APP_URL || '';
+    const result = await sendEmail(email.toLowerCase(), 'Willkommen bei RollArt 2026!', welcomeEmailHtml(name, email.toLowerCase(), pw, loginUrl));
+    emailSent = result.sent;
+  }
+
+  const { password: _, ...safe } = newUser;
+  res.status(201).json({ user: safe, generatedPassword: pw, emailSent });
+});
+
+// POST /api/admin/users/:id/send-credentials — Re-send credentials
+app.post('/api/admin/users/:id/send-credentials', auth, adminAuth, async (req, res) => {
+  const id = parseInt(req.params.id);
+  const user = dbGetUser(id);
+  if (!user) return res.status(404).json({ error: 'User nicht gefunden' });
+
+  const pw = generatePassword();
+  const hash = bcrypt.hashSync(pw, 10);
+  dbUpdateUser(id, { password: hash });
+
+  const loginUrl = process.env.APP_URL || '';
+  const result = await sendEmail(user.email, 'Deine Zugangsdaten — RollArt 2026', welcomeEmailHtml(user.name, user.email, pw, loginUrl));
+  res.json({ generatedPassword: pw, emailSent: result.sent });
 });
 
 // GET /api/admin/settings — Get app settings
@@ -518,13 +725,13 @@ if (!DB.skaters) {
 }
 
 // GET /api/skaters — List all skaters for current user
-app.get('/api/skaters', auth, (req, res) => {
+app.get('/api/skaters', auth, checkLicense, (req, res) => {
   const userSkaters = DB.skaters.filter(s => s.userId === req.user.id);
   res.json({ skaters: userSkaters });
 });
 
 // POST /api/skaters — Save new skater profile
-app.post('/api/skaters', auth, (req, res) => {
+app.post('/api/skaters', auth, checkLicense, checkDisziplinAccess, (req, res) => {
   const { name, kategorie, geschlecht, disziplin, verein, music, segment, rows, pcs, deductions, extraPoints, officialSheet, judgeCount } = req.body;
 
   if (!name) {
@@ -557,7 +764,7 @@ app.post('/api/skaters', auth, (req, res) => {
 });
 
 // PUT /api/skaters/:id — Update skater profile
-app.put('/api/skaters/:id', auth, (req, res) => {
+app.put('/api/skaters/:id', auth, checkLicense, checkDisziplinAccess, (req, res) => {
   const skaterId = parseInt(req.params.id);
   const skater = DB.skaters.find(s => s.id === skaterId && s.userId === req.user.id);
 
@@ -1104,7 +1311,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@rollart.de';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 if (!DB.users.some(u => u.role === 'admin')) {
   const hash = bcrypt.hashSync(ADMIN_PASSWORD, 10);
-  dbAddUser({ email: ADMIN_EMAIL, password: hash, name: 'Administrator', verein: '', kategorie: '', role: 'admin' });
+  dbAddUser({ email: ADMIN_EMAIL, password: hash, name: 'Administrator', verein: '', kategorie: '', role: 'admin', license: { plan: 'full', expiresAt: null, active: true } });
   console.log(`  Admin-Account erstellt: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
   console.log('  WICHTIG: Passwort nach erstem Login aendern!');
 }
