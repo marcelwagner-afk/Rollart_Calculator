@@ -2399,7 +2399,7 @@
     );
   }
 
-  function TrainingSimulator({importData,onImportDone}){
+  function TrainingSimulator({importData,onImportDone,disziplin}){
     const [kategorie,setKategorie]=useState("senior");
     const [segment,setSegment]=useState("senior_fp");
     const [geschlecht,setGeschlecht]=useState("damen");
@@ -2546,7 +2546,7 @@
           <select value={kategorie} onChange={e=>changeKategorie(e.target.value)} style={{
             padding:"6px 10px",borderRadius:6,border:"1px solid #d1d5db",fontSize:12,fontWeight:700,cursor:"pointer",
           }}>
-            {Object.entries(CATEGORY_DEFS).map(([k,v])=>(
+            {(disziplin==="pairs"?PAIRS_CATEGORIES:disziplin==="einzel"?SINGLES_CATEGORIES:Object.entries(CATEGORY_DEFS)).map(([k,v])=>(
               <option key={k} value={k}>{v.label}</option>
             ))}
           </select>
@@ -4595,11 +4595,80 @@
   }
 
   // ============================================================
+  //  SINGLES vs PAIRS CATEGORY HELPERS
+  // ============================================================
+  const SINGLES_CATEGORIES = Object.entries(CATEGORY_DEFS).filter(([k])=>!k.startsWith("pairs_"));
+  const PAIRS_CATEGORIES = Object.entries(CATEGORY_DEFS).filter(([k])=>k.startsWith("pairs_"));
+
+  // ============================================================
+  //  ÜBERSICHTSSEITE (Landing Page mit Disziplin-Kacheln)
+  // ============================================================
+  function UebersichtPage({onSelect}){
+    const scr=useScreen();
+    const Kachel=({icon,title,subtitle,desc,categories,color,onClick})=>(
+      <div onClick={onClick} style={{
+        flex:1,minWidth:scr.mobile?0:280,cursor:"pointer",background:"white",borderRadius:16,
+        border:"2px solid #e5e7eb",padding:scr.mobile?20:32,textAlign:"center",
+        transition:"all .2s",boxShadow:"0 2px 8px rgba(0,0,0,.06)",
+      }} onMouseEnter={e=>{e.currentTarget.style.borderColor=color;e.currentTarget.style.transform="translateY(-4px)";e.currentTarget.style.boxShadow="0 8px 24px rgba(0,0,0,.12)";}}
+         onMouseLeave={e=>{e.currentTarget.style.borderColor="#e5e7eb";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
+        <div style={{fontSize:scr.mobile?48:64,marginBottom:12,lineHeight:1}}>{icon}</div>
+        <h2 style={{margin:"0 0 4px",fontSize:scr.mobile?18:22,fontWeight:800,color:"#065f46"}}>{title}</h2>
+        <div style={{fontSize:12,fontWeight:600,color,marginBottom:10}}>{subtitle}</div>
+        <p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:14}}>{desc}</p>
+        <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center"}}>
+          {categories.map(c=><span key={c} style={{background:"#f0fdf4",border:"1px solid #d1fae5",borderRadius:4,padding:"2px 8px",fontSize:10,fontWeight:600,color:"#065f46"}}>{c}</span>)}
+        </div>
+        <div style={{marginTop:16,padding:"10px 24px",borderRadius:8,background:color,color:"white",fontWeight:700,fontSize:14,display:"inline-block"}}>
+          Auswählen
+        </div>
+      </div>
+    );
+
+    return(
+      <div style={{padding:scr.mobile?"16px 12px":"40px 20px",maxWidth:900,margin:"0 auto"}}>
+        <div style={{textAlign:"center",marginBottom:scr.mobile?20:36}}>
+          <div style={{fontSize:10,fontWeight:600,opacity:.6,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>World Skate 2026</div>
+          <h1 style={{margin:"0 0 8px",fontSize:scr.mobile?22:32,fontWeight:800,color:"#065f46"}}>RollArt Dashboard</h1>
+          <p style={{fontSize:14,color:"#6b7280",margin:0}}>Wähle deine Disziplin, um loszulegen.</p>
+        </div>
+
+        <div style={{display:"flex",gap:scr.mobile?12:20,flexDirection:scr.mobile?"column":"row",marginBottom:24}}>
+          <Kachel
+            icon={<svg viewBox="0 0 100 100" width={scr.mobile?56:72} height={scr.mobile?56:72} style={{margin:"0 auto",display:"block"}}><circle cx="50" cy="22" r="12" fill="#059669"/><path d="M35 38 Q50 34 65 38 L62 70 Q55 85 50 92 Q45 85 38 70 Z" fill="#059669" opacity=".85"/><path d="M38 70 L30 90 Q34 92 38 88" fill="#059669"/><path d="M62 70 L70 90 Q66 92 62 88" fill="#059669"/></svg>}
+            title="Einzellauf"
+            subtitle="Free Skating Singles"
+            desc="Short Program & Free Program für alle Altersklassen von Tots bis Senior."
+            categories={["Tots","Minis","Espoirs","Cadets","Jeunesse","Junior","Senior"]}
+            color="#059669"
+            onClick={()=>onSelect("einzel")}
+          />
+          <Kachel
+            icon={<svg viewBox="0 0 120 100" width={scr.mobile?56:72} height={scr.mobile?48:60} style={{margin:"0 auto",display:"block"}}><circle cx="40" cy="22" r="10" fill="#7c3aed"/><path d="M28 36 Q40 32 52 36 L50 62 Q44 75 40 82 Q36 75 30 62 Z" fill="#7c3aed" opacity=".85"/><circle cx="80" cy="22" r="10" fill="#7c3aed"/><path d="M68 36 Q80 32 92 36 L90 62 Q84 75 80 82 Q76 75 70 62 Z" fill="#7c3aed" opacity=".85"/><path d="M52 45 L68 45" stroke="#7c3aed" strokeWidth="2" strokeDasharray="3,2"/></svg>}
+            title="Paarlauf"
+            subtitle="Free Skating Pairs"
+            desc="Lifts, Twists, Death Spirals, Throw Jumps — alle Pair-Elemente für Tots bis Senior."
+            categories={["Pairs Tots","Pairs Minis","Pairs Espoirs","Pairs Cadets","Pairs Youth","Pairs Junior","Pairs Senior"]}
+            color="#7c3aed"
+            onClick={()=>onSelect("pairs")}
+          />
+        </div>
+
+        <div style={{textAlign:"center",padding:"16px 20px",background:"#f9fafb",borderRadius:10,border:"1px dashed #d1d5db"}}>
+          <div style={{fontSize:13,fontWeight:600,color:"#9ca3af"}}>Weitere Disziplinen — Coming Soon</div>
+          <div style={{fontSize:11,color:"#d1d5db",marginTop:4}}>Solo Dance • Couple Dance • Show • Gruppen</div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
   //  MAIN DASHBOARD
   // ============================================================
   function App() {
     const authCtx = useAuth();
-    const [page, setPage] = useState("content"); // "content", "training", "wettbewerbe", "official", "glossar", "profile"
+    const [disziplin, setDisziplin] = useState(null); // null = Übersicht, "einzel" | "pairs"
+    const [page, setPage] = useState("content");
     const [simImport, setSimImport] = useState(null);
     const [officialImport, setOfficialImport] = useState(null);
     const [officialExport, setOfficialExport] = useState(null);
@@ -4629,8 +4698,29 @@
     const segDef = SEGMENT_DEFS[segment];
     const types = isPairs ? ELEMENT_TYPES_PAIRS : ELEMENT_TYPES_FREE;
 
+    // Filtered categories based on selected disziplin
+    const filteredCategories = disziplin==="pairs" ? PAIRS_CATEGORIES : disziplin==="einzel" ? SINGLES_CATEGORIES : Object.entries(CATEGORY_DEFS);
+
     const emptyRow = () => ({ typeCode:"", elCode:"", judgeGoe:[0,0,0,0,0], rotation:"normal", comboEls:[], nv:false, dg:false, bonuses:[] });
     const [rows, setRows] = useState(Array.from({length:segDef.rows}, emptyRow));
+
+    // Handle disziplin selection from Übersicht
+    const selectDisziplin = (d) => {
+      setDisziplin(d);
+      if(d==="pairs"){
+        setKategorie("pairs_senior");
+        const firstSeg=CATEGORY_DEFS["pairs_senior"]?.segments[0]||"pairs_senior_fp";
+        setSegment(firstSeg);
+        setRows(Array.from({length:SEGMENT_DEFS[firstSeg].rows}, emptyRow));
+      } else {
+        setKategorie("senior");
+        setSegment("senior_fp");
+        setRows(Array.from({length:SEGMENT_DEFS["senior_fp"].rows}, emptyRow));
+      }
+      setPcs(emptyPcs());setDeductions(0);setExtraPoints(0);
+      setSkater("");setCat("");setMusic("");
+      setPage("content");
+    };
 
     const changeKategorie = (k) => {
       setKategorie(k);
@@ -4958,7 +5048,7 @@
       setSavingSkater(true);
       try {
         const token = localStorage.getItem('rollart_token');
-        const payload = { name: skater, kategorie, geschlecht, verein: cat || "", music, segment, rows: rows.map(r=>({...r, bonuses:r.bonuses||[]})), pcs, deductions, extraPoints, judgeCount, officialSheet: null };
+        const payload = { name: skater, kategorie, geschlecht, disziplin: disziplin||"einzel", verein: cat || "", music, segment, rows: rows.map(r=>({...r, bonuses:r.bonuses||[]})), pcs, deductions, extraPoints, judgeCount, officialSheet: null };
         const res = await fetch('/api/skaters', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -4983,6 +5073,10 @@
       setKategorie(sk.kategorie || "senior");
       setSegment(sk.segment || "senior_fp");
       if(sk.geschlecht)setGeschlecht(sk.geschlecht);
+      // Auto-detect disziplin from skater data
+      if(sk.disziplin)setDisziplin(sk.disziplin);
+      else if((sk.segment||"").startsWith("pairs_"))setDisziplin("pairs");
+      else setDisziplin("einzel");
       // Rows mit bonuses-Feld sicherstellen
       const loadedRows = (sk.rows || []).map(r => ({...r, bonuses: r.bonuses || [], comboEls: r.comboEls || []}));
       const neededRows = SEGMENT_DEFS[sk.segment || "senior_fp"]?.rows || 16;
@@ -5004,14 +5098,55 @@
     // ============================================================
     const hdr = { padding:"8px 4px", fontSize:10, fontWeight:700, color:"#065f46", textTransform:"uppercase", letterSpacing:0.5 };
 
+    // If no disziplin selected, show Übersichtsseite
+    if(!disziplin){
+      return(
+        <div style={{ background:"#f8faf9", minHeight:"100vh" }}>
+          <div style={{ background:"linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)", padding:window.innerWidth<=640?"12px 10px":"16px 20px", color:"white" }}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div>
+                <div style={{fontSize:10,fontWeight:600,opacity:.8,letterSpacing:2,textTransform:"uppercase"}}>World Skate</div>
+                <h1 style={{margin:0,fontSize:window.innerWidth<=640?20:26,fontWeight:800}}>RollArt 2026</h1>
+              </div>
+              {authCtx?.user && (
+                <div style={{display:"flex",alignItems:"center",gap:8}}>
+                  <button onClick={()=>{setDisziplin("einzel");setPage("profile");}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",
+                    borderRadius:8,border:"2px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.1)",color:"white",
+                    cursor:"pointer",fontSize:12,fontWeight:600}}>
+                    <span style={{width:24,height:24,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",
+                      alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800}}>
+                      {(authCtx.user.name||"?")[0].toUpperCase()}
+                    </span>
+                    <span className="r-hide-mobile">{authCtx.user.name}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          <UebersichtPage onSelect={selectDisziplin}/>
+        </div>
+      );
+    }
+
     return (
       <div style={{ background:"#f8faf9", minHeight:"100vh" }}>
         {/* HEADER */}
         <div style={{ background:"linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)", padding:window.innerWidth<=640?"10px 10px 8px":"12px 16px 10px", color:"white" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:6 }}>
             <div style={{minWidth:0,flex:1}}>
-              <div style={{fontSize:10,fontWeight:600,opacity:.8,letterSpacing:2,textTransform:"uppercase"}}>World Skate</div>
-              <h1 style={{margin:0,fontSize:window.innerWidth<=640?18:22,fontWeight:800}}>RollArt 2026</h1>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <button onClick={()=>setDisziplin(null)} style={{padding:"4px 10px",borderRadius:6,border:"2px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.1)",color:"white",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+                  ← Übersicht
+                </button>
+                <div>
+                  <div style={{fontSize:10,fontWeight:600,opacity:.8,letterSpacing:2,textTransform:"uppercase"}}>World Skate</div>
+                  <h1 style={{margin:0,fontSize:window.innerWidth<=640?16:20,fontWeight:800}}>
+                    RollArt 2026 <span style={{fontSize:window.innerWidth<=640?11:13,fontWeight:600,opacity:.8,background:"rgba(255,255,255,.2)",padding:"2px 8px",borderRadius:4,marginLeft:4}}>
+                      {disziplin==="pairs"?"Paarlauf":"Einzellauf"}
+                    </span>
+                  </h1>
+                </div>
+              </div>
               {/* PAGE TABS */}
               <div className="r-nav-scroll" style={{display:"flex",gap:4,marginTop:6}}>
                 {[
@@ -5059,7 +5194,7 @@
               padding:"6px 10px",borderRadius:6,border:"2px solid rgba(255,255,255,.3)",fontSize:12,fontWeight:700,
               background:"rgba(255,255,255,.15)",color:"white",cursor:"pointer",
             }}>
-              {Object.entries(CATEGORY_DEFS).map(([k,v])=>(
+              {filteredCategories.map(([k,v])=>(
                 <option key={k} value={k} style={{color:"#333",background:"white"}}>{v.label}</option>
               ))}
             </select>
@@ -5094,7 +5229,7 @@
         {/* TRAINING SIMULATOR PAGE */}
         {page==="anleitung"&&<AnleitungPage/>}
         {page==="dashboard"&&<DashboardPage/>}
-        {page==="training"&&<TrainingSimulator importData={simImport} onImportDone={()=>setSimImport(null)}/>}
+        {page==="training"&&<TrainingSimulator importData={simImport} onImportDone={()=>setSimImport(null)} disziplin={disziplin}/>}
         {page==="tagebuch"&&<TrainingDiary/>}
         {page==="kalender"&&<CompetitionCalendar/>}
 

@@ -102,6 +102,16 @@ if (!Array.isArray(DB.trainingLog)) { DB.trainingLog = []; migrated = true; }
 if (!Array.isArray(DB.scoreHistory)) { DB.scoreHistory = []; migrated = true; }
 if (!Array.isArray(DB.competitions)) { DB.competitions = []; migrated = true; }
 if (!DB.settings) { DB.settings = { registrationOpen: true, welcomeMessage: 'Willkommen bei RollArt 2026!', seasonYear: 2026, maintenanceMode: false, maxUsersPerVerein: 50 }; migrated = true; }
+// Migrate existing skaters: add disziplin field based on segment
+if (Array.isArray(DB.skaters)) {
+  DB.skaters.forEach(sk => {
+    if (!sk.disziplin) {
+      sk.disziplin = (sk.segment || '').startsWith('pairs_') ? 'pairs' : 'einzel';
+      migrated = true;
+    }
+    if (!sk.geschlecht) { sk.geschlecht = 'damen'; migrated = true; }
+  });
+}
 if (migrated) {
   console.log('  🔄 DB migriert: fehlende Collections ergänzt');
   // Sofort speichern damit die Struktur persistiert wird
@@ -426,7 +436,7 @@ app.get('/api/skaters', auth, (req, res) => {
 
 // POST /api/skaters — Save new skater profile
 app.post('/api/skaters', auth, (req, res) => {
-  const { name, kategorie, geschlecht, verein, music, segment, rows, pcs, deductions, extraPoints, officialSheet, judgeCount } = req.body;
+  const { name, kategorie, geschlecht, disziplin, verein, music, segment, rows, pcs, deductions, extraPoints, officialSheet, judgeCount } = req.body;
 
   if (!name) {
     return res.status(400).json({ error: 'Skater name is required' });
@@ -438,6 +448,7 @@ app.post('/api/skaters', auth, (req, res) => {
     name,
     kategorie: kategorie || '',
     geschlecht: geschlecht || 'damen',
+    disziplin: disziplin || ((segment||'').startsWith('pairs_') ? 'pairs' : 'einzel'),
     verein: verein || '',
     music: music || '',
     segment: segment || 'senior_fp',
@@ -465,11 +476,12 @@ app.put('/api/skaters/:id', auth, (req, res) => {
     return res.status(404).json({ error: 'Skater not found' });
   }
 
-  const { name, kategorie, geschlecht, verein, music, segment, rows, pcs, deductions, extraPoints, officialSheet, judgeCount } = req.body;
+  const { name, kategorie, geschlecht, disziplin, verein, music, segment, rows, pcs, deductions, extraPoints, officialSheet, judgeCount } = req.body;
 
   if (name !== undefined) skater.name = name;
   if (kategorie !== undefined) skater.kategorie = kategorie;
   if (geschlecht !== undefined) skater.geschlecht = geschlecht;
+  if (disziplin !== undefined) skater.disziplin = disziplin;
   if (verein !== undefined) skater.verein = verein;
   if (music !== undefined) skater.music = music;
   if (segment !== undefined) skater.segment = segment;
