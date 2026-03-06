@@ -1,0 +1,149 @@
+{
+  "users": [
+    {
+      "email": "admin@rollart.de",
+      "password": "$2a$10$gPC1PXelCSHQHAxlxEpvoOcN1dnGo3/NjvHp/cihs6kca3Q4Tarhe",
+      "name": "Administrator",
+      "verein": "",
+      "kategorie": "",
+      "role": "admin",
+      "id": 1,
+      "created_at": "2026-03-04T14:56:43.294Z",
+      "updated_at": "2026-03-04T14:56:43.294Z"
+    },
+    {
+      "email": "test@test.de",
+      "password": "$2a$10$Br606VXauZFhx7BvnMeYMO3EsaYASE0Y7n.VG7zFnWY0N8crtDc.C",
+      "name": "Test User",
+      "verein": "",
+      "kategorie": "",
+      "role": "user",
+      "id": 3,
+      "created_at": "2026-03-06T10:08:01.472Z",
+      "updated_at": "2026-03-06T10:08:01.472Z"
+    }
+  ],
+  "nextId": 4,
+  "skaters": [
+    {
+      "id": 1772641378036,
+      "userId": 1,
+      "name": "Test Läufer",
+      "kategorie": "senior",
+      "verein": "",
+      "music": "",
+      "segment": "senior_fp",
+      "rows": [],
+      "pcs": {},
+      "deductions": 0,
+      "extraPoints": 0,
+      "officialSheet": null,
+      "createdAt": "2026-03-04T16:22:58.036Z",
+      "updatedAt": "2026-03-04T16:22:58.036Z",
+      "disziplin": "einzel",
+      "geschlecht": "damen"
+    },
+    {
+      "id": 1772791692881,
+      "userId": 3,
+      "name": "Anna Testerin",
+      "kategorie": "junior",
+      "geschlecht": "damen",
+      "disziplin": "einzel",
+      "verein": "TSC Test",
+      "music": "Swan Lake",
+      "segment": "junior_fp",
+      "rows": [],
+      "pcs": {},
+      "deductions": 0,
+      "extraPoints": 0,
+      "judgeCount": 3,
+      "officialSheet": null,
+      "createdAt": "2026-03-06T10:08:12.881Z",
+      "updatedAt": "2026-03-06T10:08:12.881Z"
+    },
+    {
+      "id": 1772791692891,
+      "userId": 3,
+      "name": "Pair Team A",
+      "kategorie": "pairs_senior",
+      "geschlecht": "damen",
+      "disziplin": "pairs",
+      "verein": "",
+      "music": "",
+      "segment": "pairs_senior_fp",
+      "rows": [],
+      "pcs": {},
+      "deductions": 0,
+      "extraPoints": 0,
+      "judgeCount": 3,
+      "officialSheet": null,
+      "createdAt": "2026-03-06T10:08:12.891Z",
+      "updatedAt": "2026-03-06T10:08:12.891Z"
+    }
+  ],
+  "nextSkaterId": 1,
+  "settings": {
+    "registrationOpen": true,
+    "welcomeMessage": "Willkommen!",
+    "seasonYear": 2026,
+    "maintenanceMode": false,
+    "maxUsersPerVerein": 50
+  },
+  "trainingLog": [
+    {
+      "id": 1772791706495,
+      "userId": 3,
+      "date": "2026-03-06",
+      "duration": 90,
+      "notes": "Gutes Training",
+      "elements": [
+        {
+          "code": "2A",
+          "attempts": 10,
+          "landed": 7
+        }
+      ],
+      "goals": "2A konsistent",
+      "skaterId": null,
+      "skaterName": "Anna Testerin",
+      "createdAt": "2026-03-06T10:08:26.495Z"
+    }
+  ],
+  "scoreHistory": [
+    {
+      "id": 1772791706505,
+      "userId": 3,
+      "skaterId": null,
+      "skaterName": "Anna Testerin",
+      "kategorie": "junior",
+      "segment": "junior_fp",
+      "tes": 25.5,
+      "pcs": 18.2,
+      "deductions": 0.5,
+      "extraPoints": 0,
+      "total": 43.2,
+      "date": "2026-03-06",
+      "label": "Training",
+      "createdAt": "2026-03-06T10:08:26.505Z"
+    }
+  ],
+  "competitions": [
+    {
+      "id": 1772791706514,
+      "userId": 3,
+      "name": "Landesmeisterschaft NRW",
+      "date": "2026-04-15",
+      "location": "Düsseldorf",
+      "kategorie": "",
+      "notes": "",
+      "checklist": [
+        {
+          "item": "Musik auf USB",
+          "done": false
+        }
+      ],
+      "createdAt": "2026-03-06T10:08:26.514Z"
+    }
+  ]
+}

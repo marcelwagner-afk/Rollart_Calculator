@@ -21,9 +21,13 @@ const JWT_SECRET = process.env.JWT_SECRET || 'rollart-dev-secret-nur-lokal-verwe
 //  NIEMALS den data/ Ordner löschen!
 // ============================================================
 const DATA_DIR = path.join(__dirname, 'data');
+const BACKUP_DIR = path.join(DATA_DIR, 'backups');
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   console.log('  📁 data/ Ordner erstellt');
+}
+if (!fs.existsSync(BACKUP_DIR)) {
+  fs.mkdirSync(BACKUP_DIR, { recursive: true });
 }
 
 // Migration: alte db.json aus Hauptordner nach data/ verschieben
@@ -33,13 +37,39 @@ const BACKUP_FILE = path.join(DATA_DIR, 'db_backup.json');
 
 if (fs.existsSync(OLD_DB_FILE)) {
   if (!fs.existsSync(DB_FILE)) {
-    // Keine data/db.json vorhanden → alte Datei migrieren
-    try {
-      fs.copyFileSync(OLD_DB_FILE, DB_FILE);
-      console.log('  ✅ Bestehende db.json nach data/ migriert');
-    } catch(e) { console.error('Migration error:', e.message); }
+    // Keine data/db.json vorhanden → erst Backup prüfen (hat meist neuere Daten)
+    const backup = findLatestBackup();
+    if (backup) {
+      // Backup hat Vorrang vor alter Root-DB (ist neuer)
+      try {
+        const oldData = JSON.parse(fs.readFileSync(OLD_DB_FILE, 'utf8'));
+        const bkUsers = (backup.data.users || []).length;
+        const bkSkaters = (backup.data.skaters || []).length;
+        const oldUsers = (oldData.users || []).length;
+        const oldSkaters = (oldData.skaters || []).length;
+        if (bkUsers >= oldUsers && bkSkaters >= oldSkaters) {
+          // Backup hat gleich viele oder mehr Daten → Backup verwenden
+          fs.writeFileSync(DB_FILE, JSON.stringify(backup.data, null, 2));
+          console.log(`  ✅ DB aus Backup wiederhergestellt (${bkUsers} User, ${bkSkaters} Läufer)`);
+        } else {
+          // Root-DB hat tatsächlich mehr → Root verwenden
+          fs.copyFileSync(OLD_DB_FILE, DB_FILE);
+          console.log(`  ✅ Alte db.json nach data/ migriert (${oldUsers} User, ${oldSkaters} Läufer)`);
+        }
+      } catch(e) {
+        // Im Zweifel Backup nehmen
+        fs.writeFileSync(DB_FILE, JSON.stringify(backup.data, null, 2));
+        console.log(`  ✅ DB aus Backup wiederhergestellt`);
+      }
+    } else {
+      // Kein Backup → alte Datei migrieren
+      try {
+        fs.copyFileSync(OLD_DB_FILE, DB_FILE);
+        console.log('  ✅ Bestehende db.json nach data/ migriert');
+      } catch(e) { console.error('Migration error:', e.message); }
+    }
   } else {
-    // Beide existieren → prüfen welche mehr Daten hat und ggf. mergen
+    // Beide existieren → prüfen welche mehr Daten hat
     try {
       const oldData = JSON.parse(fs.readFileSync(OLD_DB_FILE, 'utf8'));
       const newData = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
@@ -48,7 +78,6 @@ if (fs.existsSync(OLD_DB_FILE)) {
       const oldUsers = (oldData.users || []).length;
       const newUsers = (newData.users || []).length;
       if (oldSkaters > newSkaters || oldUsers > newUsers) {
-        // Alte DB hat mehr Daten → Backup der neuen machen, dann alte übernehmen
         fs.writeFileSync(BACKUP_FILE, JSON.stringify(newData, null, 2));
         fs.copyFileSync(OLD_DB_FILE, DB_FILE);
         console.log(`  ⚠️ Alte db.json hat mehr Daten (${oldUsers} User, ${oldSkaters} Läufer) → übernommen`);
@@ -65,28 +94,88 @@ let DB = { users: [], nextId: 1, skaters: [], trainingLog: [], scoreHistory: [],
   maxUsersPerVerein: 50,
 } };
 
+// Helper: Rotierendes Backup erstellen (max 5 behalten)
+function createRotatingBackup(data) {
+  try {
+    // Immer auch das einfache Backup überschreiben
+    fs.writeFileSync(BACKUP_FILE, JSON.stringify(data, null, 2));
+    // Zusätzlich rotierendes Backup mit Timestamp
+    const ts = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const rotFile = path.join(BACKUP_DIR, `db_backup_${ts}.json`);
+    fs.writeFileSync(rotFile, JSON.stringify(data, null, 2));
+    // Alte Backups aufräumen (nur die letzten 5 behalten)
+    const backups = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.startsWith('db_backup_') && f.endsWith('.json'))
+      .sort().reverse();
+    backups.slice(5).forEach(f => {
+      try { fs.unlinkSync(path.join(BACKUP_DIR, f)); } catch(e) {}
+    });
+    console.log(`  📋 Backup erstellt: ${rotFile} (${backups.length > 5 ? 5 : backups.length} Backups)`);
+  } catch(e) { console.error('Backup error:', e.message); }
+}
+
+// Helper: Neuestes Backup finden
+function findLatestBackup() {
+  // Erst einfaches Backup prüfen
+  if (fs.existsSync(BACKUP_FILE)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(BACKUP_FILE, 'utf8'));
+      if (data && (data.users || data.skaters)) return { data, file: BACKUP_FILE };
+    } catch(e) {}
+  }
+  // Dann rotierende Backups prüfen
+  if (fs.existsSync(BACKUP_DIR)) {
+    const backups = fs.readdirSync(BACKUP_DIR)
+      .filter(f => f.startsWith('db_backup_') && f.endsWith('.json'))
+      .sort().reverse();
+    for (const f of backups) {
+      try {
+        const fp = path.join(BACKUP_DIR, f);
+        const data = JSON.parse(fs.readFileSync(fp, 'utf8'));
+        if (data && (data.users || data.skaters)) return { data, file: fp };
+      } catch(e) { continue; }
+    }
+  }
+  return null;
+}
+
 // Load or init DB
 if (fs.existsSync(DB_FILE)) {
   try {
     DB = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-    // Automatisches Backup bei jedem Start
-    fs.writeFileSync(BACKUP_FILE, JSON.stringify(DB, null, 2));
+    createRotatingBackup(DB);
     const skaterCount = (DB.skaters || []).length;
     const userCount = (DB.users || []).length;
     console.log(`  💾 Datenbank geladen: ${userCount} Benutzer, ${skaterCount} Läufer`);
-    console.log(`  📋 Backup erstellt: data/db_backup.json`);
   } catch(e) {
-    console.error('DB load error, versuche Backup...', e.message);
-    // Versuche Backup zu laden falls Hauptdatei korrupt
-    if (fs.existsSync(BACKUP_FILE)) {
-      try {
-        DB = JSON.parse(fs.readFileSync(BACKUP_FILE, 'utf8'));
-        console.log('  ⚠️ Backup geladen statt korrupter db.json');
-      } catch(e2) { console.error('Auch Backup korrupt, starte neu'); }
+    console.error('  ❌ DB load error:', e.message);
+    const backup = findLatestBackup();
+    if (backup) {
+      DB = backup.data;
+      console.log(`  ⚠️ Backup geladen: ${backup.file}`);
+    } else {
+      console.log('  ❌ Kein Backup gefunden — starte mit leerer DB');
     }
   }
 } else {
-  console.log('  🆕 Neue Datenbank erstellt');
+  // DB fehlt! Versuche aus Backup wiederherzustellen
+  console.log('  ⚠️ Keine db.json gefunden — suche Backup...');
+  const backup = findLatestBackup();
+  if (backup) {
+    DB = backup.data;
+    // Sofort wiederherstellen
+    try {
+      const tmpFile = DB_FILE + '.tmp';
+      fs.writeFileSync(tmpFile, JSON.stringify(DB, null, 2));
+      fs.renameSync(tmpFile, DB_FILE);
+      const skaterCount = (DB.skaters || []).length;
+      const userCount = (DB.users || []).length;
+      console.log(`  ✅ Datenbank aus Backup wiederhergestellt: ${userCount} Benutzer, ${skaterCount} Läufer`);
+      console.log(`     Quelle: ${backup.file}`);
+    } catch(e) { console.error('  Recovery save error:', e.message); }
+  } else {
+    console.log('  🆕 Keine Backups vorhanden — neue Datenbank erstellt');
+  }
 }
 
 // ============================================================
