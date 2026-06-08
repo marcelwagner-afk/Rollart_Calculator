@@ -1,0 +1,27 @@
+# ============================================================
+# WICHTIG: data/ Ordner enthält alle Läufer-Daten!
+# NIEMALS löschen oder überschreiben beim Update!
+# ============================================================
+
+# Datenbank
+data/
+db.json
+
+# Umgebungsvariablen
+.env
+*.env
+
+# Legacy SQLite DB
+db/
+
+# Test-Dateien
+test_*.js
+
+# Node.js
+node_modules/
+npm-debug.log
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
