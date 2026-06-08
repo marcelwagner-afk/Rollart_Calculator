@@ -3565,15 +3565,25 @@
       // Pairs pdfjs format: "1 GIACOMO SERAFINI - ITA score score (factored) Deductions score"
       //                     "ANGELICA RONDELLI 32.68 32.07 0.00 64.75"
       // Singles format:     "1 JOHN SMITH score ..." or separate lines
+      // NOTE: pdfjs groups text by baseline Y-coordinate (Math.round). The rank number
+      // uses a larger font (10.6pt vs 7.4/8.9pt), shifting its baseline slightly.
+      // On some pages the rounding boundary falls between rank and name+score,
+      // putting them on SEPARATE lines. This typically affects rank 1 (first page
+      // of each section has different vertical offset). So we need 3 patterns:
+      // Pattern A: rank+name+score all on one line (works for most ranks)
+      // Pattern B: name+score on one line, rank on adjacent line (rank 1 fix)
+      // Pattern C: fallback via isSkaterName
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        // Pattern: line with "score" keyword + rank at start
+        // Pattern A: line with "score" keyword + rank at start
         const mScore = line.match(/^(\d+)\s+(.+?)\s+(?:[A-Z]{2,3}\s+)?score\b/i);
         if (mScore && parseInt(mScore[1]) <= 50) {
           rank = parseInt(mScore[1]);
           let rawName = mScore[2].trim();
-          // Remove trailing nation code (2-3 uppercase letters at end)
-          rawName = rawName.replace(/\s+[A-Z]{2,3}$/, "").replace(/-\s*$/, "").trim();
+          // The regex already captures name BEFORE the optional nation group,
+          // so only remove trailing pair separator dash (not nation code —
+          // removing 2-3 uppercase letters here would break names like "LO RE")
+          rawName = rawName.replace(/-\s*$/, "").trim();
           // Check next line for second partner name (Pairs) or remaining name
           if (i + 1 < lines.length) {
             const nextLine = lines[i+1].trim();
@@ -3589,7 +3599,44 @@
           name = rawName;
           break;
         }
-        // Fallback: standalone skater name near top
+        // Pattern B: name+score line WITHOUT rank digit at start (rank on adjacent line)
+        // Happens when pdfjs puts rank number on a separate Y-coordinate line
+        // e.g. line i: "GIACOMO SERAFINI - ITA score score (factored) Deductions score"
+        //      line i+1: "1"   (standalone rank)
+        if (i < 12 && /^[A-ZÄÖÜÉÈÀÁÂ]/.test(line)) {
+          const scorePosLC = line.toLowerCase().indexOf(" score ");
+          if (scorePosLC > 0) {
+            let rawName = line.substring(0, scorePosLC).trim();
+            // Remove trailing nation code
+            rawName = rawName.replace(/\s+[A-Z]{2,3}$/, "").replace(/-\s*$/, "").trim();
+            if (rawName.length >= 3) {
+              // Search nearby lines for standalone rank number
+              for (let j = Math.max(0, i - 3); j < Math.min(lines.length, i + 3); j++) {
+                if (j === i) continue;
+                const rm = lines[j].match(/^(\d{1,2})$/);
+                if (rm && parseInt(rm[1]) > 0 && parseInt(rm[1]) <= 50) {
+                  rank = parseInt(rm[1]);
+                  break;
+                }
+              }
+              if (rank > 0) {
+                // Check subsequent lines for partner name (skip standalone rank lines)
+                for (let k = i + 1; k <= i + 3 && k < lines.length; k++) {
+                  if (/^\d{1,2}$/.test(lines[k])) continue; // skip rank line
+                  const nextLine = lines[k].trim();
+                  const nameFromNext = nextLine.replace(/\s*[-+]?\d+\.\d+.*/,"").replace(/-\s*$/,"").trim();
+                  if (nameFromNext && /^[A-ZÄÖÜÉÈÀÁÂ\s]+$/.test(nameFromNext) && nameFromNext.length >= 3) {
+                    rawName += (rawName.includes(" - ") ? " " : " - ") + nameFromNext;
+                  }
+                  break; // only one partner line
+                }
+                name = rawName;
+                break;
+              }
+            }
+          }
+        }
+        // Pattern C: Fallback — standalone skater name near top
         if (i > 0 && i < 8 && isSkaterName(line)) {
           let pairName = line.trim().replace(/-\s*$/, "").trim();
           if (i + 1 < lines.length && isSkaterName(lines[i+1])) {
