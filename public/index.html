@@ -2684,36 +2684,62 @@
                 onChange={d=>updateRow(i,d)} onRemove={()=>removeRow(i)} totalRows={rows.length}/>
             ))}
 
-            {/* PCS */}
-            <div style={{background:"white",borderRadius:10,border:"2px solid #93c5fd",padding:12,marginTop:16}}>
-              <h3 style={{margin:"0 0 8px",fontSize:14,fontWeight:800,color:"#1e40af"}}>Program Components (Faktor {pcsFactor.toFixed(1)})</h3>
-              {PCS_COMPONENTS.map(comp=>{
-                const avg=calcPcsAvg(pcs[comp.key],judgeCount);
-                const sc=Math.round(avg*pcsFactor*100)/100;
-                return(
-                  <div key={comp.key} style={{display:"flex",gap:6,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
-                    <span style={{fontSize:11,fontWeight:600,minWidth:170}}>{comp.label}</span>
-                    {Array.from({length:judgeCount}).map((_,ji)=>{
-                      const v=pcs[comp.key][ji];
-                      const upd=(nv)=>{const c=Math.max(0,Math.min(10,Math.round(nv*4)/4));const np={...pcs};np[comp.key]=[...np[comp.key]];np[comp.key][ji]=c;setPcs(np);};
-                      return(
-                        <div key={ji} style={{display:"inline-flex",flexDirection:"column",alignItems:"center"}}>
-                          <button onClick={()=>upd(v+0.25)} style={{width:42,height:15,border:"1px solid #bfdbfe",borderRadius:"4px 4px 0 0",background:"#eff6ff",color:"#3b82f6",fontSize:8,fontWeight:700,cursor:"pointer",padding:0,lineHeight:1}}>▲</button>
-                          <input type="number" min="0" max="10" step="0.25" value={v.toFixed(2)}
-                            onChange={e=>upd(parseFloat(e.target.value)||0)}
-                            style={{width:42,height:22,border:"1px solid #d1d5db",borderRadius:0,fontSize:11,fontWeight:700,textAlign:"center",padding:0,color:"#1e40af",MozAppearance:"textfield",WebkitAppearance:"none"}}/>
-                          <button onClick={()=>upd(v-0.25)} style={{width:42,height:15,border:"1px solid #bfdbfe",borderRadius:"0 0 4px 4px",background:"#eff6ff",color:"#3b82f6",fontSize:8,fontWeight:700,cursor:"pointer",padding:0,lineHeight:1}}>▼</button>
-                        </div>
-                      );
-                    })}
-                    <span style={{fontSize:11,fontWeight:700,color:"#3b82f6",minWidth:40,textAlign:"right"}}>{avg.toFixed(2)}</span>
-                    <span style={{fontSize:13,fontWeight:800,color:"#3b82f6",minWidth:50,textAlign:"right"}}>{sc.toFixed(2)}</span>
-                  </div>
-                );
-              })}
-              <div style={{borderTop:"2px solid #93c5fd",marginTop:6,paddingTop:6,textAlign:"right",fontSize:16,fontWeight:800,color:"#1e40af"}}>
-                PCS: {pcsTotal.toFixed(2)}
-              </div>
+            {/* PCS — Official DRIV Layout */}
+            <div style={{background:"white",borderRadius:10,border:"1px solid #d1d5db",marginTop:16,overflow:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",minWidth:420}}>
+                <thead>
+                  <tr style={{background:"#e5e7eb"}}>
+                    <th colSpan={3+judgeCount} style={{padding:"5px 8px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:"center",borderBottom:"1px solid #9ca3af"}}>
+                      Program Components
+                    </th>
+                  </tr>
+                  <tr style={{background:"#f9fafb",borderBottom:"2px solid #374151"}}>
+                    <th style={{padding:"4px 8px",fontSize:9,fontWeight:700,textAlign:"left"}}>Component</th>
+                    <th style={{padding:"4px 4px",fontSize:9,fontWeight:700,textAlign:"center",width:42}}>Factor</th>
+                    {Array.from({length:judgeCount}).map((_,i)=>(
+                      <th key={i} style={{padding:"4px 2px",fontSize:9,fontWeight:700,textAlign:"center",width:50}}>J{i+1}</th>
+                    ))}
+                    <th style={{padding:"4px 4px",fontSize:9,fontWeight:700,textAlign:"center",width:42}}>Avg</th>
+                    <th style={{padding:"4px 6px",fontSize:9,fontWeight:700,textAlign:"right",width:50}}>Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {PCS_COMPONENTS.map(comp=>{
+                    const avg=calcPcsAvg(pcs[comp.key],judgeCount);
+                    const sc=Math.round(avg*pcsFactor*100)/100;
+                    return(
+                      <tr key={comp.key} style={{borderBottom:"1px solid #d1d5db"}}>
+                        <td style={{padding:"4px 8px",fontSize:10,fontWeight:600,borderRight:"1px solid #e5e7eb"}}>{comp.label}</td>
+                        <td style={{padding:"4px 2px",fontSize:10,textAlign:"center",color:"#6b7280",fontWeight:600,borderRight:"1px solid #e5e7eb"}}>{pcsFactor.toFixed(1)}</td>
+                        {Array.from({length:judgeCount}).map((_,ji)=>{
+                          const v=pcs[comp.key][ji];
+                          const upd=(nv)=>{const c=Math.max(0,Math.min(10,Math.round(nv*4)/4));const np={...pcs};np[comp.key]=[...np[comp.key]];np[comp.key][ji]=c;setPcs(np);};
+                          return(
+                            <td key={ji} style={{padding:"3px 1px",textAlign:"center",borderRight:"1px solid #e5e7eb"}}>
+                              <input type="number" min="0" max="10" step="0.25" value={v.toFixed(2)}
+                                onChange={e=>upd(parseFloat(e.target.value)||0)}
+                                style={{width:42,height:22,border:"1px solid #9ca3af",borderRadius:2,fontSize:11,fontWeight:700,textAlign:"center",padding:0,color:"#111827",background:"#fafafa",
+                                  MozAppearance:"textfield",WebkitAppearance:"none"}}/>
+                            </td>
+                          );
+                        })}
+                        <td style={{padding:"4px 2px",fontSize:11,fontWeight:700,textAlign:"center",borderRight:"1px solid #e5e7eb"}}>{avg.toFixed(2)}</td>
+                        <td style={{padding:"4px 6px",fontSize:12,fontWeight:800,textAlign:"right"}}>{sc.toFixed(2)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr style={{borderTop:"2px solid #374151",background:"#f9fafb"}}>
+                    <td colSpan={2+judgeCount} style={{padding:"6px 8px",textAlign:"right",fontWeight:700,fontSize:11}}>
+                      Program Component Score (PCS)
+                    </td>
+                    <td colSpan={2} style={{padding:"6px 6px",textAlign:"right",fontWeight:800,fontSize:14}}>
+                      {pcsTotal.toFixed(2)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
 
             {/* Deductions */}
@@ -6423,18 +6449,23 @@
             </table>
           </div>
 
-          {/* PROGRAM COMPONENTS */}
-          <div className="r-table-wrap" style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",overflow:"auto",marginTop:16,WebkitOverflowScrolling:"touch"}}>
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
+          {/* PROGRAM COMPONENTS — Official DRIV / World Skate Layout */}
+          <div className="r-table-wrap" style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #d1d5db",overflow:"auto",marginTop:16,WebkitOverflowScrolling:"touch"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",minWidth:480}}>
               <thead>
-                <tr style={{background:"#eff6ff",borderBottom:"2px solid #3b82f6"}}>
-                  <th style={{...hdr,textAlign:"left",color:"#1e40af",padding:"8px 10px"}}>Program Components</th>
-                  <th style={{...hdr,textAlign:"center",color:"#1e40af",width:60}}>Faktor</th>
+                <tr style={{background:"#e5e7eb"}}>
+                  <th colSpan={3+judgeCount} style={{padding:"6px 10px",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:"center",borderBottom:"1px solid #9ca3af"}}>
+                    Program Components
+                  </th>
+                </tr>
+                <tr style={{background:"#f9fafb",borderBottom:"2px solid #374151"}}>
+                  <th style={{...hdr,textAlign:"left",padding:"5px 10px",fontSize:10}}>Component</th>
+                  <th style={{...hdr,textAlign:"center",width:50,fontSize:10}}>Factor</th>
                   {Array.from({length:judgeCount}).map((_,i)=>(
-                    <th key={i} style={{...hdr,textAlign:"center",color:"#1e40af",width:55}}>J{i+1}</th>
+                    <th key={i} style={{...hdr,textAlign:"center",width:56,fontSize:10}}>J{i+1}</th>
                   ))}
-                  <th style={{...hdr,textAlign:"right",color:"#1e40af",width:55}}>Avg</th>
-                  <th style={{...hdr,textAlign:"right",color:"#1e40af",width:65}}>Score</th>
+                  <th style={{...hdr,textAlign:"center",width:50,fontSize:10}}>Avg</th>
+                  <th style={{...hdr,textAlign:"right",width:60,fontSize:10,paddingRight:8}}>Score</th>
                 </tr>
               </thead>
               <tbody>
@@ -6442,9 +6473,9 @@
                   const avg = calcPcsAvg(pcs[comp.key], judgeCount);
                   const compScore = Math.round(avg * pcsFactor * 100) / 100;
                   return (
-                    <tr key={comp.key} style={{borderBottom:"1px solid #e5e7eb"}}>
-                      <td style={{padding:"8px 10px",fontSize:12,fontWeight:600}}>{comp.label}</td>
-                      <td style={{padding:"8px 4px",fontSize:11,textAlign:"center",color:"#6b7280"}}>{pcsFactor.toFixed(1)}</td>
+                    <tr key={comp.key} style={{borderBottom:"1px solid #d1d5db"}}>
+                      <td style={{padding:"5px 10px",fontSize:11,fontWeight:600,borderRight:"1px solid #e5e7eb"}}>{comp.label}</td>
+                      <td style={{padding:"5px 4px",fontSize:11,textAlign:"center",color:"#6b7280",fontWeight:600,borderRight:"1px solid #e5e7eb"}}>{pcsFactor.toFixed(1)}</td>
                       {Array.from({length:judgeCount}).map((_,ji)=>{
                         const val = pcs[comp.key][ji];
                         const updatePcsVal = (newVal) => {
@@ -6452,30 +6483,26 @@
                           const np={...pcs}; np[comp.key]=[...np[comp.key]]; np[comp.key][ji]=clamped; setPcs(np);
                         };
                         return (
-                          <td key={ji} style={{padding:"4px 1px",textAlign:"center"}}>
-                            <div style={{display:"inline-flex",flexDirection:"column",alignItems:"center",gap:0}}>
-                              <button onClick={()=>updatePcsVal(val+0.25)} style={{width:44,height:16,border:"1px solid #bfdbfe",borderRadius:"4px 4px 0 0",background:"#eff6ff",color:"#3b82f6",fontSize:9,fontWeight:700,cursor:"pointer",lineHeight:1,padding:0}}>▲</button>
-                              <input type="number" min="0" max="10" step="0.25" value={val.toFixed(2)}
-                                onChange={e => updatePcsVal(parseFloat(e.target.value)||0)}
-                                style={{width:44,height:24,border:"1px solid #d1d5db",borderRadius:0,fontSize:12,fontWeight:700,textAlign:"center",padding:0,color:"#1e40af",
-                                  MozAppearance:"textfield",WebkitAppearance:"none"}}/>
-                              <button onClick={()=>updatePcsVal(val-0.25)} style={{width:44,height:16,border:"1px solid #bfdbfe",borderRadius:"0 0 4px 4px",background:"#eff6ff",color:"#3b82f6",fontSize:9,fontWeight:700,cursor:"pointer",lineHeight:1,padding:0}}>▼</button>
-                            </div>
+                          <td key={ji} style={{padding:"3px 2px",textAlign:"center",borderRight:"1px solid #e5e7eb"}}>
+                            <input type="number" min="0" max="10" step="0.25" value={val.toFixed(2)}
+                              onChange={e => updatePcsVal(parseFloat(e.target.value)||0)}
+                              style={{width:46,height:24,border:"1px solid #9ca3af",borderRadius:2,fontSize:12,fontWeight:700,textAlign:"center",padding:0,color:"#111827",background:"#fafafa",
+                                MozAppearance:"textfield",WebkitAppearance:"none"}}/>
                           </td>
                         );
                       })}
-                      <td style={{padding:"8px 4px",fontSize:12,fontWeight:700,textAlign:"right",color:"#3b82f6"}}>{avg.toFixed(2)}</td>
-                      <td style={{padding:"8px 8px",fontSize:14,fontWeight:800,textAlign:"right",color:"#3b82f6"}}>{compScore.toFixed(2)}</td>
+                      <td style={{padding:"5px 4px",fontSize:12,fontWeight:700,textAlign:"center",borderRight:"1px solid #e5e7eb"}}>{avg.toFixed(2)}</td>
+                      <td style={{padding:"5px 8px",fontSize:13,fontWeight:800,textAlign:"right"}}>{compScore.toFixed(2)}</td>
                     </tr>
                   );
                 })}
               </tbody>
               <tfoot>
-                <tr style={{borderTop:"2px solid #3b82f6",background:"#eff6ff"}}>
-                  <td colSpan={2+judgeCount} style={{padding:"10px 10px",textAlign:"right",fontWeight:700,fontSize:12,color:"#1e40af"}}>
+                <tr style={{borderTop:"2px solid #374151",background:"#f9fafb"}}>
+                  <td colSpan={2+judgeCount} style={{padding:"8px 10px",textAlign:"right",fontWeight:700,fontSize:12}}>
                     Program Component Score (PCS)
                   </td>
-                  <td colSpan={2} style={{padding:"10px 8px",textAlign:"right",fontWeight:800,fontSize:18,color:"#3b82f6"}}>
+                  <td colSpan={2} style={{padding:"8px 8px",textAlign:"right",fontWeight:800,fontSize:16}}>
                     {pcsTotal.toFixed(2)}
                   </td>
                 </tr>
