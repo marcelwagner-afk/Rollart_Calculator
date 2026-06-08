@@ -3556,59 +3556,88 @@
       const elements = [];
       const components = { skating:[0,0,0,0,0], transitions:[0,0,0,0,0], performance:[0,0,0,0,0], choreography:[0,0,0,0,0] };
 
-      // Find rank + name (Singles: one name line; Pairs: two name lines joined by " - ")
+      const typeKeywords = ["ComboJump","ComboSpin","ComboLift","Step Sequence","Jump","Spin","Lift","Spiral"];
+      const tcMap = { "ComboSpin":"CSp", "Spin":"SSp", "Step Sequence":"FoSq", "Jump":"SJu", "ComboJump":"CoJ", "Lift":"Lft", "ComboLift":"CLft", "Spiral":"DS" };
+
+      // --- FIND RANK + NAME ---
+      // Pairs pdfjs format: "1 GIACOMO SERAFINI - ITA score score (factored) Deductions score"
+      //                     "ANGELICA RONDELLI 32.68 32.07 0.00 64.75"
+      // Singles format:     "1 JOHN SMITH score ..." or separate lines
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        // Pattern A: "1 JOHN SMITH score ..."
-        const mA = line.match(/^(\d+)\s+([A-ZÄÖÜÉÈÀÁÂ][A-ZÄÖÜÉÈÀÁÂ\s-]+?)\s+score\b/);
-        if (mA && mA[2].trim().split(/\s+/).length >= 2) { rank = parseInt(mA[1]); name = mA[2].trim(); break; }
-        // Pattern C: "1 JOHN SMITH GER 45.00 30.00 ..." (rank + name + nation + scores on one line)
-        const mC = line.match(/^(\d+)\s+([A-ZÄÖÜÉÈÀÁÂ][A-ZÄÖÜÉÈÀÁÂ\s-]{3,}?)\s+[A-Z]{2,3}\s+\d+\.\d+/);
-        if (mC && mC[2].trim().split(/\s+/).length >= 2) { rank = parseInt(mC[1]); name = mC[2].trim(); break; }
-        if (isSkaterName(line)) {
-          // Check for Pairs: next line might also be a skater name (partner)
+        // Pattern: line with "score" keyword + rank at start
+        const mScore = line.match(/^(\d+)\s+(.+?)\s+(?:[A-Z]{2,3}\s+)?score\b/i);
+        if (mScore && parseInt(mScore[1]) <= 50) {
+          rank = parseInt(mScore[1]);
+          let rawName = mScore[2].trim();
+          // Remove trailing nation code (2-3 uppercase letters at end)
+          rawName = rawName.replace(/\s+[A-Z]{2,3}$/, "").replace(/-\s*$/, "").trim();
+          // Check next line for second partner name (Pairs) or remaining name
+          if (i + 1 < lines.length) {
+            const nextLine = lines[i+1].trim();
+            // Next line might start with rest of name + scores: "ANGELICA RONDELLI 32.68 ..."
+            // or just scores: "23.69 25.44 0.00 49.13"
+            // or partial name: "DAVOLI 22.46 25.90 ..."
+            const nameFromNext = nextLine.replace(/\s*[-+]?\d+\.\d+.*/,"").replace(/-\s*$/,"").trim();
+            if (nameFromNext && /^[A-ZÄÖÜÉÈÀÁÂ\s]+$/.test(nameFromNext) && nameFromNext.length >= 3) {
+              // If name already has " - " (pair separator), append as continuation
+              rawName += (rawName.includes(" - ") ? " " : " - ") + nameFromNext;
+            }
+          }
+          name = rawName;
+          break;
+        }
+        // Fallback: standalone skater name near top
+        if (i > 0 && i < 8 && isSkaterName(line)) {
           let pairName = line.trim().replace(/-\s*$/, "").trim();
-          let nextIdx = i + 1;
-          if (nextIdx < lines.length && isSkaterName(lines[nextIdx])) {
-            pairName += " - " + lines[nextIdx].trim().replace(/-\s*$/, "").trim();
-            nextIdx++;
+          if (i + 1 < lines.length && isSkaterName(lines[i+1])) {
+            pairName += " - " + lines[i+1].trim().replace(/-\s*$/, "").trim();
           }
-          // Look for rank + "score" nearby (could be on same line as name or next lines)
-          for (let j = Math.max(0, i - 1); j < Math.min(lines.length, nextIdx + 2); j++) {
-            const mB = lines[j].match(/^(\d+)\s+score\b/i);
-            if (mB) { name = pairName; rank = parseInt(mB[1]); break; }
+          // Look for rank in nearby lines
+          for (let j = Math.max(0, i - 2); j < Math.min(lines.length, i + 5); j++) {
+            const rm = lines[j].match(/^(\d+)\s+score\b/i);
+            if (rm) { rank = parseInt(rm[1]); break; }
           }
-          if (name) break;
-          // Fallback: if name found after "JUDGES DETAILS" header, use it (rank from summary later)
-          if (i > 0 && i < 10) {
-            // Name appears near top of page (typical for judges details pages)
-            name = pairName;
-            // Try to find rank from the summary section (line with rank + nation + scores)
+          if (!rank) {
             for (const sl of lines) {
               const rm = sl.match(/^\s*(\d+)\s+[A-Z]{2,3}\s+\d+\.\d+/);
               if (rm && parseInt(rm[1]) <= 50) { rank = parseInt(rm[1]); break; }
             }
-            break;
           }
+          name = pairName;
+          break;
         }
       }
 
-      // Find summary scores (line with 3-4 decimals, minimal non-number text)
-      // Tolerates short text like nation codes (ITA, GER, etc.)
+      // --- FIND SUMMARY SCORES ---
+      // Look for line with 4 decimals where total ≈ tes + pcs - ded
+      // Also handle 3-decimal lines (ded=0 omitted)
+      const summaryCandidate = (n) => {
+        if (n.length >= 4) {
+          const t=n[0], p=n[1], d=Math.abs(n[2]), tot=n[3];
+          return Math.abs(tot - (t + p - d)) < 0.5;
+        }
+        if (n.length === 3) {
+          const t=n[0], p=n[1], tot=n[2];
+          return Math.abs(tot - (t + p)) < 0.5;
+        }
+        return false;
+      };
       for (const line of lines) {
+        // Skip PCS/element lines (contain component names or element keywords)
+        if (/Skating|Transition|Performance|Choreography|Executed|Program|Factor|Judges|Panel|Deduction/i.test(line)) continue;
         const nums = line.match(/-?\d+\.\d+/g);
         if (nums && nums.length >= 3 && nums.length <= 6) {
-          const textPart = line.replace(/-?\d+\.\d+/g, "").replace(/\d+/g, "").replace(/\s+/g, "");
-          // Allow up to 5 chars of text (e.g., "ITA", "GER", rank digits)
-          if (textPart.length < 6) {
-            if (nums.length >= 4) { tes = parseFloat(nums[0]); pcsTotal = parseFloat(nums[1]); ded = Math.abs(parseFloat(nums[2])); total = parseFloat(nums[3]); }
-            else { tes = parseFloat(nums[0]); pcsTotal = parseFloat(nums[1]); total = parseFloat(nums[2]); }
+          const f = nums.map(n => parseFloat(n));
+          if (summaryCandidate(f)) {
+            if (f.length >= 4) { tes = f[0]; pcsTotal = f[1]; ded = Math.abs(f[2]); total = f[3]; }
+            else { tes = f[0]; pcsTotal = f[1]; total = f[2]; }
             break;
           }
         }
       }
 
-      // Find element section
+      // --- FIND ELEMENT SECTION ---
       let elemStart = -1, elemEnd = -1;
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].includes("Executed Element")) elemStart = i + 1;
@@ -3624,64 +3653,125 @@
       if (elemStart > 0 && elemEnd > elemStart) {
         const eLines = lines.slice(elemStart, elemEnd);
         let curEl = null, curType = null;
+        let elCounter = 0;
         const saveEl = () => { if (curEl && (curEl.subElements.length > 0 || curEl.elCode)) elements.push(curEl); };
         const mkEl = (num, type, tc) => ({ num, type, typeCode:tc, elCode:"", subElements:[], totalBase:0, totalPanel:0, judges:[0,0,0,0,0] });
 
-        // Try extracting code+scores from same line as element type
-        const extractInline = (line, type) => {
-          const after = line.substring(line.indexOf(type) + type.length).trim();
-          // Match real element codes (digit-prefixed: 1Lo, 1F, etc. or St1/StB/NL*/CSp/SSp/Li/SyDs/DS)
-          const cm = after.match(/^([1-4][A-Z][a-z]*|NL[A-Z][a-z]+|St[1B]|FoSq\d?|ChSt\d?|[CS]Sp\d?|Li\d?|SyDs\d?|ChLi\d?|DS\d?)\b/);
-          if (cm) {
-            const code = cm[1];
-            const afterCode = after.substring(cm[0].length);
-            const nums = afterCode.match(/([-+]?\d+\.?\d*)/g);
-            if (nums && nums.length >= 8) {
-              // 5 judges: base, GOE, j1-j5, panel
-              const f = nums.map(n => parseFloat(n));
-              return { code, base: f[0], j1: Math.round(f[2]), j2: Math.round(f[3]), j3: Math.round(f[4]), j4: Math.round(f[5]), j5: Math.round(f[6]), panel: f[7] };
+        // Detect type keyword as SECOND token: "CODE TYPE ..." or "# TYPE ..."
+        // Prevents matching "Spin" inside descriptive names like "Heel Forward Spin"
+        const detectType = (line) => {
+          for (const tk of typeKeywords) {
+            const regex = new RegExp("^(\\S+)\\s+" + tk.replace(/\s+/g, "\\s+") + "\\b");
+            if (regex.test(line)) {
+              const idx = line.indexOf(tk);
+              return { type: tk, idx };
             }
-            if (nums && nums.length >= 6) {
-              // 3 judges: base, GOE, j1-j3, panel
-              const f = nums.map(n => parseFloat(n));
-              return { code, base: f[0], j1: Math.round(f[2]), j2: Math.round(f[3]), j3: Math.round(f[4]), j4: 0, j5: 0, panel: f[5] };
-            }
-            if (nums && nums.length >= 2) {
-              const f = nums.map(n => parseFloat(n));
-              return { code, base: f[0], j1:0, j2:0, j3:0, j4:0, j5:0, panel: f[f.length-1] };
-            }
-            return { code, base:0, j1:0, j2:0, j3:0, j4:0, j5:0, panel:0 };
           }
           return null;
         };
 
+        // Extract all numbers from a string
+        const extractNums = (s) => {
+          const m = s.match(/([-+]?\d+\.?\d*)/g);
+          return m ? m.map(n => parseFloat(n)) : [];
+        };
+
         for (let i = 0; i < eLines.length; i++) {
           const line = eLines[i];
-          // New top-level element?
-          const ne = line.match(/^(\d+)\s+(Jump|ComboJump|ComboSpin|ComboLift|Step Sequence|Spin|Lift|Spiral)\b/);
-          if (ne) {
+          const td = detectType(line);
+
+          if (td) {
+            // Line contains a TYPE keyword → new element
             saveEl();
-            const num = parseInt(ne[1]), type = ne[2];
-            const tcMap = { "ComboSpin":"CSp", "Spin":"SSp", "Step Sequence":"FoSq", "Jump":"SJu", "ComboJump":"CoJ", "Lift":"Lft", "ComboLift":"CLft", "Spiral":"DS" };
+            elCounter++;
+            const type = td.type;
             const tc = tcMap[type] || type;
+            const beforeType = line.substring(0, td.idx).trim();
+            const afterType = line.substring(td.idx + type.length).trim();
+
+            // Format 1: "# TYPE ..." (starts with element number)
+            const fmt1 = beforeType.match(/^(\d+)$/);
+            // Format 2: "CODE TYPE ..." (starts with element code)
+            const code = fmt1 ? "" : beforeType.split(/\s+/)[0] || "";
+            const num = fmt1 ? parseInt(fmt1[1]) : elCounter;
+
             curEl = mkEl(num, type, tc);
             curType = type;
-            const inl = extractInline(line, type);
-            if (inl && inl.code) {
-              curEl.elCode = inl.code;
-              if (inl.base > 0 || inl.panel > 0) {
-                curEl.subElements.push(inl); curEl.totalBase += inl.base; curEl.totalPanel += inl.panel;
+            if (code) {
+              curEl.elCode = code;
+              // Correct typeCode for ChSt elements detected as Step Sequence
+              if (code.startsWith("ChSt") && tc === "FoSq") curEl.typeCode = "ChSt";
+            }
+
+            // Parse numbers after type keyword for judges/scores
+            const afterNums = extractNums(afterType);
+            // Also extract the code from afterType if Format 1
+            if (fmt1 && !curEl.elCode) {
+              const codeMatch = afterType.match(/^([A-Za-z0-9]+)/);
+              if (codeMatch) curEl.elCode = codeMatch[1];
+            }
+
+            if (afterNums.length >= 6) {
+              // Format 2: J1 J2 J3 J4 J5 PANEL [# NAME GOE BASE]
+              const j1=Math.round(afterNums[0]), j2=Math.round(afterNums[1]), j3=Math.round(afterNums[2]);
+              const j4=Math.round(afterNums[3]), j5=Math.round(afterNums[4]);
+              const panel = afterNums[5];
+              // Base is typically last number on the line
+              const base = afterNums.length >= 8 ? afterNums[afterNums.length-1] : 0;
+              curEl.subElements.push({ code: code || curEl.elCode, base, j1, j2, j3, j4, j5, panel });
+              curEl.totalBase += base; curEl.totalPanel += panel;
+            } else if (afterNums.length >= 5 && (type === "ComboSpin" || type === "ComboJump" || type === "ComboLift")) {
+              // Combo header: J1-J5 only, no panel (sub-elements follow)
+              curEl.judges = afterNums.slice(0,5).map(n => Math.round(n));
+            } else if (afterNums.length >= 3 && !fmt1) {
+              // 3 judges: J1 J2 J3 PANEL
+              const j1=Math.round(afterNums[0]), j2=Math.round(afterNums[1]), j3=Math.round(afterNums[2]);
+              const panel = afterNums.length >= 4 ? afterNums[3] : 0;
+              const base = afterNums.length >= 6 ? afterNums[afterNums.length-1] : 0;
+              curEl.subElements.push({ code: code || curEl.elCode, base, j1, j2, j3, j4:0, j5:0, panel });
+              curEl.totalBase += base; curEl.totalPanel += panel;
+            } else if (fmt1) {
+              // Format 1: try extractInline
+              const cm = afterType.match(/^([1-4][A-Z][a-z]*|NL[A-Z][a-z]+|St[1B]|FoSq\d?|ChSt\w?|[CS]Sp\d?|Li\d?|SyDs\d?|ChLi\d?|DS\d?|LK\d?|LM\d?|Fl\d?)\b/);
+              if (cm) {
+                curEl.elCode = cm[1];
+                const codeAfter = afterType.substring(cm[0].length);
+                const cn = extractNums(codeAfter);
+                if (cn.length >= 8) {
+                  curEl.subElements.push({ code:cm[1], base:cn[0], j1:Math.round(cn[2]), j2:Math.round(cn[3]), j3:Math.round(cn[4]), j4:Math.round(cn[5]), j5:Math.round(cn[6]), panel:cn[7] });
+                  curEl.totalBase += cn[0]; curEl.totalPanel += cn[7];
+                } else if (cn.length >= 6) {
+                  curEl.subElements.push({ code:cm[1], base:cn[0], j1:Math.round(cn[2]), j2:Math.round(cn[3]), j3:Math.round(cn[4]), j4:0, j5:0, panel:cn[5] });
+                  curEl.totalBase += cn[0]; curEl.totalPanel += cn[5];
+                }
               }
             }
             continue;
           }
+
           if (!curEl) continue;
 
-          // Code line: "1Lo 0.90 0 0 0 0.90" (3 judges) or "1Lo 0.90 0 0 0 0 0 0.90" (5 judges)
+          // --- SUB-ELEMENT LINES (no TYPE keyword) ---
+
+          // Format 2 sub: "CODE J1 J2 J3 J4 J5 PANEL ..." (code then 5 signed judges then panel)
+          const f2sub = line.match(/^(\S+?)(?:\s*<<<|\s*<<|\s*<)?\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([\d.]+)/);
+          if (f2sub && !/^[\d.]+$/.test(f2sub[1])) {
+            const code = f2sub[1].replace(/[<>\s]/g, "");
+            const j1=parseInt(f2sub[2]), j2=parseInt(f2sub[3]), j3=parseInt(f2sub[4]), j4=parseInt(f2sub[5]), j5=parseInt(f2sub[6]);
+            const panel = parseFloat(f2sub[7]);
+            // Base is typically the last number on the line
+            const allNums = extractNums(line);
+            const base = allNums.length > 0 ? allNums[allNums.length-1] : 0;
+            curEl.subElements.push({ code, base, j1, j2, j3, j4, j5, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
+            if (!curEl.elCode) curEl.elCode = code;
+            continue;
+          }
+
+          // Format 1 sub: "1Lo 0.90 0 0 0 0.90" (code base j1 j2 j3 panel) or with 5 judges
           const cl = line.match(/^([1-4][A-Z][a-z]*(?:\s*<?<?<?))\s+([\d.]+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)(?:\s+([-+]?\d+)\s+([-+]?\d+))?\s+([\d.]+)/);
           if (cl) {
             const code = cl[1].replace(/[<>\s]/g, ""), base = parseFloat(cl[2]);
-            const j1 = parseInt(cl[3]), j2 = parseInt(cl[4]), j3 = parseInt(cl[5]);
+            const j1=parseInt(cl[3]), j2=parseInt(cl[4]), j3=parseInt(cl[5]);
             const j4 = cl[6] != null ? parseInt(cl[6]) : 0, j5 = cl[7] != null ? parseInt(cl[7]) : 0;
             const panel = parseFloat(cl[8]);
             curEl.subElements.push({ code, base, j1, j2, j3, j4, j5, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
@@ -3689,11 +3779,24 @@
             continue;
           }
 
-          // ComboJump sub with name: "1F Flip 0.86 0.00 0 0 0 0.86" (3j) or 5j
+          // Format 1 sub with float GOE (no name): "1F 0.86 0.00 0 0 0 0.86" or "2S 0.78 -0.15 -1 0 -1 0.63"
+          const clg = line.match(/^([1-4][A-Z][a-z]*(?:\s*<?<?<?))\s+([\d.]+)\s+([-+]?\d+\.\d+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)(?:\s+([-+]?\d+)\s+([-+]?\d+))?\s+([\d.]+)/);
+          if (clg) {
+            const code = clg[1].replace(/[<>\s]/g, ""), base = parseFloat(clg[2]);
+            // clg[3] = GOE (skipped)
+            const j1=parseInt(clg[4]), j2=parseInt(clg[5]), j3=parseInt(clg[6]);
+            const j4 = clg[7] != null ? parseInt(clg[7]) : 0, j5 = clg[8] != null ? parseInt(clg[8]) : 0;
+            const panel = parseFloat(clg[9]);
+            curEl.subElements.push({ code, base, j1, j2, j3, j4, j5, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
+            if (!curEl.elCode) curEl.elCode = code;
+            continue;
+          }
+
+          // ComboJump sub with name: "1F Flip 0.86 0.00 0 0 0 0.86"
           const cs = line.match(/^([1-4][A-Z][a-z]*(?:\s*<?<?<?)?)\s+[A-Z][a-z]+(?:\s+[A-Za-z]*)?\s+([\d.]+)\s+([-+]?[\d.]+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)(?:\s+([-+]?\d+)\s+([-+]?\d+))?\s+([\d.]+)/);
           if (cs) {
             const code = cs[1].replace(/[<>\s]/g, ""), base = parseFloat(cs[2]);
-            const j1 = parseInt(cs[4]), j2 = parseInt(cs[5]), j3 = parseInt(cs[6]);
+            const j1=parseInt(cs[4]), j2=parseInt(cs[5]), j3=parseInt(cs[6]);
             const j4 = cs[7] != null ? parseInt(cs[7]) : 0, j5 = cs[8] != null ? parseInt(cs[8]) : 0;
             const panel = parseFloat(cs[9]);
             curEl.subElements.push({ code, base, j1, j2, j3, j4, j5, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
@@ -3701,56 +3804,68 @@
             continue;
           }
 
-          // Step code: "St1 2.30 -1 -1 -1 2.00" (3j) or 5j, also Lift/Spiral codes
-          const sl = line.match(/^(St[B1-4]|FoSq\d?|ChSt[B1]?|Li\d?|SyDs\d?|ChLi\d?|DS\d?)\s+([\d.]+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)(?:\s+([-+]?\d+)\s+([-+]?\d+))?\s+([\d.]+)/);
+          // Step/Lift/Spiral codes: "St1 2.30 -1 -1 -1 2.00" or "ChStB 2.00 +1 0 0 2.20"
+          const sl = line.match(/^(St[B1-4]|FoSq\d?|ChSt\w?|Li\d?|SyDs\d?|ChLi\d?|DS\d?|LK\d?|LM\d?|Fl\d?)\s+([\d.]+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)(?:\s+([-+]?\d+)\s+([-+]?\d+))?\s+([\d.]+)/);
           if (sl) {
             const code = sl[1], base = parseFloat(sl[2]);
-            const j1 = parseInt(sl[3]), j2 = parseInt(sl[4]), j3 = parseInt(sl[5]);
+            const j1=parseInt(sl[3]), j2=parseInt(sl[4]), j3=parseInt(sl[5]);
             const j4 = sl[6] != null ? parseInt(sl[6]) : 0, j5 = sl[7] != null ? parseInt(sl[7]) : 0;
             const panel = parseFloat(sl[8]);
             curEl.subElements.push({ code, base, j1, j2, j3, j4, j5, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
             if (!curEl.elCode) curEl.elCode = code;
-            // Correct typeCode for ChSt elements
             if (code.startsWith("ChSt") && curEl.typeCode === "FoSq") curEl.typeCode = "ChSt";
             continue;
           }
 
-          // Spin positions (ComboSpin/Spin)
+          // Spin/Combo sub-elements: "HFD 2.20 Heel Forward Spin -0.30 2.50" or "S 0.82 Sit Spin..."
+          // Also handles Pairs spin codes starting with H (Heel)
           if (curType === "ComboSpin" || curType === "Spin") {
-            // Format 1: "S Sit Spin 0.80 -0.17 0.63" (3 nums)
-            const sp1 = line.match(/^([SUCLN][A-Za-z]*)\s+.*?([\d.]+)\s+([-+]?[\d.]+)\s+([\d.]+)\s*$/);
-            if (sp1) {
-              const base = parseFloat(sp1[2]), panel = parseFloat(sp1[4]);
-              curEl.subElements.push({ code: sp1[1], base, j1:0, j2:0, j3:0, j4:0, j5:0, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
-              continue;
+            // Generic: CODE followed by numbers with text in between
+            // Extract code and all numbers from line
+            const spinCode = line.match(/^([A-Za-z][A-Za-z]*\d?)\s/);
+            if (spinCode) {
+              const code = spinCode[1];
+              const nums = extractNums(line.substring(spinCode[0].length));
+              if (nums.length >= 2) {
+                // First num = panel (or base in some formats), last = base (or panel)
+                // In Pairs format: CODE PANEL ... GOE BASE
+                const panel = nums[0];
+                const base = nums[nums.length - 1];
+                curEl.subElements.push({ code, base, j1:0, j2:0, j3:0, j4:0, j5:0, panel });
+                curEl.totalBase += base; curEl.totalPanel += panel;
+                continue;
+              }
             }
-            // Format 2: "S 0.80 0.70" (2 nums, name on separate line)
-            const sp2 = line.match(/^([SUCLN][A-Za-z]*)\s+([\d.]+)\s+([\d.]+)\s*$/);
-            if (sp2) {
-              const base = parseFloat(sp2[2]), panel = parseFloat(sp2[3]);
-              curEl.subElements.push({ code: sp2[1], base, j1:0, j2:0, j3:0, j4:0, j5:0, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
-              continue;
-            }
-            // NLUpr/NLSit: "NLUpr 0.00 0.00" or "NLUpr Upright Spin No level 0.00 0.00"
-            const nls = line.match(/^(NL[A-Za-z]+)\s+.*?([\d.]+)\s+([\d.]+)\s*$/);
+            // NL codes: "NLCFD 0.00 ... 0.00 0.00"
+            const nls = line.match(/^(NL[A-Za-z]+)/);
             if (nls) {
-              const base = parseFloat(nls[2]), panel = parseFloat(nls[3]);
-              curEl.subElements.push({ code: nls[1], base, j1:0, j2:0, j3:0, j4:0, j5:0, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
+              const code = nls[1];
+              const nums = extractNums(line.substring(nls[0].length));
+              const panel = nums.length >= 1 ? nums[0] : 0;
+              const base = nums.length >= 2 ? nums[nums.length-1] : 0;
+              curEl.subElements.push({ code, base, j1:0, j2:0, j3:0, j4:0, j5:0, panel });
+              curEl.totalBase += base; curEl.totalPanel += panel;
               continue;
             }
           }
 
-          // Standalone Spin: "NLUpr Upright Spin No level 0.00 0.00 -3 -3 -3 0.00" (3j or 5j)
+          // Standalone typed sub with judges: "NLLoc Spin -2 -2 -1 -1 -3 0.00 ..." or "LOC Spin 0 0 0 +1 +1 3.10 ..."
+          // These contain a TYPE keyword but were already caught by the detectType block above.
+          // If not, try extracting code with judges from any remaining line with enough numbers
           if (curType === "Spin" || curType === "Lift" || curType === "ComboLift" || curType === "Spiral") {
-            const ss = line.match(/^(NL[A-Za-z]+|[CS]Sp\d?|Li\d?|SyDs\d?|ChLi\d?|DS\d?)\s+.*?([\d.]+)\s+([-+]?[\d.]+)\s+([-+]?\d+)\s+([-+]?\d+)\s+([-+]?\d+)(?:\s+([-+]?\d+)\s+([-+]?\d+))?\s+([\d.]+)/);
-            if (ss) {
-              const code = ss[1], base = parseFloat(ss[2]);
-              const j1 = parseInt(ss[4]), j2 = parseInt(ss[5]), j3 = parseInt(ss[6]);
-              const j4 = ss[7] != null ? parseInt(ss[7]) : 0, j5 = ss[8] != null ? parseInt(ss[8]) : 0;
-              const panel = parseFloat(ss[9]);
-              curEl.subElements.push({ code, base, j1, j2, j3, j4, j5, panel }); curEl.totalBase += base; curEl.totalPanel += panel;
-              if (!curEl.elCode) curEl.elCode = code;
-              continue;
+            const codeM = line.match(/^(NL[A-Za-z]+|[CS]Sp\d?|Li\d?|SyDs\d?|ChLi\d?|DS\d?|LK\d?|LM\d?|Fl\d?|LOC|HFD?|CBD?)/);
+            if (codeM) {
+              const code = codeM[1];
+              const nums = extractNums(line.substring(codeM[0].length));
+              if (nums.length >= 6) {
+                // Has judges: base goe j1-j5 panel or j1-j5 panel
+                const panel = nums.length >= 7 ? nums[5] : nums[nums.length-1];
+                const base = nums[nums.length-1];
+                curEl.subElements.push({ code, base, j1:Math.round(nums[0]), j2:Math.round(nums[1]), j3:Math.round(nums[2]), j4:Math.round(nums[3]), j5:Math.round(nums[4]), panel });
+                curEl.totalBase += base; curEl.totalPanel += panel;
+                if (!curEl.elCode) curEl.elCode = code;
+                continue;
+              }
             }
           }
         }
