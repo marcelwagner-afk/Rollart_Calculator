@@ -4,10 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RollArt SaaS — Artistic Roller Skating 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23065f46'/%3E%3Cstop offset='100%25' stop-color='%2334d399'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-family='Inter,sans-serif' font-weight='800' font-size='32' fill='white'%3ERA%3C/text%3E%3C/svg%3E">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8faf9; }
     select, input, button { font-family: inherit; }
+    /* Hide default number input spinners */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
     /* Responsive: scrollable tables */
     .r-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     /* Responsive: horizontal scroll nav */
@@ -2402,6 +2410,7 @@
   }
 
   function TrainingSimulator({importData,onImportDone,disziplin}){
+    const screen=useScreen();
     const [kategorie,setKategorie]=useState("senior");
     const [segment,setSegment]=useState("senior_fp");
     const [geschlecht,setGeschlecht]=useState("damen");
@@ -2647,7 +2656,7 @@
           <div style={{marginLeft:"auto",fontSize:11,color:"#6b7280"}}>{filled} / {rows.length} Elemente</div>
         </div>
 
-        <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:window.innerWidth<=640?"1fr":"1fr 300px",gap:window.innerWidth<=640?10:16,alignItems:"start"}}>
+        <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:screen.mobile?"1fr":"1fr 300px",gap:screen.mobile?10:16,alignItems:"start"}}>
           {/* Element cards */}
           <div>
             <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:800,color:"#065f46"}}>Programm-Elemente</h3>
@@ -2665,13 +2674,19 @@
                 return(
                   <div key={comp.key} style={{display:"flex",gap:6,alignItems:"center",marginBottom:6,flexWrap:"wrap"}}>
                     <span style={{fontSize:11,fontWeight:600,minWidth:170}}>{comp.label}</span>
-                    {Array.from({length:judgeCount}).map((_,ji)=>(
-                      <select key={ji} value={pcs[comp.key][ji]} onChange={e=>{
-                        const np={...pcs};np[comp.key]=[...np[comp.key]];const val=parseFloat(e.target.value);np[comp.key][ji]=isNaN(val)?0:val;setPcs(np);
-                      }} style={{...SEL,width:48,fontSize:11,padding:"3px 1px",textAlign:"center"}}>
-                        {Array.from({length:41},(_,i)=>i*0.25).map(v=><option key={v} value={v}>{v.toFixed(2)}</option>)}
-                      </select>
-                    ))}
+                    {Array.from({length:judgeCount}).map((_,ji)=>{
+                      const v=pcs[comp.key][ji];
+                      const upd=(nv)=>{const c=Math.max(0,Math.min(10,Math.round(nv*4)/4));const np={...pcs};np[comp.key]=[...np[comp.key]];np[comp.key][ji]=c;setPcs(np);};
+                      return(
+                        <div key={ji} style={{display:"inline-flex",flexDirection:"column",alignItems:"center"}}>
+                          <button onClick={()=>upd(v+0.25)} style={{width:42,height:15,border:"1px solid #bfdbfe",borderRadius:"4px 4px 0 0",background:"#eff6ff",color:"#3b82f6",fontSize:8,fontWeight:700,cursor:"pointer",padding:0,lineHeight:1}}>▲</button>
+                          <input type="number" min="0" max="10" step="0.25" value={v.toFixed(2)}
+                            onChange={e=>upd(parseFloat(e.target.value)||0)}
+                            style={{width:42,height:22,border:"1px solid #d1d5db",borderRadius:0,fontSize:11,fontWeight:700,textAlign:"center",padding:0,color:"#1e40af",MozAppearance:"textfield",WebkitAppearance:"none"}}/>
+                          <button onClick={()=>upd(v-0.25)} style={{width:42,height:15,border:"1px solid #bfdbfe",borderRadius:"0 0 4px 4px",background:"#eff6ff",color:"#3b82f6",fontSize:8,fontWeight:700,cursor:"pointer",padding:0,lineHeight:1}}>▼</button>
+                        </div>
+                      );
+                    })}
                     <span style={{fontSize:11,fontWeight:700,color:"#3b82f6",minWidth:40,textAlign:"right"}}>{avg.toFixed(2)}</span>
                     <span style={{fontSize:13,fontWeight:800,color:"#3b82f6",minWidth:50,textAlign:"right"}}>{sc.toFixed(2)}</span>
                   </div>
@@ -4485,7 +4500,17 @@
 
     // SVG Line Chart
     const ScoreChart=({data,width=700,height=220})=>{
-      if(!data.length)return <p style={{color:"#6b7280",fontSize:13,textAlign:"center",padding:20}}>Noch keine Score-Daten vorhanden. Speichere Scores über den "Score speichern" Button im Content Sheet.</p>;
+      if(!data.length)return (
+        <div style={{textAlign:"center",padding:"40px 20px"}}>
+          <svg viewBox="0 0 120 80" style={{width:120,height:80,margin:"0 auto 12px",display:"block",opacity:.6}}>
+            <rect x="10" y="55" width="12" height="20" rx="2" fill="#d1d5db"/><rect x="30" y="40" width="12" height="35" rx="2" fill="#d1d5db"/>
+            <rect x="50" y="25" width="12" height="50" rx="2" fill="#d1d5db"/><rect x="70" y="35" width="12" height="40" rx="2" fill="#d1d5db"/>
+            <rect x="90" y="15" width="12" height="60" rx="2" fill="#d1d5db"/><path d="M16 52 L36 37 L56 22 L76 32 L96 12" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 4"/>
+          </svg>
+          <p style={{color:"#374151",fontSize:14,fontWeight:600,margin:"0 0 4px"}}>Noch keine Scores vorhanden</p>
+          <p style={{color:"#9ca3af",fontSize:12,margin:0}}>Gehe zum Content Sheet und klicke "Score speichern", um deine Entwicklung zu verfolgen.</p>
+        </div>
+      );
       const sorted=[...data].sort((a,b)=>a.date.localeCompare(b.date));
       const maxT=Math.max(...sorted.map(d=>d.total),1);
       const minT=Math.min(...sorted.map(d=>d.total),0);
@@ -4519,7 +4544,16 @@
 
     // Skater comparison table
     const SkaterComparison=()=>{
-      if(!skaters.length)return <p style={{color:"#6b7280",fontSize:13,textAlign:"center",padding:20}}>Keine gespeicherten Läufer vorhanden.</p>;
+      if(!skaters.length)return (
+        <div style={{textAlign:"center",padding:"40px 20px"}}>
+          <svg viewBox="0 0 100 80" style={{width:100,height:80,margin:"0 auto 12px",display:"block",opacity:.6}}>
+            <circle cx="50" cy="28" r="16" fill="#d1d5db"/><rect x="32" y="48" width="36" height="24" rx="6" fill="#d1d5db"/>
+            <circle cx="74" cy="32" r="10" fill="#e5e7eb"/><rect x="62" y="45" width="24" height="16" rx="4" fill="#e5e7eb"/>
+          </svg>
+          <p style={{color:"#374151",fontSize:14,fontWeight:600,margin:"0 0 4px"}}>Keine Läufer gespeichert</p>
+          <p style={{color:"#9ca3af",fontSize:12,margin:0}}>Speichere Läufer im Content Sheet, um sie hier vergleichen zu können.</p>
+        </div>
+      );
       // Get latest score per skater from history
       const latestScores={};
       scoreHistory.forEach(h=>{
@@ -4568,7 +4602,17 @@
         });
       });
       const els=Object.values(elMap).filter(e=>e.attempts>0).sort((a,b)=>b.attempts-a.attempts);
-      if(!els.length)return <p style={{color:"#6b7280",fontSize:13,textAlign:"center",padding:20}}>Noch keine Element-Daten. Trage Trainingseinheiten im Tagebuch ein, um Erfolgsquoten zu sehen.</p>;
+      if(!els.length)return (
+        <div style={{textAlign:"center",padding:"40px 20px"}}>
+          <svg viewBox="0 0 100 80" style={{width:100,height:80,margin:"0 auto 12px",display:"block",opacity:.6}}>
+            <rect x="15" y="10" width="70" height="55" rx="6" fill="#d1d5db"/><rect x="25" y="22" width="40" height="4" rx="2" fill="#f3f4f6"/>
+            <rect x="25" y="32" width="50" height="4" rx="2" fill="#f3f4f6"/><rect x="25" y="42" width="30" height="4" rx="2" fill="#f3f4f6"/>
+            <circle cx="72" cy="52" r="14" fill="#059669" opacity=".3"/><text x="72" y="57" textAnchor="middle" fontSize="16" fill="#059669" fontWeight="bold">+</text>
+          </svg>
+          <p style={{color:"#374151",fontSize:14,fontWeight:600,margin:"0 0 4px"}}>Keine Element-Daten vorhanden</p>
+          <p style={{color:"#9ca3af",fontSize:12,margin:0}}>Trage Trainingseinheiten im Tagebuch ein, um Erfolgsquoten zu sehen.</p>
+        </div>
+      );
       return(
         <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(180px,1fr))",gap:8}}>
           {els.map(el=>{
@@ -4719,7 +4763,17 @@
 
         {showForm&&<EntryForm initial={editing} onSave={save} onCancel={()=>{setShowForm(false);setEditing(null);}}/>}
 
-        {logs.length===0?<p style={{color:"#6b7280",fontSize:13,textAlign:"center",padding:40}}>Noch keine Trainingseinheiten eingetragen.</p>:
+        {logs.length===0?
+          <div style={{textAlign:"center",padding:"40px 20px"}}>
+            <svg viewBox="0 0 100 80" style={{width:100,height:80,margin:"0 auto 12px",display:"block",opacity:.6}}>
+              <rect x="20" y="5" width="60" height="70" rx="6" fill="#d1d5db"/><rect x="28" y="16" width="44" height="3" rx="1.5" fill="#f3f4f6"/>
+              <rect x="28" y="24" width="36" height="3" rx="1.5" fill="#f3f4f6"/><rect x="28" y="32" width="44" height="3" rx="1.5" fill="#f3f4f6"/>
+              <rect x="28" y="40" width="28" height="3" rx="1.5" fill="#f3f4f6"/><rect x="28" y="48" width="40" height="3" rx="1.5" fill="#f3f4f6"/>
+              <circle cx="28" cy="61" r="3" fill="#059669" opacity=".5"/><rect x="34" y="59.5" width="20" height="3" rx="1.5" fill="#059669" opacity=".3"/>
+            </svg>
+            <p style={{color:"#374151",fontSize:14,fontWeight:600,margin:"0 0 4px"}}>Noch keine Trainingseinheiten</p>
+            <p style={{color:"#9ca3af",fontSize:12,margin:0}}>Klicke "Neuer Eintrag", um dein erstes Training zu dokumentieren.</p>
+          </div>:
           <div style={{display:"flex",flexDirection:"column",gap:8}}>
             {logs.map(log=>(
               <div key={log.id} style={{background:"white",borderRadius:8,border:"1px solid #e5e7eb",padding:12}}>
@@ -4881,7 +4935,17 @@
           ))}
         </>}
 
-        {competitions.length===0&&!showForm&&<p style={{color:"#6b7280",fontSize:13,textAlign:"center",padding:40}}>Noch keine Wettkämpfe eingetragen. Klicke "+ Wettkampf" um den ersten hinzuzufügen.</p>}
+        {competitions.length===0&&!showForm&&
+          <div style={{textAlign:"center",padding:"40px 20px"}}>
+            <svg viewBox="0 0 120 80" style={{width:120,height:80,margin:"0 auto 12px",display:"block",opacity:.6}}>
+              <path d="M35 20 L25 40 h20 Z" fill="#d1d5db"/><path d="M85 20 L75 40 h20 Z" fill="#d1d5db"/>
+              <rect x="38" y="40" width="44" height="5" rx="2" fill="#d1d5db"/><rect x="55" y="45" width="10" height="15" rx="2" fill="#d1d5db"/>
+              <rect x="45" y="60" width="30" height="6" rx="3" fill="#d1d5db"/><circle cx="60" cy="28" r="6" fill="#f59e0b" opacity=".4"/>
+            </svg>
+            <p style={{color:"#374151",fontSize:14,fontWeight:600,margin:"0 0 4px"}}>Keine Wettkämpfe geplant</p>
+            <p style={{color:"#9ca3af",fontSize:12,margin:0}}>Klicke "+ Wettkampf" um deinen ersten Wettkampf hinzuzufügen.</p>
+          </div>
+        }
       </div>
     );
   }
@@ -5079,6 +5143,7 @@
 
   function App() {
     const authCtx = useAuth();
+    const screen = useScreen();
     const [disziplin, setDisziplin] = useState(null); // null = Übersicht, "einzel" | "pairs"
     const [page, setPage] = useState("content");
     const [simImport, setSimImport] = useState(null);
@@ -5105,6 +5170,16 @@
     const [skaters, setSkaters] = useState([]);
     const [showSkaterModal, setShowSkaterModal] = useState(false);
     const [savingSkater, setSavingSkater] = useState(false);
+    const [showMoreMenu, setShowMoreMenu] = useState(false);
+    const moreMenuRef = useRef(null);
+
+    // Close "Mehr" menu when clicking outside
+    useEffect(() => {
+      if (!showMoreMenu) return;
+      const close = (e) => { if (moreMenuRef.current && !moreMenuRef.current.contains(e.target)) setShowMoreMenu(false); };
+      document.addEventListener("mousedown", close);
+      return () => document.removeEventListener("mousedown", close);
+    }, [showMoreMenu]);
 
     const isPairs = segment.startsWith("pairs_");
     const segDef = SEGMENT_DEFS[segment];
@@ -5444,6 +5519,217 @@
       a.download=`${skater||"programm"}_${segDef.label.replace(/\s/g,"_")}.txt`; a.click();
     };
 
+    // ============================================================
+    //  OFFICIAL WORLD SKATE CONTENT SHEET — PDF EXPORT
+    // ============================================================
+    const exportOfficialPDF = () => {
+      const {jsPDF} = window.jspdf;
+      const doc = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
+      const pw=210, ph=297, mx=15, mxr=pw-15, cw=mxr-mx, lw=0.35;
+      let y=0;
+
+      // Helpers
+      const setLine=()=>{doc.setDrawColor(0,0,0);doc.setLineWidth(lw);};
+      const rect=(x,yy,w,h,opts={})=>{
+        if(opts.fill){doc.setFillColor(opts.fill);doc.rect(x,yy,w,h,"F");}
+        setLine();doc.rect(x,yy,w,h);
+      };
+      const rectNoBorder=(x,yy,w,h,fill)=>{doc.setFillColor(fill);doc.rect(x,yy,w,h,"F");};
+      const txt=(str,x,yy,opts={})=>{
+        doc.setFont("helvetica",opts.bold?"bold":"normal");
+        doc.setFontSize(opts.size||10);
+        doc.setTextColor(opts.color||"#000000");
+        if(opts.align==="center")doc.text(str,x,yy,{align:"center"});
+        else if(opts.align==="right")doc.text(str,x,yy,{align:"right"});
+        else doc.text(str,x,yy);
+      };
+
+      // Draw World Skate spiral logo
+      const drawLogo=(logoX,logoY,logoR)=>{
+        const drawArc=(cx,cy,r,startDeg,endDeg,color,w)=>{
+          doc.setDrawColor(...color);doc.setLineWidth(w);
+          const steps=40,s=startDeg*Math.PI/180,e=endDeg*Math.PI/180;
+          const pts=[];for(let i=0;i<=steps;i++){const a=s+(e-s)*i/steps;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
+          for(let i=0;i<pts.length-1;i++)doc.line(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
+        };
+        drawArc(logoX,logoY,logoR,-90,250,[74,74,74],0.9);
+        drawArc(logoX,logoY,logoR*0.72,-90,240,[136,136,136],0.8);
+        drawArc(logoX,logoY,logoR*0.45,-90,220,[122,182,72],0.7);
+        doc.setFont("helvetica","bold");doc.setFontSize(9);
+        doc.setTextColor(74,74,74);doc.text("WORLD",logoX+logoR+3,logoY+0.5);
+        doc.setTextColor(136,136,136);doc.text("SKATE",logoX+logoR+3,logoY+4);
+        doc.setDrawColor(0,0,0);doc.setLineWidth(lw);doc.setTextColor(0,0,0);
+      };
+
+      // Determine title
+      const isSP = segment.endsWith("_sp");
+      const titleText = isPairs
+        ? (isSP ? "PAIRS SHORT PROGRAM CONTENT SHEET" : "PAIRS FREE PROGRAM CONTENT SHEET")
+        : (isSP ? "SHORT PROGRAM CONTENT SHEET" : "FREE PROGRAM CONTENT SHEET");
+
+      // Map element rows to official format
+      const officialRows = rows.map((r,i) => {
+        const {typeDef, mainEl} = computeRow(r, types, judgeCount);
+        let code = r.typeCode || "";
+        let notes = "";
+        if (typeDef) {
+          if (typeDef.isCombo) {
+            const parts = (r.comboEls||[]).filter(sub=>sub.code).map(sub=>{
+              const el = typeDef.data.find(e=>e.code===sub.code);
+              return el ? el.code : sub.code;
+            });
+            notes = parts.join(" + ");
+          } else if (mainEl) {
+            notes = mainEl.code + " " + mainEl.name;
+          }
+        }
+        return {num:i+1, time:"", code, notes};
+      });
+
+      // === PAGE DRAWING ===
+      y = 14;
+
+      // Header: Logo + Title
+      const logoX=mx+8, logoY=y+5, logoR=6;
+      drawLogo(logoX,logoY,logoR);
+      const titleX = mx+50+(cw-50)/2;
+      txt(titleText, titleX, y+2, {bold:true, size:18, align:"center"});
+      y += 14;
+
+      // Info Table: 4 rows
+      const labelW=55, valW=cw-labelW, infoH=8;
+      const catLabel = CATEGORY_DEFS[kategorie]?.label || kategorie;
+      const infoRows=[
+        {label:"COMPETITORS NAME", val:skater||""},
+        {label:"CATEGORY", val:catLabel},
+        {label:"Representing", val:cat||""},
+        {label:"CHOREOGRAPHY", val:music||""},
+      ];
+      infoRows.forEach(inf=>{
+        rect(mx,y,labelW,infoH);
+        rect(mx+labelW,y,valW,infoH);
+        txt(inf.label,mx+3,y+5.5,{bold:true,size:10});
+        txt(inf.val,mx+labelW+3,y+5.5,{size:11});
+        y+=infoH;
+      });
+      y+=4;
+
+      // Section header bar
+      const secLabel = isSP ? "SHORT PROGRAM" : "FREE PROGRAM";
+      const barH=9;
+      rectNoBorder(mx,y,cw,barH,"#e0e0e0");
+      setLine();doc.rect(mx,y,cw,barH);
+      txt("ELEMENTS "+secLabel,mx+cw/2,y+6.2,{bold:true,size:11,align:"center"});
+      y+=barH;
+
+      // Column headers
+      const colNum=15, colTime=22, colCode=22, colNotes=35;
+      const colPerformed=cw-colNum-colTime-colCode-colNotes;
+      const declW=colNum+colTime+colCode;
+      const subH=7;
+
+      // DECLARED / ELEMENT PERFORMED sub-header
+      rect(mx,y,declW,subH);
+      txt("DECLARED",mx+declW/2,y+5,{bold:true,size:9,align:"center"});
+      rect(mx+declW,y,colPerformed,subH);
+      txt("ELEMENT PERFORMED",mx+declW+colPerformed/2,y+5,{bold:true,size:9,align:"center"});
+      rect(mx+declW+colPerformed,y,colNotes,subH);
+      y+=subH;
+
+      // Column sub-headers: # | Time | Code | (Filled by Tech Panel) | Notes
+      const colHdrH=7;
+      let cx=mx;
+      const cols=[
+        {w:colNum,label:"#",bold:true},
+        {w:colTime,label:"Time",bold:true},
+        {w:colCode,label:"Code",bold:true},
+        {w:colPerformed,label:"(Filled by Tech Panel)",bold:false,size:9,color:"#444444"},
+        {w:colNotes,label:"Notes",bold:true},
+      ];
+      cols.forEach(c=>{
+        rect(cx,y,c.w,colHdrH);
+        txt(c.label,cx+c.w/2,y+5,{bold:c.bold,size:c.size||10,align:"center",color:c.color});
+        cx+=c.w;
+      });
+      y+=colHdrH;
+
+      // Element rows
+      const rh = officialRows.length <= 9 ? 16 : 12;
+      officialRows.forEach(el=>{
+        if(y+rh>ph-12){doc.addPage();y=14;}
+        cx=mx;
+        // #
+        rect(cx,y,colNum,rh);
+        txt(String(el.num),cx+colNum/2,y+rh/2+2,{bold:true,size:12,align:"center"});
+        cx+=colNum;
+        // Time
+        rect(cx,y,colTime,rh);
+        txt(el.time||"_:__",cx+colTime/2,y+rh/2+2,{bold:true,size:11,align:"center"});
+        cx+=colTime;
+        // Code
+        rect(cx,y,colCode,rh);
+        txt(el.code||"----",cx+4,y+rh/2+2,{bold:true,size:11});
+        cx+=colCode;
+        // (Filled by Tech Panel)
+        rect(cx,y,colPerformed,rh);
+        cx+=colPerformed;
+        // Notes
+        rect(cx,y,colNotes,rh);
+        if(el.notes)txt(el.notes,cx+3,y+rh/2+2,{size:8});
+        cx+=colNotes;
+        y+=rh;
+      });
+      y+=6;
+
+      // Score summary at bottom
+      if(y+30>ph-12){doc.addPage();y=14;}
+      const summaryW = cw/2;
+      const summaryX = mx + cw - summaryW;
+      const sH = 7;
+      // TES
+      rect(summaryX,y,summaryW*0.65,sH);
+      txt("Technical Element Score (TES)",summaryX+4,y+5,{bold:true,size:9});
+      rect(summaryX+summaryW*0.65,y,summaryW*0.35,sH);
+      txt(tes.toFixed(2),summaryX+summaryW-4,y+5,{bold:true,size:11,align:"right"});
+      y+=sH;
+      // PCS
+      rect(summaryX,y,summaryW*0.65,sH);
+      txt("Program Component Score (PCS)",summaryX+4,y+5,{bold:true,size:9});
+      rect(summaryX+summaryW*0.65,y,summaryW*0.35,sH);
+      txt(pcsTotal.toFixed(2),summaryX+summaryW-4,y+5,{bold:true,size:11,align:"right",color:"#1e40af"});
+      y+=sH;
+      // Deductions
+      if(deductions > 0){
+        rect(summaryX,y,summaryW*0.65,sH);
+        txt("Deductions (PE)",summaryX+4,y+5,{bold:true,size:9});
+        rect(summaryX+summaryW*0.65,y,summaryW*0.35,sH);
+        txt("-"+deductions.toFixed(2),summaryX+summaryW-4,y+5,{bold:true,size:11,align:"right",color:"#dc2626"});
+        y+=sH;
+      }
+      // Extra
+      if(extraPoints > 0){
+        rect(summaryX,y,summaryW*0.65,sH);
+        txt("Extra Points",summaryX+4,y+5,{bold:true,size:9});
+        rect(summaryX+summaryW*0.65,y,summaryW*0.35,sH);
+        txt("+"+extraPoints.toFixed(2),summaryX+summaryW-4,y+5,{bold:true,size:11,align:"right",color:"#059669"});
+        y+=sH;
+      }
+      // Total Score
+      rectNoBorder(summaryX,y,summaryW,sH+2,"#f0fdf4");
+      setLine();doc.rect(summaryX,y,summaryW,sH+2);
+      txt("TOTAL SCORE",summaryX+4,y+6,{bold:true,size:11});
+      txt(totalScore.toFixed(2),summaryX+summaryW-4,y+6,{bold:true,size:14,align:"right",color:"#059669"});
+
+      // Footer
+      y+=sH+10;
+      doc.setFontSize(7);doc.setTextColor("#9ca3af");
+      doc.text("Generated by RollArt 2026 — Artistic Roller Skating Dashboard — World Skate Official Format",pw/2,y,{align:"center"});
+
+      // Save
+      const fn=`${(skater||"content_sheet").replace(/\s+/g,"_")}_${segDef.label.replace(/\s+/g,"_")}_WorldSkate.pdf`;
+      doc.save(fn);
+    };
+
     // Skater save/load functions
     const loadSkaters = async () => {
       try {
@@ -5524,11 +5810,11 @@
     if(!disziplin){
       return(
         <div style={{ background:"#f8faf9", minHeight:"100vh" }}>
-          <div style={{ background:"linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)", padding:window.innerWidth<=640?"12px 10px":"16px 20px", color:"white" }}>
+          <div style={{ background:"linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)", padding:screen.mobile?"12px 10px":"16px 20px", color:"white" }}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div>
                 <div style={{fontSize:10,fontWeight:600,opacity:.8,letterSpacing:2,textTransform:"uppercase"}}>World Skate</div>
-                <h1 style={{margin:0,fontSize:window.innerWidth<=640?20:26,fontWeight:800}}>RollArt 2026</h1>
+                <h1 style={{margin:0,fontSize:screen.mobile?20:26,fontWeight:800}}>RollArt 2026</h1>
               </div>
               {authCtx?.user && (
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -5553,7 +5839,7 @@
     return (
       <div style={{ background:"#f8faf9", minHeight:"100vh" }}>
         {/* HEADER */}
-        <div style={{ background:"linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)", padding:window.innerWidth<=640?"10px 10px 8px":"12px 16px 10px", color:"white" }}>
+        <div style={{ background:"linear-gradient(135deg,#065f46 0%,#059669 50%,#34d399 100%)", padding:screen.mobile?"10px 10px 8px":"12px 16px 10px", color:"white" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:6 }}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -5562,32 +5848,75 @@
                 </button>
                 <div>
                   <div style={{fontSize:10,fontWeight:600,opacity:.8,letterSpacing:2,textTransform:"uppercase"}}>World Skate</div>
-                  <h1 style={{margin:0,fontSize:window.innerWidth<=640?16:20,fontWeight:800}}>
-                    RollArt 2026 <span style={{fontSize:window.innerWidth<=640?11:13,fontWeight:600,opacity:.8,background:"rgba(255,255,255,.2)",padding:"2px 8px",borderRadius:4,marginLeft:4}}>
+                  <h1 style={{margin:0,fontSize:screen.mobile?16:20,fontWeight:800}}>
+                    RollArt 2026 <span style={{fontSize:screen.mobile?11:13,fontWeight:600,opacity:.8,background:"rgba(255,255,255,.2)",padding:"2px 8px",borderRadius:4,marginLeft:4}}>
                       {disziplin==="pairs"?"Paarlauf":"Einzellauf"}
                     </span>
                   </h1>
                 </div>
               </div>
               {/* PAGE TABS */}
-              <div className="r-nav-scroll" style={{display:"flex",gap:4,marginTop:6}}>
-                {[
+              {(()=>{
+                const primaryTabs = [
                   {key:"dashboard",label:"Dashboard"},
                   {key:"content",label:"Content Sheet"},
                   {key:"training",label:"Simulator"},
                   {key:"tagebuch",label:"Tagebuch"},
                   {key:"kalender",label:"Kalender"},
                   {key:"wettbewerbe",label:"Wettbewerbe"},
+                ];
+                const moreTabs = [
                   {key:"official",label:"Official Sheet"},
                   {key:"glossar",label:"Glossar & Regeln"},
                   {key:"anleitung",label:"Anleitung"},
-                ].map(t=>(
-                  <button key={t.key} onClick={()=>setPage(t.key)} style={{padding:window.innerWidth<=640?"4px 9px":"5px 14px",borderRadius:6,border:"none",fontSize:window.innerWidth<=640?10:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
-                    background:page===t.key?"white":"rgba(255,255,255,.2)",color:page===t.key?"#059669":"white"}}>{t.label}</button>
-                ))}
-                {authCtx?.user?.role==="admin"&&<button onClick={()=>setPage("admin")} style={{padding:"5px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0,
-                  background:page==="admin"?"white":"rgba(255,255,255,.2)",color:page==="admin"?"#dc2626":"white"}}>⚙ Admin</button>}
-              </div>
+                ];
+                const isMoreActive = moreTabs.some(t => t.key === page);
+                const tabStyle = (active) => ({
+                  padding: screen.mobile ? "5px 9px" : "6px 14px",
+                  borderRadius: "6px 6px 0 0",
+                  border: "none",
+                  borderBottom: active ? "3px solid white" : "3px solid transparent",
+                  fontSize: screen.mobile ? 10 : 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                  background: active ? "rgba(255,255,255,.25)" : "transparent",
+                  color: "white",
+                  transition: "all .15s",
+                });
+                return (
+                  <div className="r-nav-scroll" style={{display:"flex",gap:2,marginTop:6,alignItems:"flex-end"}}>
+                    {primaryTabs.map(t => (
+                      <button key={t.key} onClick={() => setPage(t.key)} style={tabStyle(page === t.key)}>{t.label}</button>
+                    ))}
+                    {/* Mehr-Dropdown */}
+                    <div ref={moreMenuRef} style={{position:"relative",flexShrink:0}}>
+                      <button onClick={() => setShowMoreMenu(!showMoreMenu)} style={{
+                        ...tabStyle(isMoreActive),
+                        display: "flex", alignItems: "center", gap: 4,
+                      }}>
+                        {isMoreActive ? moreTabs.find(t => t.key === page)?.label : "Mehr ▾"}
+                      </button>
+                      {showMoreMenu && (
+                        <div style={{position:"absolute",top:"100%",right:0,marginTop:4,background:"white",borderRadius:8,boxShadow:"0 8px 24px rgba(0,0,0,.18)",border:"1px solid #e5e7eb",minWidth:180,zIndex:100,overflow:"hidden"}}>
+                          {moreTabs.map(t => (
+                            <button key={t.key} onClick={() => { setPage(t.key); setShowMoreMenu(false); }} style={{
+                              display:"block",width:"100%",padding:"10px 16px",border:"none",background:page===t.key?"#f0fdf4":"white",
+                              color:page===t.key?"#059669":"#374151",fontWeight:page===t.key?700:500,fontSize:13,cursor:"pointer",textAlign:"left",
+                              borderLeft:page===t.key?"3px solid #059669":"3px solid transparent",
+                            }}
+                              onMouseEnter={e => { if (page !== t.key) e.currentTarget.style.background = "#f9fafb"; }}
+                              onMouseLeave={e => { if (page !== t.key) e.currentTarget.style.background = "white"; }}
+                            >{t.label}</button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    {authCtx?.user?.role==="admin"&&<button onClick={()=>setPage("admin")} style={tabStyle(page==="admin")}>⚙ Admin</button>}
+                  </div>
+                );
+              })()}
             </div>
             {/* User menu */}
             {authCtx?.user && (
@@ -5605,13 +5934,13 @@
             )}
             {page==="content"&&<div style={{textAlign:"right",flexShrink:0}}>
               <div style={{fontSize:10,opacity:.8}}>Total Score</div>
-              <div style={{fontSize:window.innerWidth<=640?22:34,fontWeight:800,lineHeight:1}}>{totalScore.toFixed(2)}</div>
+              <div style={{fontSize:screen.mobile?22:34,fontWeight:800,lineHeight:1}}>{totalScore.toFixed(2)}</div>
               <div className="r-hide-mobile" style={{fontSize:10,opacity:.7}}>TES {tes.toFixed(2)} + PCS {pcsTotal.toFixed(2)}{deductions>0?" - Ded "+deductions.toFixed(2):""}{extraPoints>0?" + Extra "+extraPoints.toFixed(2):""}</div>
             </div>}
           </div>
 
           {/* Category + Segment selector + Judge count */}
-          {page==="content"&&<div style={{display:"flex",gap:window.innerWidth<=640?4:6,marginTop:window.innerWidth<=640?6:10,flexWrap:"wrap",alignItems:"center"}}>
+          {page==="content"&&<div style={{display:"flex",gap:screen.mobile?4:6,marginTop:screen.mobile?6:10,flexWrap:"wrap",alignItems:"center"}}>
             <select value={kategorie} onChange={e=>changeKategorie(e.target.value)} style={{
               padding:"6px 10px",borderRadius:6,border:"2px solid rgba(255,255,255,.3)",fontSize:12,fontWeight:700,
               background:"rgba(255,255,255,.15)",color:"white",cursor:"pointer",
@@ -5884,7 +6213,7 @@
         {page==="official"&&<OfficialSheets onSendToContent={(data)=>{setOfficialImport(data);setPage("content");}} importFromContent={officialExport}/>}
 
         {/* CONTENT SHEET PAGE */}
-        {page==="content"&&<div style={{padding:window.innerWidth<=640?"8px 8px":"12px 16px",maxWidth:1150,margin:"0 auto"}}>
+        {page==="content"&&<div style={{padding:screen.mobile?"8px 8px":"12px 16px",maxWidth:1150,margin:"0 auto"}}>
 
           {/* Info fields */}
           <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:12}}>
@@ -5893,44 +6222,58 @@
             <input placeholder="Musik / Choreographie" value={music} onChange={e=>setMusic(e.target.value)} style={{padding:"7px 10px",borderRadius:5,border:"1px solid #d1d5db",fontSize:13}}/>
           </div>
 
-          {/* Actions */}
-          <div style={{display:"flex",gap:window.innerWidth<=640?4:6,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
-            <label style={{padding:"6px 12px",borderRadius:5,border:"1px solid #059669",background:"#f0fdf4",color:"#059669",fontWeight:600,fontSize:11,cursor:"pointer"}}>
-              Content Sheet (PDF/TXT)
-              <input type="file" accept=".pdf,.txt" onChange={handleUpload} style={{display:"none"}}/>
-            </label>
-            <button onClick={exportTxt} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#059669",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>Exportieren</button>
-            <button onClick={saveSkater} disabled={savingSkater} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#3b82f6",color:"white",fontWeight:600,fontSize:11,cursor:"pointer",opacity:savingSkater?0.6:1}}>💾 Läufer speichern</button>
-            <button onClick={()=>setShowSkaterModal(true)} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#10b981",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>📂 Läufer laden</button>
-            <button onClick={()=>{
-              setSimImport({kategorie,segment,geschlecht,skater,cat,music,judgeCount,rows:rows.map(r=>({...r})),pcs:{...pcs,skating:[...pcs.skating],transitions:[...pcs.transitions],performance:[...pcs.performance],choreography:[...pcs.choreography]},deductions,extraPoints,_ts:Date.now()});
-              setPage("training");
-            }} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#7c3aed",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
-              &#9654; An Simulator
-            </button>
-            <button onClick={()=>{
-              setOfficialExport({skater,cat,music,kategorie,segment,rows:rows.map(r=>({...r})),_ts:Date.now()});
-              setPage("official");
-            }} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#1d4ed8",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
-              &#9654; An Official Sheet
-            </button>
-            <button onClick={async()=>{
-              const token=localStorage.getItem('rollart_token');
-              const label=prompt('Label für diesen Score (z.B. "Training", "Wettkampf"):','Training');
-              if(label===null)return;
-              await fetch('/api/score-history',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({
-                skaterName:skater||'Unbenannt',kategorie,segment,tes:Math.round(tes*100)/100,pcs:Math.round(pcsTotal*100)/100,
-                deductions,extraPoints,total:totalScore,date:new Date().toISOString().slice(0,10),label
-              })});
-              setUploadMsg('Score gespeichert!');setTimeout(()=>setUploadMsg(''),3000);
-            }} style={{padding:"6px 12px",borderRadius:5,border:"none",background:"#f59e0b",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
-              📊 Score speichern
-            </button>
-            <button onClick={addRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>+ Zeile</button>
-            <button onClick={removeRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>- Zeile</button>
-            <button onClick={clearAll} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Löschen</button>
-            {uploadMsg && <span style={{fontSize:11,color:"#059669",fontWeight:500}}>{uploadMsg}</span>}
-          </div>
+          {/* Actions — grouped */}
+          {(()=>{
+            const btnBase = {padding:"6px 12px",borderRadius:5,fontWeight:600,fontSize:11,cursor:"pointer",border:"none"};
+            const divider = <div style={{width:1,height:24,background:"#e5e7eb",margin:"0 2px",flexShrink:0}} />;
+            return (
+              <div style={{display:"flex",gap:screen.mobile?3:5,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
+                {/* I/O Group */}
+                <label style={{...btnBase,border:"1px solid #059669",background:"#f0fdf4",color:"#059669"}}>
+                  Import (PDF/TXT)
+                  <input type="file" accept=".pdf,.txt" onChange={handleUpload} style={{display:"none"}}/>
+                </label>
+                <button onClick={exportTxt} style={{...btnBase,background:"#059669",color:"white"}}>TXT Export</button>
+                <button onClick={exportOfficialPDF} style={{...btnBase,background:"#dc2626",color:"white"}}>PDF (World Skate)</button>
+                {divider}
+                {/* Läufer Group */}
+                <button onClick={saveSkater} disabled={savingSkater} style={{...btnBase,background:"#3b82f6",color:"white",opacity:savingSkater?0.6:1}}>Speichern</button>
+                <button onClick={()=>setShowSkaterModal(true)} style={{...btnBase,background:"#10b981",color:"white"}}>Laden</button>
+                {divider}
+                {/* Navigation Group */}
+                <button onClick={()=>{
+                  setSimImport({kategorie,segment,geschlecht,skater,cat,music,judgeCount,rows:rows.map(r=>({...r})),pcs:{...pcs,skating:[...pcs.skating],transitions:[...pcs.transitions],performance:[...pcs.performance],choreography:[...pcs.choreography]},deductions,extraPoints,_ts:Date.now()});
+                  setPage("training");
+                }} style={{...btnBase,background:"#7c3aed",color:"white"}}>
+                  Simulator &#9654;
+                </button>
+                <button onClick={()=>{
+                  setOfficialExport({skater,cat,music,kategorie,segment,rows:rows.map(r=>({...r})),_ts:Date.now()});
+                  setPage("official");
+                }} style={{...btnBase,background:"#1d4ed8",color:"white"}}>
+                  Official &#9654;
+                </button>
+                <button onClick={async()=>{
+                  const token=localStorage.getItem('rollart_token');
+                  const label=prompt('Label für diesen Score (z.B. "Training", "Wettkampf"):','Training');
+                  if(label===null)return;
+                  await fetch('/api/score-history',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({
+                    skaterName:skater||'Unbenannt',kategorie,segment,tes:Math.round(tes*100)/100,pcs:Math.round(pcsTotal*100)/100,
+                    deductions,extraPoints,total:totalScore,date:new Date().toISOString().slice(0,10),label
+                  })});
+                  setUploadMsg('Score gespeichert!');setTimeout(()=>setUploadMsg(''),3000);
+                }} style={{...btnBase,background:"#f59e0b",color:"white"}}>
+                  Score speichern
+                </button>
+                {divider}
+                {/* Table editing Group */}
+                <button onClick={addRow} style={{...btnBase,border:"1px solid #d1d5db",background:"white",color:"#374151"}}>+ Zeile</button>
+                <button onClick={removeRow} style={{...btnBase,border:"1px solid #d1d5db",background:"white",color:"#374151"}}>- Zeile</button>
+                <button onClick={clearAll} style={{...btnBase,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626"}}>Löschen</button>
+                {uploadMsg && <span style={{fontSize:11,color:"#059669",fontWeight:500,marginLeft:4}}>{uploadMsg}</span>}
+              </div>
+            );
+          })()}
 
           {/* Skater Load Modal */}
           {showSkaterModal && (
@@ -5938,11 +6281,14 @@
               <div style={{background:"white",borderRadius:10,padding:20,maxWidth:400,width:"90%",maxHeight:"80vh",overflow:"auto"}}>
                 <h3 style={{margin:"0 0 16px",fontSize:16,fontWeight:800}}>Gespeicherte Läufer laden</h3>
                 {skaters.length===0?(
-                  <p style={{color:"#6b7280",fontSize:13}}>Keine gespeicherten Läufer vorhanden</p>
+                  <p style={{color:"#6b7280",fontSize:13,textAlign:"center",padding:"16px 0"}}>Noch keine Läufer gespeichert. Nutze "Speichern" im Content Sheet.</p>
                 ):(
                   <div style={{display:"flex",flexDirection:"column",gap:8}}>
                     {skaters.map((sk)=>(
-                      <div key={sk.id} style={{border:"1px solid #e5e7eb",borderRadius:6,padding:10,cursor:"pointer",hover:{background:"#f9fafb"}}} onClick={()=>loadSkaterData(sk)}>
+                      <div key={sk.id} style={{border:"1px solid #e5e7eb",borderRadius:6,padding:10,cursor:"pointer",transition:"background .15s"}}
+                        onMouseEnter={e=>{e.currentTarget.style.background="#f0fdf4";e.currentTarget.style.borderColor="#86efac";}}
+                        onMouseLeave={e=>{e.currentTarget.style.background="";e.currentTarget.style.borderColor="#e5e7eb";}}
+                        onClick={()=>loadSkaterData(sk)}>
                         <div style={{fontWeight:600,fontSize:13}}>{sk.name}</div>
                         <div style={{fontSize:11,color:"#6b7280"}}>
                           {CATEGORY_DEFS[sk.kategorie]?.label||sk.kategorie} • {SEGMENT_DEFS[sk.segment]?.label||sk.segment}
@@ -6016,21 +6362,25 @@
                     <tr key={comp.key} style={{borderBottom:"1px solid #e5e7eb"}}>
                       <td style={{padding:"8px 10px",fontSize:12,fontWeight:600}}>{comp.label}</td>
                       <td style={{padding:"8px 4px",fontSize:11,textAlign:"center",color:"#6b7280"}}>{pcsFactor.toFixed(1)}</td>
-                      {Array.from({length:judgeCount}).map((_,ji)=>(
-                        <td key={ji} style={{padding:"8px 2px",textAlign:"center"}}>
-                          <select value={pcs[comp.key][ji]} onChange={e=>{
-                            const np={...pcs};
-                            np[comp.key]=[...np[comp.key]];
-                            const val = parseFloat(e.target.value);
-                            np[comp.key][ji] = isNaN(val) ? 0 : val;
-                            setPcs(np);
-                          }} style={{...SEL, width:50, fontSize:11, padding:"3px 1px", textAlign:"center"}}>
-                            {Array.from({length:41},(_,i)=>i*0.25).map(v=>(
-                              <option key={v} value={v}>{v.toFixed(2)}</option>
-                            ))}
-                          </select>
-                        </td>
-                      ))}
+                      {Array.from({length:judgeCount}).map((_,ji)=>{
+                        const val = pcs[comp.key][ji];
+                        const updatePcsVal = (newVal) => {
+                          const clamped = Math.max(0, Math.min(10, Math.round(newVal * 4) / 4));
+                          const np={...pcs}; np[comp.key]=[...np[comp.key]]; np[comp.key][ji]=clamped; setPcs(np);
+                        };
+                        return (
+                          <td key={ji} style={{padding:"4px 1px",textAlign:"center"}}>
+                            <div style={{display:"inline-flex",flexDirection:"column",alignItems:"center",gap:0}}>
+                              <button onClick={()=>updatePcsVal(val+0.25)} style={{width:44,height:16,border:"1px solid #bfdbfe",borderRadius:"4px 4px 0 0",background:"#eff6ff",color:"#3b82f6",fontSize:9,fontWeight:700,cursor:"pointer",lineHeight:1,padding:0}}>▲</button>
+                              <input type="number" min="0" max="10" step="0.25" value={val.toFixed(2)}
+                                onChange={e => updatePcsVal(parseFloat(e.target.value)||0)}
+                                style={{width:44,height:24,border:"1px solid #d1d5db",borderRadius:0,fontSize:12,fontWeight:700,textAlign:"center",padding:0,color:"#1e40af",
+                                  MozAppearance:"textfield",WebkitAppearance:"none"}}/>
+                              <button onClick={()=>updatePcsVal(val-0.25)} style={{width:44,height:16,border:"1px solid #bfdbfe",borderRadius:"0 0 4px 4px",background:"#eff6ff",color:"#3b82f6",fontSize:9,fontWeight:700,cursor:"pointer",lineHeight:1,padding:0}}>▼</button>
+                            </div>
+                          </td>
+                        );
+                      })}
                       <td style={{padding:"8px 4px",fontSize:12,fontWeight:700,textAlign:"right",color:"#3b82f6"}}>{avg.toFixed(2)}</td>
                       <td style={{padding:"8px 8px",fontSize:14,fontWeight:800,textAlign:"right",color:"#3b82f6"}}>{compScore.toFixed(2)}</td>
                     </tr>
@@ -6051,10 +6401,10 @@
           </div>
 
           {/* DEDUCTIONS & EXTRA */}
-          <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:window.innerWidth<=640?10:16,marginTop:16}}>
-  <div style={{display:"flex",gap:window.innerWidth<=640?8:12,flexWrap:"wrap",alignItems:"center"}}>
+          <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:screen.mobile?10:16,marginTop:16}}>
+  <div style={{display:"flex",gap:screen.mobile?8:12,flexWrap:"wrap",alignItems:"center"}}>
     <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-      <span style={{fontSize:window.innerWidth<=640?11:13,fontWeight:700,color:"#dc2626"}}>Abzüge (PE):</span>
+      <span style={{fontSize:screen.mobile?11:13,fontWeight:700,color:"#dc2626"}}>Abzüge (PE):</span>
       <button onClick={()=>setDeductions(d=>Math.round((d+0.5)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:700,fontSize:12,cursor:"pointer"}}>+0.5</button>
       <button onClick={()=>setDeductions(d=>Math.round((d+1.0)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:700,fontSize:12,cursor:"pointer"}}>+1.0</button>
       <input type="number" min="0" step="0.1" value={deductions} onChange={e=>setDeductions(parseFloat(e.target.value)||0)}
@@ -6063,7 +6413,7 @@
       <button onClick={()=>setDeductions(0)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
     </div>
     <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-      <span style={{fontSize:window.innerWidth<=640?11:13,fontWeight:700,color:"#059669"}}>Extra Punkte:</span>
+      <span style={{fontSize:screen.mobile?11:13,fontWeight:700,color:"#059669"}}>Extra Punkte:</span>
       <button onClick={()=>setExtraPoints(d=>Math.round((d+0.5)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #86efac",background:"#f0fdf4",color:"#059669",fontWeight:700,fontSize:12,cursor:"pointer"}}>+0.5</button>
       <button onClick={()=>setExtraPoints(d=>Math.round((d+1.0)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #86efac",background:"#f0fdf4",color:"#059669",fontWeight:700,fontSize:12,cursor:"pointer"}}>+1.0</button>
       <input type="number" min="0" step="0.1" value={extraPoints} onChange={e=>setExtraPoints(parseFloat(e.target.value)||0)}
@@ -6071,8 +6421,15 @@
       <button onClick={()=>setExtraPoints(d=>Math.max(0,Math.round((d-0.5)*100)/100))} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:700,fontSize:12,cursor:"pointer"}}>-0.5</button>
       <button onClick={()=>setExtraPoints(0)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
     </div>
-    <div style={{background:"#f0fdf4",borderRadius:8,border:"2px solid #059669",padding:"8px 16px",marginLeft:window.innerWidth<=640?0:"auto",width:window.innerWidth<=640?"100%":"auto",textAlign:"center"}}>
-      <span style={{fontSize:12,fontWeight:600,color:"#065f46"}}>Total Score: </span>
+    <div style={{background:"#f0fdf4",borderRadius:8,border:"2px solid #059669",padding:"8px 16px",marginLeft:screen.mobile?0:"auto",width:screen.mobile?"100%":"auto",textAlign:"center"}}>
+      <div style={{fontSize:11,color:"#065f46",fontWeight:500,lineHeight:1.8}}>
+        <span style={{color:"#059669",fontWeight:700}}>{tes.toFixed(2)}</span>
+        <span> + </span>
+        <span style={{color:"#3b82f6",fontWeight:700}}>{pcsTotal.toFixed(2)}</span>
+        {deductions>0&&<><span> - </span><span style={{color:"#dc2626",fontWeight:700}}>{deductions.toFixed(2)}</span></>}
+        {extraPoints>0&&<><span> + </span><span style={{color:"#059669",fontWeight:700}}>{extraPoints.toFixed(2)}</span></>}
+        <span> = </span>
+      </div>
       <span style={{fontSize:22,fontWeight:800,color:"#059669"}}>{totalScore.toFixed(2)}</span>
     </div>
   </div>
