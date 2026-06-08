@@ -548,7 +548,7 @@
       const f = {"pairs_tots_fp":0.8,"pairs_minis_fp":0.8,
         "pairs_espoirs_sp":0.8,"pairs_espoirs_fp":1.0,
         "pairs_cadets_sp":1.0,"pairs_cadets_fp":1.4,
-        "pairs_jeunesse_sp":1.0,"pairs_jeunesse_fp":1.4,
+        "pairs_youth_sp":1.0,"pairs_youth_fp":1.4,
         "pairs_junior_sp":1.0,"pairs_junior_fp":1.8,
         "pairs_senior_sp":1.0,"pairs_senior_fp":1.8};
       return f[segment] || 0.8;
@@ -707,7 +707,7 @@
     };
     const addSub = () => {
       const subs = [...(row.comboEls||[])];
-      if (subs.length < 5) { subs.push({code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0]}); onChange({...row, comboEls:subs}); }
+      if (subs.length < 5) { subs.push({code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0],_id:Math.random().toString(36).slice(2)}); onChange({...row, comboEls:subs}); }
     };
     const removeSub = (i) => {
       const subs = (row.comboEls||[]).filter((_,j)=>j!==i);
@@ -723,7 +723,7 @@
           <select value={row.typeCode} onChange={e=>{
             const newType = types.find(t=>t.code===e.target.value);
             const nr = { typeCode:e.target.value, elCode:"", judgeGoe:[0,0,0,0,0], rotation:"normal", comboEls:[], nv:false, dg:false };
-            if (newType?.isCombo) nr.comboEls = [{code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0]},{code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0]}];
+            if (newType?.isCombo) nr.comboEls = [{code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0],_id:Math.random().toString(36).slice(2)},{code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0],_id:Math.random().toString(36).slice(2)}];
             onChange(nr);
           }} style={{...SEL, width:"100%", minWidth:90, fontWeight:600}}>
             <option value="">---</option>
@@ -736,7 +736,7 @@
           {isCombo ? (
             <div>
               {(row.comboEls||[]).map((sub,i) => (
-                <ComboSubRow key={i} idx={i} sub={sub} data={typeDef.data}
+                <ComboSubRow key={sub._id||i} idx={i} sub={sub} data={typeDef.data}
                   hasComboValues={typeDef.data.some(e=>e.combo!==undefined)}
                   hasRotation={!!typeDef.hasRotation}
                   onChange={s=>updateSub(i,s)} onRemove={()=>removeSub(i)}
@@ -936,13 +936,22 @@
       const catDef=CATEGORY_DEFS[k];
       if(catDef){
         const segs=catDef.segments||[];
-        let newSheetType="sp_fp";
-        if(segs.length===1){
-          // Only FP
-          newSheetType=segs[0].endsWith("_fp")?"fp12":"sp";
-        } else if(segs.length===2){
-          // SP+FP
-          newSheetType="sp_fp";
+        const isPairsKat=segs.some(s=>s.startsWith("pairs_"));
+        const hasSP=segs.some(s=>s.endsWith("_sp"));
+        const hasFP=segs.some(s=>s.endsWith("_fp"));
+        let newSheetType;
+        if(isPairsKat){
+          if(hasSP&&hasFP) newSheetType="pairs_sp_fp";
+          else if(hasSP) newSheetType="pairs_sp";
+          else newSheetType="pairs_fp";
+        } else {
+          if(hasSP&&hasFP) newSheetType="sp_fp";
+          else if(hasSP) newSheetType="sp";
+          else {
+            const fpSeg=segs.find(s=>s.endsWith("_fp"));
+            const fpRows=SEGMENT_DEFS[fpSeg]?.rows||12;
+            newSheetType=fpRows<=9?"fp9":"fp12";
+          }
         }
         setSheetType(newSheetType);
         setSections(initSections(newSheetType));
@@ -1021,7 +1030,7 @@
       if(d.music&&newSections[targetIdx]) newSections[targetIdx].music=d.music;
 
       setSections(newSections);
-    },[importFromContent]);
+    },[importFromContent,initSections]);
 
     // jsPDF-based PDF generation matching original World Skate template exactly
     const exportPDF=()=>{
@@ -1085,7 +1094,7 @@
         const infoH=8;
         const infoRows=[
           {label:"COMPETITORS NAME",val:name},
-          {label:"CATEGORY",val:category},
+          {label:"CATEGORY",val:CATEGORY_DEFS[kategorie]?.label||kategorie},
           {label:"Representing",val:federation},
           {label:"CHOREOGRAPHY",val:choreography},
         ];
@@ -1175,7 +1184,7 @@
             cx+=colPerformed;
             // Notes column
             rect(cx,y,colNotes,rh);
-            if(el.notes)txt(el.notes,cx+3,y+rh/2+2,{size:9});
+            if(el.notes){const n=el.notes.length>25?el.notes.substring(0,24)+"…":el.notes;txt(n,cx+3,y+rh/2+2,{size:9});}
             cx+=colNotes;
 
             y+=rh;
@@ -1201,7 +1210,7 @@
 
     // Save as TXT
     const saveTxt=()=>{
-      const lines=[sheet.title,"",`Name: ${name}`,`Category: ${category}`,`Federation: ${federation}`,`Choreography: ${choreography}`,""];
+      const lines=[sheet.title,"",`Name: ${name}`,`Category: ${CATEGORY_DEFS[kategorie]?.label||kategorie}`,`Federation: ${federation}`,`Choreography: ${choreography}`,""];
       sheet.sections.forEach((sec,si)=>{
         const d=sections[si];
         lines.push(`=== ${sec.label} ===`);
@@ -1221,7 +1230,11 @@
     // Restore from TXT
     const restoreTxt=(text)=>{
         const nm=text.match(/Name:\s*(.+)/);if(nm)setName(nm[1].trim());
-        const ct=text.match(/Category:\s*(.+)/);if(ct)setCategory(ct[1].trim());
+        const ct=text.match(/Category:\s*(.+)/);if(ct){
+          const catVal=ct[1].trim();
+          const found=Object.entries(CATEGORY_DEFS).find(([k,v])=>v.label===catVal||k===catVal.toLowerCase());
+          if(found)setKategorie(found[0]); else setKategorie(catVal);
+        }
         const fd=text.match(/Federation:\s*(.+)/);if(fd)setFederation(fd[1].trim());
         const ch=text.match(/Choreography:\s*(.+)/);if(ch)setChoreography(ch[1].trim());
         // Parse sections
@@ -1608,7 +1621,7 @@
         {type:"SSp",min:1,max:1,desc:"1 SBS-Spin (1 Pos. oder Combo max 2 Pos., Aufrecht+Sitz)"},
         {type:"Tj",min:0,max:2,desc:"0-2 Wurfsprünge (einfach oder Axel)"},
         {type:"CtSp",min:1,max:1,desc:"1 Contact Spin (1 Pos., Aufrecht/Sitz/Hazel)"},
-        {type:"Sp",min:1,max:1,desc:"1 Spiral (Kamel BO)"},
+        {type:"CS",min:1,max:1,desc:"1 Spiral (Kamel BO)"},
         {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge (max Lv2, max 30s)"},
       ],
       maxTotal:8, maxJumps:4, maxSpins:2, maxSequences:2,
@@ -1627,7 +1640,7 @@
         {type:"SSp",min:1,max:1,desc:"1 SBS-Spin (Sitz BI)"},
         {type:"Tj",min:1,max:1,desc:"1 Wurfsprung (einfach, kein Axel)"},
         {type:"CtSp",min:1,max:1,desc:"1 Contact Spin (Sitz Face-to-Face)"},
-        {type:"Sp",min:1,max:1,desc:"1 Spiral (Kamel BO)"},
+        {type:"CS",min:1,max:1,desc:"1 Spiral (Kamel BO)"},
         {type:"FoSq",min:1,max:1,desc:"1 Schrittfolge (max Lv3, max 30s)"},
       ],
       maxTotal:7, maxJumps:2, maxSpins:2, maxSequences:2,
@@ -1646,7 +1659,7 @@
         {type:"CSp",min:1,max:1,desc:"1 SBS-Combo-Spin (max 2 Pos.)"},
         {type:"Tj",min:0,max:2,desc:"0-2 Wurfsprünge (Axel/Doppel-TL/Doppel-S)"},
         {type:"CtSp",min:1,max:1,desc:"1 Combo Contact Spin (max 2 Pos.)"},
-        {type:"Sp",min:1,max:1,desc:"1 Spiral (Kamel BO)"},
+        {type:"CS",min:1,max:1,desc:"1 Spiral (Kamel BO)"},
         {type:"ChSt",min:1,max:1,desc:"1 Choreo-Sequenz (max 30s)"},
       ],
       maxTotal:9, maxJumps:4, maxSpins:2, maxSequences:2,
@@ -1811,6 +1824,7 @@
     const [kiMsg,setKiMsg]=useState("");
     const [kiHistory,setKiHistory]=useState([]);
     const [kiLoading,setKiLoading]=useState(false);
+    const kiAbortRef=useRef(null);
 
     const sendToKI=async(msg)=>{
       if(!msg.trim()||kiLoading)return;
@@ -1818,6 +1832,9 @@
       setKiHistory(h=>[...h,userMsg]);
       setKiMsg("");
       setKiLoading(true);
+      if(kiAbortRef.current)kiAbortRef.current.abort();
+      const ctrl=new AbortController();
+      kiAbortRef.current=ctrl;
       try{
         const token=localStorage.getItem('rollart_token');
         const total=tes+pcsTotal-deductions+extraPoints;
@@ -1831,6 +1848,7 @@
           method:'POST',
           headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
           body:JSON.stringify({message:msg,context}),
+          signal:ctrl.signal,
         });
         const data=await res.json();
         if(res.ok){
@@ -1839,6 +1857,7 @@
           setKiHistory(h=>[...h,{role:"error",text:data.error||'Fehler bei der KI-Analyse'}]);
         }
       }catch(err){
+        if(err.name==='AbortError')return;
         setKiHistory(h=>[...h,{role:"error",text:'Verbindungsfehler: '+err.message}]);
       }
       setKiLoading(false);
@@ -1852,17 +1871,11 @@
     const catKey=SEGMENT_DEFS[segment]?.category||"senior";
     const catDef=CATEGORY_DEFS[catKey]||CATEGORY_DEFS["senior"];
 
-    // Count elements by type
-    const typeCounts={};
-    rows.forEach(r=>{if(r.typeCode)typeCounts[r.typeCode]=(typeCounts[r.typeCode]||0)+1;});
-    const filledRows=rows.filter(r=>{
-      const td=types.find(t=>t.code===r.typeCode);
-      if(td?.isCombo)return(r.comboEls||[]).some(s=>s.code);
-      return!!r.elCode;
-    });
-
     // ---- RULE COMPLIANCE ----
     const ruleChecks=useMemo(()=>{
+      // Count elements by type (computed inside memo to avoid deps instability)
+      const typeCounts={};
+      rows.forEach(r=>{if(r.typeCode)typeCounts[r.typeCode]=(typeCounts[r.typeCode]||0)+1;});
       const checks=[];
       // Check each required element type
       (rules.required||[]).forEach(req=>{
@@ -1890,7 +1903,7 @@
       const dgCount=rows.filter(r=>r.dg).length;
       if(dgCount>0)checks.push({type:"warning",msg:`${dgCount} Element(e) als DG (downgrade) markiert`,icon:"\u26A0\uFE0F"});
       return checks;
-    },[rows,typeCounts,rules]);
+    },[rows,rules]);
 
     const errorCount=ruleChecks.filter(c=>c.type==="error").length;
     const warnCount=ruleChecks.filter(c=>c.type==="warning").length;
@@ -1998,6 +2011,12 @@
     // ---- TRAINING TIPS ----
     const trainingTips=useMemo(()=>{
       const tips=[];
+      // Compute filledRows inside memo to avoid deps instability
+      const filledRows=rows.filter(r=>{
+        const td=types.find(t=>t.code===r.typeCode);
+        if(td?.isCombo)return(r.comboEls||[]).some(s=>s.code);
+        return!!r.elCode;
+      });
       if(filledRows.length===0)return tips;
 
       // Categorize elements
@@ -2067,7 +2086,7 @@
       }
 
       return tips;
-    },[rows,elements,tes,pcsTotal,filledRows,pcs,judgeCount]);
+    },[rows,elements,tes,pcsTotal,types,pcs,judgeCount]);
 
     const tabStyle=(t)=>({padding:"5px 12px",borderRadius:"6px 6px 0 0",border:"none",fontSize:11,fontWeight:700,cursor:"pointer",
       background:tab===t?"white":"transparent",color:tab===t?"#065f46":"#9ca3af",
@@ -2293,7 +2312,7 @@
 
     // combo sub-element handlers
     const updateSub=(i,sub)=>{const subs=[...(row.comboEls||[])];subs[i]=sub;onChange({...row,comboEls:subs});};
-    const addSub=()=>{const subs=[...(row.comboEls||[])];if(subs.length<5){subs.push({code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0]});onChange({...row,comboEls:subs});}};
+    const addSub=()=>{const subs=[...(row.comboEls||[])];if(subs.length<5){subs.push({code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0],_id:Math.random().toString(36).slice(2)});onChange({...row,comboEls:subs});}};
     const removeSub=(i)=>{onChange({...row,comboEls:(row.comboEls||[]).filter((_,j)=>j!==i)});};
 
     const el=!isCombo&&typeDef?typeDef.data.find(e=>e.code===row.elCode):null;
@@ -2312,7 +2331,7 @@
           <select value={row.typeCode} onChange={e=>{
             const newType=types.find(t=>t.code===e.target.value);
             const nr={typeCode:e.target.value,elCode:"",judgeGoe:[0,0,0,0,0],rotation:"normal",comboEls:[],nv:false,dg:false,bonuses:[]};
-            if(newType?.isCombo)nr.comboEls=[{code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0]},{code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0]}];
+            if(newType?.isCombo)nr.comboEls=[{code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0],_id:Math.random().toString(36).slice(2)},{code:"",rotation:"normal",nv:false,judgeGoe:[0,0,0,0,0],_id:Math.random().toString(36).slice(2)}];
             onChange(nr);
           }} style={{...SEL,fontWeight:700,minWidth:100}}>
             <option value="">-- Typ --</option>
@@ -2345,7 +2364,7 @@
         {isCombo&&typeDef&&(
           <div style={{marginBottom:8,paddingLeft:10,borderLeft:"3px solid #86efac"}}>
             {(row.comboEls||[]).map((sub,i)=>(
-              <ComboSubRow key={i} idx={i} sub={sub} data={typeDef.data}
+              <ComboSubRow key={sub._id||i} idx={i} sub={sub} data={typeDef.data}
                 hasComboValues={typeDef.data.some(e=>e.combo!==undefined)}
                 hasRotation={!!typeDef.hasRotation}
                 onChange={s=>updateSub(i,s)} onRemove={()=>removeSub(i)}
@@ -2425,7 +2444,7 @@
     const types=isPairs?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE;
     const pcsFactor=getPcsFactor(segment,geschlecht);
 
-    const emptyRow=()=>({typeCode:"",elCode:"",judgeGoe:[0,0,0,0,0],rotation:"normal",comboEls:[],nv:false,dg:false,bonuses:[]});
+    const emptyRow=()=>({typeCode:"",elCode:"",judgeGoe:[0,0,0,0,0],rotation:"normal",comboEls:[],nv:false,dg:false,bonuses:[],_id:Math.random().toString(36).slice(2)});
     const emptyPcs=()=>({skating:[0,0,0,0,0],transitions:[0,0,0,0,0],performance:[0,0,0,0,0],choreography:[0,0,0,0,0]});
     const [rows,setRows]=useState(Array.from({length:segDef.rows},emptyRow));
     const [pcs,setPcs]=useState(emptyPcs());
@@ -2468,7 +2487,7 @@
       setImportMsg(`${filled} Elemente aus Content Sheet geladen`);
       if(onImportDone)onImportDone();
       setTimeout(()=>setImportMsg(""),4000);
-    },[importData]);
+    },[importData,onImportDone]);
 
     const changeKategorie=(k)=>{setKategorie(k);const segs=CATEGORY_DEFS[k]?.segments||[];const first=segs[0]||"senior_fp";setSegment(first);setRows(Array.from({length:SEGMENT_DEFS[first].rows},emptyRow));setPcs(emptyPcs());setDeductions(0);setExtraPoints(0);};
     const changeSegment=(s)=>{setSegment(s);setRows(Array.from({length:SEGMENT_DEFS[s].rows},emptyRow));setPcs(emptyPcs());setDeductions(0);setExtraPoints(0);};
@@ -2661,7 +2680,7 @@
           <div>
             <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:800,color:"#065f46"}}>Programm-Elemente</h3>
             {rows.map((r,i)=>(
-              <SimElementCard key={i} num={i+1} row={r} types={types} judgeCount={judgeCount}
+              <SimElementCard key={r._id||i} num={i+1} row={r} types={types} judgeCount={judgeCount}
                 onChange={d=>updateRow(i,d)} onRemove={()=>removeRow(i)} totalRows={rows.length}/>
             ))}
 
@@ -2703,14 +2722,14 @@
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:12,fontWeight:700,color:"#dc2626"}}>Abzüge:</span>
                   <button onClick={()=>setDeductions(d=>Math.round((d+0.5)*100)/100)} style={{padding:"2px 6px",borderRadius:3,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:700,fontSize:11,cursor:"pointer"}}>+0.5</button>
-                  <input type="number" min="0" step="0.1" value={deductions} onChange={e=>setDeductions(parseFloat(e.target.value)||0)}
+                  <input type="number" min="0" step="0.1" value={deductions} onChange={e=>setDeductions(Math.max(0,parseFloat(e.target.value)||0))}
                     style={{width:50,padding:"4px",borderRadius:4,border:"2px solid #fca5a5",fontSize:13,fontWeight:800,textAlign:"center",color:"#dc2626"}}/>
                   <button onClick={()=>setDeductions(0)} style={{padding:"2px 6px",borderRadius:3,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
                   <span style={{fontSize:12,fontWeight:700,color:"#059669"}}>Extra:</span>
                   <button onClick={()=>setExtraPoints(d=>Math.round((d+0.5)*100)/100)} style={{padding:"2px 6px",borderRadius:3,border:"1px solid #86efac",background:"#f0fdf4",color:"#059669",fontWeight:700,fontSize:11,cursor:"pointer"}}>+0.5</button>
-                  <input type="number" min="0" step="0.1" value={extraPoints} onChange={e=>setExtraPoints(parseFloat(e.target.value)||0)}
+                  <input type="number" min="0" step="0.1" value={extraPoints} onChange={e=>setExtraPoints(Math.max(0,parseFloat(e.target.value)||0))}
                     style={{width:50,padding:"4px",borderRadius:4,border:"2px solid #86efac",fontSize:13,fontWeight:800,textAlign:"center",color:"#059669"}}/>
                   <button onClick={()=>setExtraPoints(0)} style={{padding:"2px 6px",borderRadius:3,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
                 </div>
@@ -3156,16 +3175,21 @@
     const [newUserForm, setNewUserForm] = useState({email:"",name:"",verein:"",kategorie:"",plan:"full",expiresAt:"",sendEmail:true});
     const [createdPw, setCreatedPw] = useState(null); // nach Erstellung angezeigtes PW
     const [creating, setCreating] = useState(false);
+    const abortRef = useRef(null);
 
     const load = async () => {
+      if(abortRef.current)abortRef.current.abort();
+      const ctrl=new AbortController();
+      abortRef.current=ctrl;
       setLoading(true);
       try {
-        const [s, u, st] = await Promise.all([api('/api/admin/stats'), api('/api/admin/users'), api('/api/admin/settings')]);
+        const sig={signal:ctrl.signal};
+        const [s, u, st] = await Promise.all([api('/api/admin/stats',sig), api('/api/admin/users',sig), api('/api/admin/settings',sig)]);
         setStats(s); setUsers(u.users); setSettings(st.settings);
-      } catch (e) { setMsg("Fehler: " + e.message); }
+      } catch (e) { if(e.name==='AbortError')return; setMsg("Fehler: " + e.message); }
       setLoading(false);
     };
-    useEffect(() => { load(); }, []);
+    useEffect(() => { load(); return()=>{if(abortRef.current)abortRef.current.abort();}; }, []);
     const showMsg = (m) => { setMsg(m); setTimeout(() => setMsg(""), 4000); };
 
     const updateUserRole = async (id, role) => {
@@ -3535,11 +3559,11 @@
       const sp = t.includes("SHORT");
       const isPairs = t.includes("PAIRS") || t.includes("PAARLAUF");
       const px = isPairs ? "pairs_" : "";
-      if (t.includes("TOTS") || t.includes("SCHÜLER D") || t.includes("SCHULER D") || t.includes("SCH\u00DCLER D")) return { kategorie:px+"tots", segment: sp?px+"tots_sp":px+"tots_fp" };
-      if (t.includes("MINIS") || t.includes("SCHÜLER C") || t.includes("SCHULER C") || t.includes("SCH\u00DCLER C") || /JAHRGANG\s+201[45]/.test(t)) return { kategorie:px+"minis", segment: sp?px+"minis_sp":px+"minis_fp" };
+      if (t.includes("TOTS") || t.includes("SCHÜLER D") || t.includes("SCHULER D") || t.includes("SCH\u00DCLER D")) return { kategorie:px+"tots", segment: px+"tots_fp" };
+      if (t.includes("MINIS") || t.includes("SCHÜLER C") || t.includes("SCHULER C") || t.includes("SCH\u00DCLER C") || /JAHRGANG\s+201[45]/.test(t)) return { kategorie:px+"minis", segment: px+"minis_fp" };
       if (t.includes("ESPOIRS") || t.includes("SCHÜLER B") || t.includes("SCHULER B") || t.includes("SCH\u00DCLER B")) return { kategorie:px+"espoirs", segment: sp?px+"espoirs_sp":px+"espoirs_fp" };
       if (t.includes("CADETS") || t.includes("KADETT")) return { kategorie:px+"cadets", segment: sp?px+"cadets_sp":px+"cadets_fp" };
-      if (t.includes("YOUTH") || t.includes("JUGEND") || t.includes("JEUNESSE")) return { kategorie:px+"jeunesse", segment: sp?px+"jeunesse_sp":px+"jeunesse_fp" };
+      if (t.includes("YOUTH") || t.includes("JUGEND") || t.includes("JEUNESSE")) { const k=isPairs?"youth":"jeunesse"; return { kategorie:px+k, segment: sp?px+k+"_sp":px+k+"_fp" }; }
       if (t.includes("JUNIOR") || t.includes("JUNIOREN")) return { kategorie:px+"junior", segment: sp?px+"junior_sp":px+"junior_fp" };
       return { kategorie:px+"senior", segment: sp?px+"senior_sp":px+"senior_fp" };
     };
@@ -3573,8 +3597,9 @@
       const elements = [];
       const components = { skating:[0,0,0,0,0], transitions:[0,0,0,0,0], performance:[0,0,0,0,0], choreography:[0,0,0,0,0] };
 
-      const typeKeywords = ["ComboJump","ComboSpin","ComboLift","Step Sequence","Jump","Spin","Lift","Spiral"];
-      const tcMap = { "ComboSpin":"CSp", "Spin":"SSp", "Step Sequence":"FoSq", "Jump":"SJu", "ComboJump":"CoJ", "Lift":"Lft", "ComboLift":"CLft", "Spiral":"DS" };
+      // Order matters: multi-word keywords first, then longer single words before shorter ones
+      const typeKeywords = ["ComboJump","ComboSpin","ComboLift","Death Spiral","Throw Jump","Contact Spin","Step Sequence","Jump","Spin","Twist","Lift","Spiral"];
+      const tcMap = { "ComboSpin":"CSp", "Spin":"SSp", "Step Sequence":"FoSq", "Jump":"SJu", "ComboJump":"CoJ", "Lift":"SLi", "ComboLift":"CLi", "Spiral":"CS", "Death Spiral":"DS", "Twist":"Tw", "Throw Jump":"Tj", "Contact Spin":"CtSp" };
 
       // --- FIND RANK + NAME ---
       // Pairs pdfjs format: "1 GIACOMO SERAFINI - ITA score score (factored) Deductions score"
@@ -3925,12 +3950,18 @@
             if (codeM) {
               const code = codeM[1];
               const nums = extractNums(line.substring(codeM[0].length));
-              if (nums.length >= 6) {
-                // Has judges: base goe j1-j5 panel or j1-j5 panel
-                const panel = nums.length >= 7 ? nums[5] : nums[nums.length-1];
-                const base = nums[nums.length-1];
-                curEl.subElements.push({ code, base, j1:Math.round(nums[0]), j2:Math.round(nums[1]), j3:Math.round(nums[2]), j4:Math.round(nums[3]), j5:Math.round(nums[4]), panel });
+              if (nums.length >= 7) {
+                // Has base + goe + j1-j5 + panel (8 nums) or base + j1-j5 + panel (7 nums)
+                const base = nums[0];
+                const panel = nums[nums.length-1];
+                const jStart = nums.length >= 8 ? 2 : 1; // skip goe if present
+                curEl.subElements.push({ code, base, j1:Math.round(nums[jStart]), j2:Math.round(nums[jStart+1]), j3:Math.round(nums[jStart+2]), j4:Math.round(nums[jStart+3]), j5:Math.round(nums[jStart+4]), panel });
                 curEl.totalBase += base; curEl.totalPanel += panel;
+              } else if (nums.length === 6) {
+                // j1-j5 + panel only (no base on this line)
+                const panel = nums[5];
+                curEl.subElements.push({ code, base:0, j1:Math.round(nums[0]), j2:Math.round(nums[1]), j3:Math.round(nums[2]), j4:Math.round(nums[3]), j5:Math.round(nums[4]), panel });
+                curEl.totalPanel += panel;
                 if (!curEl.elCode) curEl.elCode = code;
                 continue;
               }
@@ -3948,7 +3979,7 @@
       //   D) "Skating Skills 1.50 1.50 1.25 1.42" then "0.8" (same as C)
       //   E) "Skating Skills" then "0.8" then "2.50 2.25 2.50 2.42" (factor on middle line)
       const clampJ = (v) => (isNaN(v) || v < 0 || v > 10) ? 0 : v;
-      const isPcsFactor = (v) => [0.8, 1.0, 1.2, 1.4, 1.6].some(f => Math.abs(v - f) < 0.01);
+      const isPcsFactor = (v) => [0.8, 1.0, 1.2, 1.4, 1.6, 1.8].some(f => Math.abs(v - f) < 0.01);
       const compPatterns = [
         { regex: /Skating\s+Skills/i, key: "skating" },
         { regex: /Transition/i, key: "transitions" },
@@ -4137,7 +4168,7 @@
     };
 
     const emptyPcs = () => ({ skating:[0,0,0,0,0], transitions:[0,0,0,0,0], performance:[0,0,0,0,0], choreography:[0,0,0,0,0] });
-    const emptyRow = () => ({ typeCode:"", elCode:"", judgeGoe:[0,0,0,0,0], rotation:"normal", comboEls:[], nv:false, dg:false, bonuses:[] });
+    const emptyRow = () => ({ typeCode:"", elCode:"", judgeGoe:[0,0,0,0,0], rotation:"normal", comboEls:[], nv:false, dg:false, bonuses:[], _id:Math.random().toString(36).slice(2) });
 
     const handleUpload = async (e) => {
       const file = e.target.files?.[0];
@@ -4230,8 +4261,9 @@
             comboEls: el.subElements.map(s => ({
               code: s.code || "", rotation: "normal", nv: false,
               judgeGoe: padJudges([s.j1||0, s.j2||0, s.j3||0, s.j4||0, s.j5||0]),
+              _id: Math.random().toString(36).slice(2),
             })),
-            nv: false, dg: false, bonuses: [],
+            nv: false, dg: false, bonuses: [], _id: Math.random().toString(36).slice(2),
           };
         }
 
@@ -4245,8 +4277,9 @@
             comboEls: [{
               code: cspCode, rotation: "normal", nv: false,
               judgeGoe: jGoe,
+              _id: Math.random().toString(36).slice(2),
             }],
-            nv: false, dg: false, bonuses: [],
+            nv: false, dg: false, bonuses: [], _id: Math.random().toString(36).slice(2),
           };
         }
 
@@ -4257,7 +4290,7 @@
             typeCode: "SSp", elCode: sspCode,
             judgeGoe: jGoe,
             rotation: "normal", comboEls: [],
-            nv: false, dg: false, bonuses: [],
+            nv: false, dg: false, bonuses: [], _id: Math.random().toString(36).slice(2),
           };
         }
 
@@ -4273,7 +4306,7 @@
             typeCode: el.typeCode, elCode: stepCode,
             judgeGoe: jGoe,
             rotation: "normal", comboEls: [],
-            nv: false, dg: false, bonuses: [],
+            nv: false, dg: false, bonuses: [], _id: Math.random().toString(36).slice(2),
           };
         }
 
@@ -4283,7 +4316,7 @@
           elCode: el.elCode || "",
           judgeGoe: jGoe,
           rotation: "normal", comboEls: [],
-          nv: false, dg: false, bonuses: [],
+          nv: false, dg: false, bonuses: [], _id: Math.random().toString(36).slice(2),
         };
       });
 
@@ -4482,16 +4515,18 @@
     const headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'};
 
     useEffect(()=>{
+      const ctrl=new AbortController();
       Promise.all([
-        fetch('/api/score-history',{headers}).then(r=>r.json()),
-        fetch('/api/training',{headers}).then(r=>r.json()),
-        fetch('/api/skaters',{headers}).then(r=>r.json()),
+        fetch('/api/score-history',{headers,signal:ctrl.signal}).then(r=>r.json()),
+        fetch('/api/training',{headers,signal:ctrl.signal}).then(r=>r.json()),
+        fetch('/api/skaters',{headers,signal:ctrl.signal}).then(r=>r.json()),
       ]).then(([sh,tl,sk])=>{
         setScoreHistory(sh.history||[]);
         setTrainingLogs(tl.logs||[]);
         setSkaters(sk.skaters||[]);
         setLoading(false);
-      }).catch(()=>setLoading(false));
+      }).catch(e=>{if(e.name!=='AbortError')setLoading(false);});
+      return()=>ctrl.abort();
     },[]);
 
     // Filtered history
@@ -4572,7 +4607,7 @@
               <th style={{padding:"8px 10px",textAlign:"right"}}>Letzter Score</th>
             </tr></thead>
             <tbody>
-              {skaters.sort((a,b)=>(latestScores[b.name]?.total||0)-(latestScores[a.name]?.total||0)).map(sk=>{
+              {[...skaters].sort((a,b)=>(latestScores[b.name]?.total||0)-(latestScores[a.name]?.total||0)).map(sk=>{
                 const ls=latestScores[sk.name];
                 return <tr key={sk.id} style={{borderBottom:"1px solid #f3f4f6"}}>
                   <td style={{padding:"6px 10px",fontWeight:600}}>{sk.name}</td>
@@ -4676,6 +4711,49 @@
   }
 
   // ============================================================
+  //  TRAINING DIARY — EntryForm (extracted to avoid remount)
+  // ============================================================
+  function TrainingEntryForm({initial,onSave,onCancel,skaters}){
+    const [form,setForm]=useState(initial);
+    useEffect(()=>{setForm(initial);},[initial]);
+    const addEl=()=>setForm({...form,elements:[...form.elements,{code:'',attempts:0,landed:0,_id:Math.random().toString(36).slice(2)}]});
+    const rmEl=(i)=>setForm({...form,elements:form.elements.filter((_,j)=>j!==i)});
+    const setEl=(i,k,v)=>{const els=[...form.elements];els[i]={...els[i],[k]:v};setForm({...form,elements:els});};
+    return(
+      <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:16,marginBottom:12}}>
+        <div className="r-grid2-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:10}}>
+          <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Datum</label><input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
+          <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Dauer (Min)</label><input type="number" min="0" value={form.duration} onChange={e=>setForm({...form,duration:Math.max(0,parseInt(e.target.value)||0)})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
+          <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Läufer</label><select value={form.skaterName} onChange={e=>setForm({...form,skaterName:e.target.value})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}>
+            <option value="">— Kein Läufer —</option>
+            {skaters.map(s=><option key={s.id} value={s.name}>{s.name}</option>)}
+          </select></div>
+          <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Ziel</label><input value={form.goals} onChange={e=>setForm({...form,goals:e.target.value})} placeholder="z.B. 2A konsistent landen" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
+        </div>
+        <label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Geübte Elemente</label>
+        <div style={{marginTop:4,marginBottom:8}}>
+          {form.elements.map((el,i)=>(
+            <div key={el._id||i} style={{display:"flex",gap:6,marginBottom:4,alignItems:"center"}}>
+              <input value={el.code} onChange={e=>setEl(i,'code',e.target.value)} placeholder="Element (z.B. 2A, 3Lo)" style={{flex:2,padding:"5px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/>
+              <input type="number" min="0" value={el.attempts} onChange={e=>setEl(i,'attempts',Math.max(0,parseInt(e.target.value)||0))} placeholder="Versuche" style={{flex:1,padding:"5px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/>
+              <input type="number" min="0" value={el.landed} onChange={e=>{const v=Math.max(0,parseInt(e.target.value)||0);setEl(i,'landed',Math.min(v,el.attempts));}} placeholder="Gelandet" style={{flex:1,padding:"5px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/>
+              <span style={{fontSize:11,color:el.attempts>0?(el.landed/el.attempts>=0.8?"#059669":"#dc2626"):"#9ca3af",fontWeight:700,minWidth:35,textAlign:"right"}}>{el.attempts>0?Math.round(el.landed/el.attempts*100)+"%":"—"}</span>
+              <button onClick={()=>rmEl(i)} style={{background:"none",border:"none",color:"#dc2626",cursor:"pointer",fontSize:14}}>×</button>
+            </div>
+          ))}
+          <button onClick={addEl} style={{fontSize:11,color:"#059669",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>+ Element</button>
+        </div>
+        <label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Notizen</label>
+        <textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows={2} placeholder="Wie lief das Training?" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12,marginTop:4,resize:"vertical"}}/>
+        <div style={{display:"flex",gap:6,marginTop:10}}>
+          <button onClick={()=>onSave(form)} style={{padding:"7px 16px",borderRadius:5,border:"none",background:"#059669",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>Speichern</button>
+          <button onClick={onCancel} style={{padding:"7px 16px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontSize:12,cursor:"pointer"}}>Abbrechen</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
   //  TRAINING DIARY (Trainings-Tagebuch)
   // ============================================================
   function TrainingDiary(){
@@ -4687,69 +4765,41 @@
 
     const token=localStorage.getItem('rollart_token');
     const headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'};
+    const abortRef=useRef(null);
 
-    const emptyEntry=()=>({date:new Date().toISOString().slice(0,10),duration:60,notes:'',elements:[{code:'',attempts:0,landed:0}],goals:'',skaterId:null,skaterName:''});
+    const emptyEntry=()=>({date:new Date().toISOString().slice(0,10),duration:60,notes:'',elements:[{code:'',attempts:0,landed:0,_id:Math.random().toString(36).slice(2)}],goals:'',skaterId:null,skaterName:''});
 
     const load=()=>{
+      if(abortRef.current)abortRef.current.abort();
+      const ctrl=new AbortController();
+      abortRef.current=ctrl;
       Promise.all([
-        fetch('/api/training',{headers}).then(r=>r.json()),
-        fetch('/api/skaters',{headers}).then(r=>r.json()),
+        fetch('/api/training',{headers,signal:ctrl.signal}).then(r=>r.json()),
+        fetch('/api/skaters',{headers,signal:ctrl.signal}).then(r=>r.json()),
       ]).then(([tl,sk])=>{
         setLogs(tl.logs||[]);
         setSkaters(sk.skaters||[]);
         setLoading(false);
-      });
+      }).catch(e=>{if(e.name!=='AbortError')setLoading(false);});
     };
-    useEffect(()=>{load();},[]);
+    useEffect(()=>{load();return()=>{if(abortRef.current)abortRef.current.abort();};},[]);
 
     const save=async(entry)=>{
-      const method=entry.id?'PUT':'POST';
-      const url=entry.id?`/api/training/${entry.id}`:'/api/training';
-      await fetch(url,{method,headers,body:JSON.stringify(entry)});
-      setShowForm(false);setEditing(null);load();
+      try{
+        const method=entry.id?'PUT':'POST';
+        const url=entry.id?`/api/training/${entry.id}`:'/api/training';
+        const resp=await fetch(url,{method,headers,body:JSON.stringify(entry)});
+        if(!resp.ok)throw new Error();
+        setShowForm(false);setEditing(null);load();
+      }catch(e){alert('Fehler beim Speichern des Eintrags.');}
     };
     const remove=async(id)=>{
       if(!confirm('Eintrag löschen?'))return;
-      await fetch(`/api/training/${id}`,{method:'DELETE',headers});load();
-    };
-
-    const EntryForm=({initial,onSave,onCancel})=>{
-      const [form,setForm]=useState(initial);
-      const addEl=()=>setForm({...form,elements:[...form.elements,{code:'',attempts:0,landed:0}]});
-      const rmEl=(i)=>setForm({...form,elements:form.elements.filter((_,j)=>j!==i)});
-      const setEl=(i,k,v)=>{const els=[...form.elements];els[i]={...els[i],[k]:v};setForm({...form,elements:els});};
-      return(
-        <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:16,marginBottom:12}}>
-          <div className="r-grid2-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8,marginBottom:10}}>
-            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Datum</label><input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
-            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Dauer (Min)</label><input type="number" value={form.duration} onChange={e=>setForm({...form,duration:parseInt(e.target.value)||0})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
-            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Läufer</label><select value={form.skaterName} onChange={e=>setForm({...form,skaterName:e.target.value})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}>
-              <option value="">— Kein Läufer —</option>
-              {skaters.map(s=><option key={s.id} value={s.name}>{s.name}</option>)}
-            </select></div>
-            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Ziel</label><input value={form.goals} onChange={e=>setForm({...form,goals:e.target.value})} placeholder="z.B. 2A konsistent landen" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
-          </div>
-          <label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Geübte Elemente</label>
-          <div style={{marginTop:4,marginBottom:8}}>
-            {form.elements.map((el,i)=>(
-              <div key={i} style={{display:"flex",gap:6,marginBottom:4,alignItems:"center"}}>
-                <input value={el.code} onChange={e=>setEl(i,'code',e.target.value)} placeholder="Element (z.B. 2A, 3Lo)" style={{flex:2,padding:"5px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/>
-                <input type="number" value={el.attempts} onChange={e=>setEl(i,'attempts',parseInt(e.target.value)||0)} placeholder="Versuche" style={{flex:1,padding:"5px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/>
-                <input type="number" value={el.landed} onChange={e=>setEl(i,'landed',parseInt(e.target.value)||0)} placeholder="Gelandet" style={{flex:1,padding:"5px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/>
-                <span style={{fontSize:11,color:el.attempts>0?(el.landed/el.attempts>=0.8?"#059669":"#dc2626"):"#9ca3af",fontWeight:700,minWidth:35,textAlign:"right"}}>{el.attempts>0?Math.round(el.landed/el.attempts*100)+"%":"—"}</span>
-                <button onClick={()=>rmEl(i)} style={{background:"none",border:"none",color:"#dc2626",cursor:"pointer",fontSize:14}}>×</button>
-              </div>
-            ))}
-            <button onClick={addEl} style={{fontSize:11,color:"#059669",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>+ Element</button>
-          </div>
-          <label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Notizen</label>
-          <textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows={2} placeholder="Wie lief das Training?" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12,marginTop:4,resize:"vertical"}}/>
-          <div style={{display:"flex",gap:6,marginTop:10}}>
-            <button onClick={()=>onSave(form)} style={{padding:"7px 16px",borderRadius:5,border:"none",background:"#059669",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>Speichern</button>
-            <button onClick={onCancel} style={{padding:"7px 16px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontSize:12,cursor:"pointer"}}>Abbrechen</button>
-          </div>
-        </div>
-      );
+      try{
+        const resp=await fetch(`/api/training/${id}`,{method:'DELETE',headers});
+        if(!resp.ok)throw new Error();
+        load();
+      }catch(e){alert('Fehler beim Löschen des Eintrags.');}
     };
 
     if(loading)return <div style={{padding:40,textAlign:"center",color:"#6b7280"}}>Lade Tagebuch...</div>;
@@ -4761,7 +4811,7 @@
           <button onClick={()=>{setEditing(emptyEntry());setShowForm(true);}} style={{padding:"7px 16px",borderRadius:6,border:"none",background:"#059669",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Neuer Eintrag</button>
         </div>
 
-        {showForm&&<EntryForm initial={editing} onSave={save} onCancel={()=>{setShowForm(false);setEditing(null);}}/>}
+        {showForm&&<TrainingEntryForm initial={editing} onSave={save} onCancel={()=>{setShowForm(false);setEditing(null);}} skaters={skaters}/>}
 
         {logs.length===0?
           <div style={{textAlign:"center",padding:"40px 20px"}}>
@@ -4808,6 +4858,29 @@
   }
 
   // ============================================================
+  //  COMPETITION CALENDAR — CompForm (extracted to avoid remount)
+  // ============================================================
+  function CompetitionCompForm({initial,onSave,onCancel}){
+    const empty={name:'',date:'',location:'',kategorie:'',notes:''};
+    const [form,setForm]=useState(initial||empty);
+    useEffect(()=>{setForm(initial||empty);},[initial]);
+    return(
+      <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:16,marginBottom:12}}>
+        <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
+          <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Wettkampf-Name</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="z.B. Landesmeisterschaft NRW" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
+          <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Datum</label><input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
+          <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Ort</label><input value={form.location} onChange={e=>setForm({...form,location:e.target.value})} placeholder="z.B. Düsseldorf" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
+        </div>
+        <div style={{marginBottom:10}}><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Notizen</label><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows={2} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12,resize:"vertical"}}/></div>
+        <div style={{display:"flex",gap:6}}>
+          <button onClick={()=>onSave(form)} style={{padding:"7px 16px",borderRadius:5,border:"none",background:"#059669",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>Speichern</button>
+          <button onClick={onCancel} style={{padding:"7px 16px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontSize:12,cursor:"pointer"}}>Abbrechen</button>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
   //  COMPETITION CALENDAR (Wettkampf-Kalender)
   // ============================================================
   function CompetitionCalendar(){
@@ -4818,55 +4891,55 @@
 
     const token=localStorage.getItem('rollart_token');
     const headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'};
+    const abortRef=useRef(null);
 
     const load=()=>{
-      fetch('/api/competitions',{headers}).then(r=>r.json()).then(d=>{
+      if(abortRef.current)abortRef.current.abort();
+      const ctrl=new AbortController();
+      abortRef.current=ctrl;
+      fetch('/api/competitions',{headers,signal:ctrl.signal}).then(r=>r.json()).then(d=>{
         setCompetitions(d.competitions||[]);setLoading(false);
-      });
+      }).catch(e=>{if(e.name!=='AbortError')setLoading(false);});
     };
-    useEffect(()=>{load();},[]);
+    useEffect(()=>{load();return()=>{if(abortRef.current)abortRef.current.abort();};},[]);
 
     const save=async(entry)=>{
-      const method=entry.id?'PUT':'POST';
-      const url=entry.id?`/api/competitions/${entry.id}`:'/api/competitions';
-      await fetch(url,{method,headers,body:JSON.stringify(entry)});
-      setShowForm(false);setEditing(null);load();
+      try{
+        const method=entry.id?'PUT':'POST';
+        const url=entry.id?`/api/competitions/${entry.id}`:'/api/competitions';
+        const resp=await fetch(url,{method,headers,body:JSON.stringify(entry)});
+        if(!resp.ok)throw new Error();
+        setShowForm(false);setEditing(null);load();
+      }catch(e){alert('Fehler beim Speichern des Wettkampfs.');}
     };
     const remove=async(id)=>{
       if(!confirm('Wettkampf löschen?'))return;
-      await fetch(`/api/competitions/${id}`,{method:'DELETE',headers});load();
+      try{
+        const resp=await fetch(`/api/competitions/${id}`,{method:'DELETE',headers});
+        if(!resp.ok)throw new Error();
+        load();
+      }catch(e){alert('Fehler beim Löschen des Wettkampfs.');}
     };
     const toggleCheck=async(comp,idx)=>{
-      const cl=[...comp.checklist];cl[idx]={...cl[idx],done:!cl[idx].done};
-      await fetch(`/api/competitions/${comp.id}`,{method:'PUT',headers,body:JSON.stringify({checklist:cl})});load();
+      try{
+        const cl=[...comp.checklist];cl[idx]={...cl[idx],done:!cl[idx].done};
+        const resp=await fetch(`/api/competitions/${comp.id}`,{method:'PUT',headers,body:JSON.stringify({checklist:cl})});
+        if(!resp.ok)throw new Error();
+        load();
+      }catch(e){alert('Fehler beim Aktualisieren der Checkliste.');}
     };
     const addCheckItem=async(comp,item)=>{
-      const cl=[...comp.checklist,{item,done:false}];
-      await fetch(`/api/competitions/${comp.id}`,{method:'PUT',headers,body:JSON.stringify({checklist:cl})});load();
+      try{
+        const cl=[...comp.checklist,{item,done:false}];
+        const resp=await fetch(`/api/competitions/${comp.id}`,{method:'PUT',headers,body:JSON.stringify({checklist:cl})});
+        if(!resp.ok)throw new Error();
+        load();
+      }catch(e){alert('Fehler beim Hinzufügen des Checklist-Eintrags.');}
     };
 
     const daysUntil=(dateStr)=>{
       const d=new Date(dateStr);const now=new Date();now.setHours(0,0,0,0);d.setHours(0,0,0,0);
       return Math.ceil((d-now)/(1000*60*60*24));
-    };
-
-    const CompForm=({initial,onSave,onCancel})=>{
-      const empty={name:'',date:'',location:'',kategorie:'',notes:''};
-      const [form,setForm]=useState(initial||empty);
-      return(
-        <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:16,marginBottom:12}}>
-          <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:10}}>
-            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Wettkampf-Name</label><input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="z.B. Landesmeisterschaft NRW" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
-            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Datum</label><input type="date" value={form.date} onChange={e=>setForm({...form,date:e.target.value})} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
-            <div><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Ort</label><input value={form.location} onChange={e=>setForm({...form,location:e.target.value})} placeholder="z.B. Düsseldorf" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12}}/></div>
-          </div>
-          <div style={{marginBottom:10}}><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Notizen</label><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows={2} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12,resize:"vertical"}}/></div>
-          <div style={{display:"flex",gap:6}}>
-            <button onClick={()=>onSave(form)} style={{padding:"7px 16px",borderRadius:5,border:"none",background:"#059669",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>Speichern</button>
-            <button onClick={onCancel} style={{padding:"7px 16px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontSize:12,cursor:"pointer"}}>Abbrechen</button>
-          </div>
-        </div>
-      );
     };
 
     if(loading)return <div style={{padding:40,textAlign:"center",color:"#6b7280"}}>Lade Wettkämpfe...</div>;
@@ -4881,7 +4954,7 @@
           <button onClick={()=>{setEditing(null);setShowForm(true);}} style={{padding:"7px 16px",borderRadius:6,border:"none",background:"#059669",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Wettkampf</button>
         </div>
 
-        {showForm&&<CompForm initial={editing} onSave={save} onCancel={()=>{setShowForm(false);setEditing(null);}}/>}
+        {showForm&&<CompetitionCompForm initial={editing} onSave={save} onCancel={()=>{setShowForm(false);setEditing(null);}}/>}
 
         {upcoming.length>0&&<>
           <h3 style={{fontSize:14,fontWeight:700,color:"#065f46",margin:"16px 0 8px"}}>Anstehende Wettkämpfe</h3>
@@ -5147,6 +5220,7 @@
     const [disziplin, setDisziplin] = useState(null); // null = Übersicht, "einzel" | "pairs"
     const [page, setPage] = useState("content");
     const [simImport, setSimImport] = useState(null);
+    const handleSimImportDone=useCallback(()=>setSimImport(null),[]);
     const [officialImport, setOfficialImport] = useState(null);
     const [officialExport, setOfficialExport] = useState(null);
     const [compImport, setCompImport] = useState(null);
@@ -5188,7 +5262,7 @@
     // Filtered categories based on selected disziplin
     const filteredCategories = disziplin==="pairs" ? PAIRS_CATEGORIES : disziplin==="einzel" ? SINGLES_CATEGORIES : Object.entries(CATEGORY_DEFS);
 
-    const emptyRow = () => ({ typeCode:"", elCode:"", judgeGoe:[0,0,0,0,0], rotation:"normal", comboEls:[], nv:false, dg:false, bonuses:[] });
+    const emptyRow = () => ({ typeCode:"", elCode:"", judgeGoe:[0,0,0,0,0], rotation:"normal", comboEls:[], nv:false, dg:false, bonuses:[], _id:Math.random().toString(36).slice(2) });
     const [rows, setRows] = useState(Array.from({length:segDef.rows}, emptyRow));
 
     // Handle disziplin selection from Übersicht
@@ -5235,7 +5309,7 @@
     useEffect(() => {
       if (officialImport) {
         setSkater(officialImport.name || "");
-        setCat(officialImport.kategorie || "");
+        setCat(officialImport.federation || "");
         setMusic(officialImport.choreography || "");
 
         // Set kategorie and segment
@@ -5249,10 +5323,13 @@
 
             // Map element codes from official sheet sections to rows
             const newRows = Array.from({length: SEGMENT_DEFS[firstSeg].rows}, emptyRow);
+            // Compute correct types locally to avoid stale closure (types depends on previous segment)
+            const importIsPairs = firstSeg.startsWith("pairs_");
+            const importTypes = importIsPairs ? ELEMENT_TYPES_PAIRS : ELEMENT_TYPES_FREE;
             if (officialImport.sections && officialImport.sections.length > 0) {
               const elementsFromSection = officialImport.sections[0]?.elements || [];
               // Known type codes sorted by length (longest first for matching)
-              const knownTypes = types.map(t=>t.code).sort((a,b)=>b.length-a.length);
+              const knownTypes = importTypes.map(t=>t.code).sort((a,b)=>b.length-a.length);
               elementsFromSection.forEach((el, idx) => {
                 if (idx < newRows.length && el.code) {
                   // Find matching type code by prefix (handles CSp3, FoSq2, ChSt1, CtSp2 etc.)
@@ -5262,7 +5339,7 @@
                   }
                   if (!matchedType) matchedType = el.code.substring(0, 3); // fallback
                   // Find if exact elCode exists in data
-                  const typeDef = types.find(t=>t.code===matchedType);
+                  const typeDef = importTypes.find(t=>t.code===matchedType);
                   const elExists = typeDef?.data?.find(e=>e.code===el.code);
                   newRows[idx] = {...newRows[idx], typeCode: matchedType, elCode: elExists ? el.code : ""};
                 }
@@ -5593,7 +5670,7 @@
       const logoX=mx+8, logoY=y+5, logoR=6;
       drawLogo(logoX,logoY,logoR);
       const titleX = mx+50+(cw-50)/2;
-      txt(titleText, titleX, y+2, {bold:true, size:18, align:"center"});
+      txt(titleText, titleX, y+2, {bold:true, size:20, align:"center"});
       y += 14;
 
       // Info Table: 4 rows
@@ -5614,8 +5691,10 @@
       });
       y+=4;
 
-      // Section header bar
-      const secLabel = isSP ? "SHORT PROGRAM" : "FREE PROGRAM";
+      // Section header bar — match OfficialSheets SHEET_TYPES label format exactly
+      let secLabel = isSP ? "SHORT PROGRAM" : "FREE PROGRAM";
+      if (isPairs) secLabel += " (Pairs)";
+      else if (!isSP) secLabel += ` (${officialRows.length} Elements)`;
       const barH=9;
       rectNoBorder(mx,y,cw,barH,"#e0e0e0");
       setLine();doc.rect(mx,y,cw,barH);
@@ -5675,7 +5754,7 @@
         cx+=colPerformed;
         // Notes
         rect(cx,y,colNotes,rh);
-        if(el.notes)txt(el.notes,cx+3,y+rh/2+2,{size:8});
+        if(el.notes){const n=el.notes.length>25?el.notes.substring(0,24)+"…":el.notes;txt(n,cx+3,y+rh/2+2,{size:9});}
         cx+=colNotes;
         y+=rh;
       });
@@ -5818,7 +5897,7 @@
               </div>
               {authCtx?.user && (
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
-                  <button onClick={()=>{setDisziplin("einzel");setPage("profile");}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",
+                  <button onClick={()=>{if(!disziplin)setDisziplin("einzel");setPage("profile");}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",
                     borderRadius:8,border:"2px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.1)",color:"white",
                     cursor:"pointer",fontSize:12,fontWeight:600}}>
                     <span style={{width:24,height:24,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",
@@ -5980,7 +6059,7 @@
         {/* TRAINING SIMULATOR PAGE */}
         {page==="anleitung"&&<AnleitungPage/>}
         {page==="dashboard"&&<DashboardPage/>}
-        {page==="training"&&<TrainingSimulator importData={simImport} onImportDone={()=>setSimImport(null)} disziplin={disziplin}/>}
+        {page==="training"&&<TrainingSimulator importData={simImport} onImportDone={handleSimImportDone} disziplin={disziplin}/>}
         {page==="tagebuch"&&<TrainingDiary/>}
         {page==="kalender"&&<CompetitionCalendar/>}
 
@@ -6257,11 +6336,15 @@
                   const token=localStorage.getItem('rollart_token');
                   const label=prompt('Label für diesen Score (z.B. "Training", "Wettkampf"):','Training');
                   if(label===null)return;
-                  await fetch('/api/score-history',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({
-                    skaterName:skater||'Unbenannt',kategorie,segment,tes:Math.round(tes*100)/100,pcs:Math.round(pcsTotal*100)/100,
-                    deductions,extraPoints,total:totalScore,date:new Date().toISOString().slice(0,10),label
-                  })});
-                  setUploadMsg('Score gespeichert!');setTimeout(()=>setUploadMsg(''),3000);
+                  try{
+                    const resp=await fetch('/api/score-history',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({
+                      skaterName:skater||'Unbenannt',kategorie,segment,tes:Math.round(tes*100)/100,pcs:Math.round(pcsTotal*100)/100,
+                      deductions,extraPoints,total:totalScore,date:new Date().toISOString().slice(0,10),label
+                    })});
+                    if(!resp.ok)throw new Error('Server error');
+                    setUploadMsg('Score gespeichert!');
+                  }catch(e){setUploadMsg('Fehler beim Speichern!');}
+                  setTimeout(()=>setUploadMsg(''),3000);
                 }} style={{...btnBase,background:"#f59e0b",color:"white"}}>
                   Score speichern
                 </button>
@@ -6324,7 +6407,7 @@
               </thead>
               <tbody>
                 {rows.map((r,i)=>(
-                  <ElementRow key={i} num={i+1} row={r} types={types} judgeCount={judgeCount} onChange={d=>updateRow(i,d)}/>
+                  <ElementRow key={r._id||i} num={i+1} row={r} types={types} judgeCount={judgeCount} onChange={d=>updateRow(i,d)}/>
                 ))}
               </tbody>
               <tfoot>
@@ -6407,7 +6490,7 @@
       <span style={{fontSize:screen.mobile?11:13,fontWeight:700,color:"#dc2626"}}>Abzüge (PE):</span>
       <button onClick={()=>setDeductions(d=>Math.round((d+0.5)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:700,fontSize:12,cursor:"pointer"}}>+0.5</button>
       <button onClick={()=>setDeductions(d=>Math.round((d+1.0)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:700,fontSize:12,cursor:"pointer"}}>+1.0</button>
-      <input type="number" min="0" step="0.1" value={deductions} onChange={e=>setDeductions(parseFloat(e.target.value)||0)}
+      <input type="number" min="0" step="0.1" value={deductions} onChange={e=>setDeductions(Math.max(0,parseFloat(e.target.value)||0))}
         style={{width:60,padding:"5px 6px",borderRadius:4,border:"2px solid #fca5a5",fontSize:14,fontWeight:800,textAlign:"center",color:"#dc2626"}}/>
       <button onClick={()=>setDeductions(d=>Math.max(0,Math.round((d-0.5)*100)/100))} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:700,fontSize:12,cursor:"pointer"}}>-0.5</button>
       <button onClick={()=>setDeductions(0)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
@@ -6416,7 +6499,7 @@
       <span style={{fontSize:screen.mobile?11:13,fontWeight:700,color:"#059669"}}>Extra Punkte:</span>
       <button onClick={()=>setExtraPoints(d=>Math.round((d+0.5)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #86efac",background:"#f0fdf4",color:"#059669",fontWeight:700,fontSize:12,cursor:"pointer"}}>+0.5</button>
       <button onClick={()=>setExtraPoints(d=>Math.round((d+1.0)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #86efac",background:"#f0fdf4",color:"#059669",fontWeight:700,fontSize:12,cursor:"pointer"}}>+1.0</button>
-      <input type="number" min="0" step="0.1" value={extraPoints} onChange={e=>setExtraPoints(parseFloat(e.target.value)||0)}
+      <input type="number" min="0" step="0.1" value={extraPoints} onChange={e=>setExtraPoints(Math.max(0,parseFloat(e.target.value)||0))}
         style={{width:60,padding:"5px 6px",borderRadius:4,border:"2px solid #86efac",fontSize:14,fontWeight:800,textAlign:"center",color:"#059669"}}/>
       <button onClick={()=>setExtraPoints(d=>Math.max(0,Math.round((d-0.5)*100)/100))} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:700,fontSize:12,cursor:"pointer"}}>-0.5</button>
       <button onClick={()=>setExtraPoints(0)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
