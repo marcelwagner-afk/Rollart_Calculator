@@ -3223,16 +3223,16 @@
         </div>
 
         {/* User info badge */}
-        <div style={{ background: "#22221C", borderRadius: 12, padding: 16,
-          color: "white", marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,.2)",
-            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800 }}>
+        <div style={{ background: "white", borderRadius: 12, padding: 16,
+          color: "#22221C", marginBottom: 20, display: "flex", alignItems: "center", gap: 12, border:"1px solid #DEE2E6" }}>
+          <div style={{ width: 48, height: 48, borderRadius: "50%", background: "#E9ECEF",
+            display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800, color:"#22221C" }}>
             {(user?.name || "?")[0].toUpperCase()}
           </div>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 700 }}>{user?.name}</div>
-            <div style={{ fontSize: 11, opacity: 0.8 }}>{user?.email}</div>
-            <div style={{ fontSize: 10, opacity: 0.6 }}>Mitglied seit {new Date(user?.created_at).toLocaleDateString("de-DE")}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color:"#22221C" }}>{user?.name}</div>
+            <div style={{ fontSize: 11, color:"#6C757D" }}>{user?.email}</div>
+            <div style={{ fontSize: 10, color:"#6C757D" }}>Mitglied seit {new Date(user?.created_at).toLocaleDateString("de-DE")}</div>
           </div>
         </div>
 
@@ -6323,21 +6323,21 @@
     if(!disziplin){
       return(
         <div style={{ background:"#f8f9fa", minHeight:"100vh" }}>
-          <div style={{ background:"#22221C", padding:screen.mobile?"12px 10px":"16px 20px", color:"white" }}>
+          <div style={{ background:"white", padding:screen.mobile?"12px 10px":"16px 20px", color:"#22221C", borderBottom:"1px solid #DEE2E6" }}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
-                <img src="DRIV-Logo.svg" alt="DRIV" style={{height:screen.mobile?32:42,filter:"brightness(0) invert(1)"}} />
+                <img src="DRIV-Logo.svg" alt="DRIV" style={{height:screen.mobile?32:42}} />
                 <div>
-                  <h1 style={{margin:0,fontSize:screen.mobile?20:26,fontWeight:800}}>RollArt 2026</h1>
-                  <div style={{fontSize:9,fontWeight:600,opacity:.7,letterSpacing:1}}>DRIV Rollkunstlauf</div>
+                  <h1 style={{margin:0,fontSize:screen.mobile?20:26,fontWeight:800,color:"#22221C"}}>RollArt 2026</h1>
+                  <div style={{fontSize:9,fontWeight:600,color:"#6C757D",letterSpacing:1}}>DRIV Rollkunstlauf</div>
                 </div>
               </div>
               {authCtx?.user && (
                 <div style={{display:"flex",alignItems:"center",gap:8}}>
                   <button onClick={()=>{if(!disziplin)setDisziplin("einzel");setPage("profile");}} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",
-                    borderRadius:8,border:"2px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.1)",color:"white",
+                    borderRadius:8,border:"1px solid #DEE2E6",background:"#f8f9fa",color:"#22221C",
                     cursor:"pointer",fontSize:12,fontWeight:600}}>
-                    <span style={{width:24,height:24,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",
+                    <span style={{width:24,height:24,borderRadius:"50%",background:"#E9ECEF",display:"flex",
                       alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800}}>
                       {(authCtx.user.name||"?")[0].toUpperCase()}
                     </span>
@@ -6355,22 +6355,22 @@
     return (
       <div style={{ background:"#f8f9fa", minHeight:"100vh" }}>
         {/* HEADER */}
-        <div style={{ background:"#22221C", padding:screen.mobile?"10px 10px 8px":"12px 16px 10px", color:"white" }}>
+        <div style={{ background:"white", padding:screen.mobile?"10px 10px 8px":"12px 16px 10px", color:"#22221C", borderBottom:"1px solid #DEE2E6" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:6 }}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <button onClick={()=>setDisziplin(null)} style={{padding:"4px 10px",borderRadius:6,border:"2px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.1)",color:"white",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
+                <button onClick={()=>setDisziplin(null)} style={{padding:"4px 10px",borderRadius:6,border:"1px solid #DEE2E6",background:"#f8f9fa",color:"#22221C",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>
                   ← Übersicht
                 </button>
                 <div>
-                  <img src="DRIV-Logo.svg" alt="DRIV" style={{height:screen.mobile?24:32,filter:"brightness(0) invert(1)",flexShrink:0}} />
+                  <img src="DRIV-Logo.svg" alt="DRIV" style={{height:screen.mobile?24:32,flexShrink:0}} />
                   <div>
-                  <h1 style={{margin:0,fontSize:screen.mobile?16:20,fontWeight:800}}>
-                    RollArt 2026 <span style={{fontSize:screen.mobile?11:13,fontWeight:600,opacity:.8,background:"rgba(255,255,255,.2)",padding:"2px 8px",borderRadius:4,marginLeft:4}}>
+                  <h1 style={{margin:0,fontSize:screen.mobile?16:20,fontWeight:800,color:"#22221C"}}>
+                    RollArt 2026 <span style={{fontSize:screen.mobile?11:13,fontWeight:600,color:"#495057",background:"#E9ECEF",padding:"2px 8px",borderRadius:4,marginLeft:4}}>
                       {disziplin==="pairs"?"Paarlauf":"Einzellauf"}
                     </span>
                   </h1>
-                  <div style={{fontSize:9,fontWeight:600,opacity:.7,letterSpacing:1}}>DRIV Rollkunstlauf</div>
+                  <div style={{fontSize:9,fontWeight:600,color:"#6C757D",letterSpacing:1}}>DRIV Rollkunstlauf</div>
                   </div>
                 </div>
               </div>
@@ -6394,14 +6394,14 @@
                   padding: screen.mobile ? "5px 9px" : "6px 14px",
                   borderRadius: "6px 6px 0 0",
                   border: "none",
-                  borderBottom: active ? "3px solid white" : "3px solid transparent",
+                  borderBottom: active ? "3px solid #E10716" : "3px solid transparent",
                   fontSize: screen.mobile ? 10 : 12,
-                  fontWeight: 700,
+                  fontWeight: active ? 700 : 600,
                   cursor: "pointer",
                   whiteSpace: "nowrap",
                   flexShrink: 0,
-                  background: active ? "rgba(255,255,255,.25)" : "transparent",
-                  color: "white",
+                  background: active ? "#f8f9fa" : "transparent",
+                  color: active ? "#22221C" : "#495057",
                   transition: "all .15s",
                 });
                 return (
@@ -6441,9 +6441,9 @@
             {authCtx?.user && (
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <button onClick={()=>setPage("profile")} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 10px",
-                  borderRadius:8,border:"2px solid rgba(255,255,255,.3)",background:"rgba(255,255,255,.1)",color:"white",
+                  borderRadius:8,border:"1px solid #DEE2E6",background:"#f8f9fa",color:"#22221C",
                   cursor:"pointer",fontSize:12,fontWeight:600}}>
-                  <span style={{width:24,height:24,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",
+                  <span style={{width:24,height:24,borderRadius:"50%",background:"#E9ECEF",display:"flex",
                     alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800}}>
                     {(authCtx.user.name||"?")[0].toUpperCase()}
                   </span>
@@ -6452,17 +6452,17 @@
               </div>
             )}
             {page==="content"&&<div style={{textAlign:"right",flexShrink:0}}>
-              <div style={{fontSize:10,opacity:.8}}>Total Score</div>
-              <div style={{fontSize:screen.mobile?22:34,fontWeight:800,lineHeight:1}}>{totalScore.toFixed(2)}</div>
-              <div className="r-hide-mobile" style={{fontSize:10,opacity:.7}}>TES {tes.toFixed(2)} + PCS {pcsTotal.toFixed(2)}{deductions>0?" - Ded "+deductions.toFixed(2):""}{extraPoints>0?" + Extra "+extraPoints.toFixed(2):""}</div>
+              <div style={{fontSize:10,color:"#6C757D"}}>Total Score</div>
+              <div style={{fontSize:screen.mobile?22:34,fontWeight:800,lineHeight:1,color:"#22221C"}}>{totalScore.toFixed(2)}</div>
+              <div className="r-hide-mobile" style={{fontSize:10,color:"#6C757D"}}>TES {tes.toFixed(2)} + PCS {pcsTotal.toFixed(2)}{deductions>0?" - Ded "+deductions.toFixed(2):""}{extraPoints>0?" + Extra "+extraPoints.toFixed(2):""}</div>
             </div>}
           </div>
 
           {/* Category + Segment selector + Judge count */}
           {page==="content"&&<div style={{display:"flex",gap:screen.mobile?4:6,marginTop:screen.mobile?6:10,flexWrap:"wrap",alignItems:"center"}}>
             <select value={kategorie} onChange={e=>changeKategorie(e.target.value)} style={{
-              padding:"6px 10px",borderRadius:6,border:"2px solid rgba(255,255,255,.3)",fontSize:12,fontWeight:700,
-              background:"rgba(255,255,255,.15)",color:"white",cursor:"pointer",
+              padding:"6px 10px",borderRadius:6,border:"1px solid #DEE2E6",fontSize:12,fontWeight:700,
+              background:"white",color:"#22221C",cursor:"pointer",
             }}>
               {filteredCategories.map(([k,v])=>(
                 <option key={k} value={k} style={{color:"#333",background:"white"}}>{v.label}</option>
@@ -6470,27 +6470,27 @@
             </select>
             {(CATEGORY_DEFS[kategorie]?.segments||[]).map(seg=>(
               <button key={seg} onClick={()=>changeSegment(seg)} style={{
-                padding:"6px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",
-                background:segment===seg?"white":"rgba(255,255,255,.15)",
-                color:segment===seg?"#22221C":"white",
+                padding:"6px 14px",borderRadius:6,border:"1px solid #DEE2E6",fontSize:12,fontWeight:600,cursor:"pointer",
+                background:segment===seg?"#22221C":"white",
+                color:segment===seg?"white":"#22221C",
               }}>{SEGMENT_DEFS[seg]?.label} ({SEGMENT_DEFS[seg]?.rows})</button>
             ))}
             {!segment.startsWith("pairs_")&&<>
-              <span style={{fontSize:11,opacity:.8}}>Geschlecht:</span>
+              <span style={{fontSize:11,color:"#6C757D"}}>Geschlecht:</span>
               {[{k:"damen",l:"D"},{k:"herren",l:"H"}].map(g=>(
                 <button key={g.k} onClick={()=>setGeschlecht(g.k)} style={{
-                  padding:"5px 10px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
-                  background:geschlecht===g.k?"white":"rgba(255,255,255,.2)",
-                  color:geschlecht===g.k?"#22221C":"white",
+                  padding:"5px 10px",borderRadius:5,border:"1px solid #DEE2E6",fontSize:12,fontWeight:700,cursor:"pointer",
+                  background:geschlecht===g.k?"#22221C":"white",
+                  color:geschlecht===g.k?"white":"#22221C",
                 }}>{g.l}</button>
               ))}
             </>}
-            <span style={{marginLeft:"auto",fontSize:11,opacity:.8}}>Judges:</span>
+            <span style={{marginLeft:"auto",fontSize:11,color:"#6C757D"}}>Judges:</span>
             {[3,5].map(n=>(
               <button key={n} onClick={()=>setJudgeCount(n)} style={{
-                padding:"5px 12px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
-                background:judgeCount===n?"white":"rgba(255,255,255,.2)",
-                color:judgeCount===n?"#22221C":"white",
+                padding:"5px 12px",borderRadius:5,border:"1px solid #DEE2E6",fontSize:12,fontWeight:700,cursor:"pointer",
+                background:judgeCount===n?"#22221C":"white",
+                color:judgeCount===n?"white":"#22221C",
               }}>{n}</button>
             ))}
           </div>}
