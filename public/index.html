@@ -1287,27 +1287,71 @@
           const titleLine=allLines.find(l=>/CONTENT\s*SHEET/i.test(l))||"";
           const isFP=/FREE\s*PROGRAM/i.test(titleLine);
           const isSP=/SHORT\s*PROGRAM/i.test(titleLine);
-          const isPairsSheet=/PAIR/i.test(titleLine);
+          const isPairsTitle=/PAIR/i.test(titleLine);
 
           // Extract NAME
           const nmLine=allLines.find(l=>/^NAME:/i.test(l.trim()))||"";
           const nmMatch=nmLine.match(/NAME:\s*(.+?)(?:\s{2,}|CATEGORY|$)/i);
           if(nmMatch)setName(nmMatch[1].trim());
 
-          // Extract CATEGORY
+          // Extract CATEGORY and compute correct sheet type + sections
           const catLine=allLines.find(l=>/CATEGORY:/i.test(l))||nmLine;
           const ctMatch=catLine.match(/CATEGORY:\s*(.+)/i);
+          let detectedKat=null;
           if(ctMatch){
             let catVal=ctMatch[1].trim();
-            // Remove "Ladies", "Men", "Boys", "Girls" suffix for matching
+            // Remove gender suffix for matching
             const catBase=catVal.replace(/\s*(Ladies|Men|Boys|Girls|Damen|Herren)$/i,"").trim().toLowerCase();
-            // Match to CATEGORY_DEFS
-            const found=Object.entries(CATEGORY_DEFS).find(([k,v])=>{
-              const lbl=v.label.toLowerCase();
-              return lbl.includes(catBase)||catBase.includes(k)||k===catBase;
-            });
-            if(found)changeKategorie(found[0]);
+            // Also try with "pairs_" prefix if title says PAIRS but category doesn't
+            // Put pairs variant FIRST when title indicates pairs (more specific)
+            const candidates=[];
+            if(isPairsTitle&&!catBase.startsWith("pairs"))candidates.push("pairs "+catBase);
+            candidates.push(catBase);
+            for(const cb of candidates){
+              const cbKey=cb.replace(/\s+/g,"_");
+              // 1) Exact key match first (most reliable)
+              if(CATEGORY_DEFS[cbKey]){detectedKat=cbKey;break;}
+              // 2) Score-based match: prefer longest/most-specific match
+              let bestMatch=null,bestScore=0;
+              Object.entries(CATEGORY_DEFS).forEach(([k,v])=>{
+                const lbl=v.label.toLowerCase();
+                // Check if label starts with catBase or catBase starts with key
+                if(lbl.startsWith(cb)||cb.startsWith(k.replace(/_/g," "))){
+                  const score=k.length; // longer keys = more specific (pairs_minis > minis)
+                  if(score>bestScore){bestScore=score;bestMatch=k;}
+                }
+              });
+              if(bestMatch){detectedKat=bestMatch;break;}
+            }
           }
+
+          // Compute the correct sheetType based on detected category + SP/FP
+          let newKat=detectedKat||kategorie;
+          const catDef=CATEGORY_DEFS[newKat];
+          const segs=catDef?.segments||[];
+          const isPairsKat=segs.some(s=>s.startsWith("pairs_"));
+          const hasSP=segs.some(s=>s.endsWith("_sp"));
+          const hasFP=segs.some(s=>s.endsWith("_fp"));
+          let newSt;
+          if(isPairsKat){
+            if(hasSP&&hasFP) newSt="pairs_sp_fp";
+            else if(hasSP) newSt="pairs_sp";
+            else newSt="pairs_fp";
+          } else {
+            if(hasSP&&hasFP) newSt="sp_fp";
+            else if(hasSP) newSt="sp";
+            else {
+              const fpSeg=segs.find(s=>s.endsWith("_fp"));
+              const fpRows=SEGMENT_DEFS[fpSeg]?.rows||12;
+              newSt=fpRows<=9?"fp9":"fp12";
+            }
+          }
+
+          // Apply category and sheet type synchronously
+          setKategorie(newKat);
+          setSheetType(newSt);
+          // Build fresh sections for the NEW sheet type (not stale state!)
+          const freshSections=initSections(newSt);
 
           // Extract FEDERATION
           const fdLine=allLines.find(l=>/^FEDERATION:/i.test(l.trim()))||"";
@@ -1320,7 +1364,7 @@
           if(muMatch)setChoreography(muMatch[1].trim());
 
           // Extract elements: find lines that start with a number (1-20) followed by optional time + code
-          // Known element type codes for artistic roller skating
+          // Known element type codes for artistic roller skating (singles + pairs)
           const validCodes=new Set(["CoJ","SJu","CSp","CSSp","FoSq","ChSt","TFSq","SLSt","CiSt","SeSt","DiSt",
             "USp","SSp","CaSp","CCoSp","FCCoSp","FCSp","FSSp","FCaSp","FUSp",
             "CoJ1","CoJ2","CoJ3","CoJ4","SJu1","SJu2","SJu3","SJu4",
@@ -1329,8 +1373,12 @@
             "FoSqB","FoSq1","FoSq2","FoSq3","FoSq4","ChStB","ChSt1","ChSt2","ChSt3","ChSt4",
             "TFSqB","TFSq1","TFSq2","TFSq3","TFSq4",
             "StB","St1","St2","St3","St4","SpB","Sp1","Sp2","Sp3","Sp4",
+            // Pairs-specific codes
             "PCoJ","PSJu","PLi","PCSp","PTw","PDSp","PSoSp",
-            "PLiB","PLi1","PLi2","PLi3","PLi4"]);
+            "PLiB","PLi1","PLi2","PLi3","PLi4",
+            "PTwB","PTw1","PTw2","PTw3","PTw4",
+            "PDSpB","PDSp1","PDSp2","PDSp3","PDSp4",
+            "PSoSpB","PSoSp1","PSoSp2","PSoSp3","PSoSp4"]);
           const parsedElements=[];
           for(const line of allLines){
             // Match: row number, optional time (m:ss), element code
@@ -1340,7 +1388,6 @@
               if(num>=1&&num<=20){
                 const time=rowMatch[3]||"";
                 const code=rowMatch[4]||"";
-                // Validate code: must be a known element code or start with known prefix
                 const isValid=validCodes.has(code)||/^(CoJ|SJu|CSp|USp|SSp|CaSp|FoSq|ChSt|TFSq|PLi|PTw|PDSp|PSoSp|PCoJ|PSJu|PCSp|St|Sp|CSSp|CCoSp|FCCoSp|FCSp|FSSp|FCaSp|FUSp)/.test(code);
                 if(isValid){
                   parsedElements.push({num,time,code,notes:""});
@@ -1349,24 +1396,22 @@
             }
           }
 
-          // Fill into sections
+          // Fill into freshSections (correct size for detected category)
           if(parsedElements.length>0){
-            const newSections=sections.map(s=>({...s,elements:s.elements.map(el=>({...el}))}));
-            // Determine target section: for sp_fp sheets, FP is section 1, SP is section 0
+            // Determine target section: for sp_fp sheets, FP=section 1, SP=section 0
             let targetIdx=0;
-            if((sheetType==="sp_fp"||sheetType==="pairs_sp_fp")&&isFP) targetIdx=1;
-            if(targetIdx<newSections.length){
-              const els=newSections[targetIdx].elements;
+            if((newSt==="sp_fp"||newSt==="pairs_sp_fp")&&isFP) targetIdx=1;
+            if(targetIdx<freshSections.length){
+              const els=freshSections[targetIdx].elements;
               parsedElements.forEach((pe,i)=>{
                 if(i<els.length){
                   els[i]={...els[i],time:pe.time,code:pe.code,notes:pe.notes};
                 }
               });
-              // Also set music on the target section
-              if(muMatch) newSections[targetIdx].music=muMatch[1].trim();
-              setSections(newSections);
+              if(muMatch) freshSections[targetIdx].music=muMatch[1].trim();
             }
           }
+          setSections(freshSections);
           alert('PDF erfolgreich importiert!');
         }catch(err){
           alert('Fehler beim PDF-Import: '+err.message);
