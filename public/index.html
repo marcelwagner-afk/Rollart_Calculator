@@ -851,9 +851,21 @@
     ]},
   };
 
-  // World Skate official logo — white PNG on transparent background (196×72px, optimized)
-  // Source: https://sk8info.org.au/content/logo.png
-  const WS_LOGO_B64 = "data:image/png;base64,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";
+  // World Skate logo — loaded dynamically from logo.png (exact sk8info.org.au pattern)
+  // Source: https://sk8info.org.au/content/logo.png (196x72px, white on transparent)
+  let wsLogoData = null, wsLogoType = 'PNG', wsLogoAspect = 2.7222;
+  (function(){
+    const img = new Image();
+    img.onload = function(){
+      wsLogoAspect = img.naturalWidth / img.naturalHeight;
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      wsLogoData = c.toDataURL('image/png');
+    };
+    img.src = 'logo.png';
+  })();
 
   const CODE_LABELS = {CoJ:"Combination Jump",SJu:"Solo Jump",CSp:"Combination Spin",SSp:"Solo Spin",
     FoSq:"Footwork Sequence",ChSt:"Choreo Step Seq.",CLi:"Combination Lift",SLi:"Solo Lift",
@@ -1100,7 +1112,7 @@
         doc.setFillColor(...NAVY);
         doc.roundedRect(m,y,cW,11,2,2,"F");
         let tx=m+4;
-        try{const lh=9,lw=lh*2.7222;doc.addImage(WS_LOGO_B64,"PNG",m+2,y+1,lw,lh);tx=m+lw+4;}catch(e){}
+        if(wsLogoData){try{const lh=9,lw=lh*wsLogoAspect;doc.addImage(wsLogoData,wsLogoType,m+2,y+1,lw,lh);tx=m+lw+4;}catch(e){}}
         doc.setFont("helvetica","bold");doc.setFontSize(13);
         doc.setTextColor(255,255,255);
         doc.text(san(txt),tx,y+7.5);
@@ -1512,7 +1524,7 @@
         <div id="official-sheet-print" className="r-table-wrap" style={{background:"white",border:"1px solid #ccc",overflow:"auto",boxShadow:"0 2px 8px rgba(0,0,0,.12)",maxWidth:820,margin:"0 auto"}}>
           {/* Header: gradient banner with World Skate logo + Title — exact sk8info style */}
           <div style={{background:"linear-gradient(135deg,#1565c0 0%,#1976d2 55%,#42a5f5 100%)",borderRadius:"8px 8px 0 0",padding:"10px 20px",display:"flex",alignItems:"center",gap:10}}>
-            <img src={WS_LOGO_B64} alt="World Skate" style={{height:36,width:"auto",flexShrink:0}} />
+            <img src="logo.png" alt="World Skate" style={{height:36,width:"auto",flexShrink:0}} />
             <h2 style={{margin:0,fontSize:"clamp(14px,3vw,20px)",fontWeight:800,fontFamily:"Arial,sans-serif",color:"white",flex:1,letterSpacing:0.5,textTransform:"uppercase"}}>
               {sheet.title}
             </h2>
@@ -5888,7 +5900,7 @@
         doc.setFillColor(...NAVY);
         doc.roundedRect(m,y,cW,11,2,2,"F");
         let tx=m+4;
-        try{const lh=9,lw=lh*2.7222;doc.addImage(WS_LOGO_B64,"PNG",m+2,y+1,lw,lh);tx=m+lw+4;}catch(e){}
+        if(wsLogoData){try{const lh=9,lw=lh*wsLogoAspect;doc.addImage(wsLogoData,wsLogoType,m+2,y+1,lw,lh);tx=m+lw+4;}catch(e){}}
         doc.setFont("helvetica","bold");doc.setFontSize(13);
         doc.setTextColor(255,255,255);
         doc.text(san(title),tx,y+7.5);
