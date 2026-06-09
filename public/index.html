@@ -118,8 +118,8 @@
 
   // Individual spins (for SSp - Solo Spin)
   const SOLO_SPINS = [
-    { name:"Upright Spin",code:"U",base:0.5,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:0}},
-    { name:"Sit Spin",code:"S",base:0.8,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:0}},
+    { name:"Upright Spin",code:"U",base:0.5,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.3}},
+    { name:"Sit Spin",code:"S",base:0.8,goe:{3:0.3,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.3}},
     { name:"Camel Spin BD",code:"CBD",base:1.0,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-1}},
     { name:"Camel Spin FD",code:"CFD",base:1.2,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
     { name:"Broken Spin",code:"Br",base:1.8,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-1}},
@@ -1043,6 +1043,7 @@
       let y=0;
 
       // Helpers
+      const sanitize=(s)=>String(s).replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
       const setLine=()=>{doc.setDrawColor(0,0,0);doc.setLineWidth(lw);};
       const rect=(x,yy,w,h,opts={})=>{
         if(opts.fill){doc.setFillColor(opts.fill);doc.rect(x,yy,w,h,"F");}
@@ -1053,9 +1054,10 @@
         doc.setFont("helvetica",opts.bold?"bold":"normal");
         doc.setFontSize(opts.size||10);
         doc.setTextColor(opts.color||"#000000");
-        if(opts.align==="center")doc.text(str,x,yy,{align:"center"});
-        else if(opts.align==="right")doc.text(str,x,yy,{align:"right"});
-        else doc.text(str,x,yy);
+        const s=sanitize(str);
+        if(opts.align==="center")doc.text(s,x,yy,{align:"center"});
+        else if(opts.align==="right")doc.text(s,x,yy,{align:"right"});
+        else doc.text(s,x,yy);
       };
 
       const drawPage=(startSecIdx,endSecIdx,isNewPage)=>{
@@ -2292,7 +2294,8 @@
       if(b.isOverride){hasOverride=true;overrideFactor=1+b.pct;}
       else bonusPct+=b.pct;
     });
-    const adjBase=hasOverride?Math.round(rawBase*overrideFactor*100)/100:Math.round(rawBase*(1+bonusPct)*100)/100;
+    // NV = 0 base, DG = no bonus applied (per rules: "Downgraded-Sprünge erhalten keinen Bonus")
+    const adjBase=row.nv?0:(row.dg||(!hasOverride&&bonusPct===0))?rawBase:hasOverride?Math.round(rawBase*overrideFactor*100)/100:Math.round(rawBase*(1+bonusPct)*100)/100;
     const bonusPoints=Math.round((adjBase-rawBase)*100)/100;
     const finalScore=Math.round((adjBase+computed.goeVal)*100)/100;
 
@@ -2306,8 +2309,15 @@
 
     const toggleBonus=(bid)=>{
       const cur=row.bonuses||[];
-      const nb=cur.includes(bid)?cur.filter(x=>x!==bid):[...cur,bid];
-      onChange({...row,bonuses:nb});
+      if(cur.includes(bid)){
+        onChange({...row,bonuses:cur.filter(x=>x!==bid)});
+      } else {
+        // If selecting an override bonus, remove any existing overrides first
+        const b=ALL_BONUSES.find(x=>x.id===bid);
+        const nb=b&&b.isOverride ? cur.filter(id=>{const o=ALL_BONUSES.find(x=>x.id===id);return !o||!o.isOverride;}) : [...cur];
+        nb.push(bid);
+        onChange({...row,bonuses:nb});
+      }
     };
 
     // combo sub-element handlers
@@ -2505,7 +2515,7 @@
         const bonuses=row.bonuses||[];
         let bonusPct=0,hasOverride=false,overrideFactor=1;
         bonuses.forEach(bid=>{const b=ALL_BONUSES.find(x=>x.id===bid);if(!b)return;if(b.isOverride){hasOverride=true;overrideFactor=1+b.pct;}else bonusPct+=b.pct;});
-        const adjBase=row.nv?0:hasOverride?Math.round(rawBase*overrideFactor*100)/100:Math.round(rawBase*(1+bonusPct)*100)/100;
+        const adjBase=row.nv?0:row.dg?rawBase:hasOverride?Math.round(rawBase*overrideFactor*100)/100:Math.round(rawBase*(1+bonusPct)*100)/100;
         const bp=Math.round((adjBase-rawBase)*100)/100;
         const finalScore=row.nv?0:Math.round((adjBase+computed.goeVal)*100)/100;
         bonusTotal+=bp;
@@ -2533,12 +2543,16 @@
         const b=ALL_BONUSES.find(x=>x.id===bid);
         if(b){if(!map[bid])map[bid]={...b,count:0,total:0};map[bid].count++;}
       }));
-      // Calculate totals from elements
+      // Calculate totals from elements — distribute proportionally by |pct|
       rows.forEach((r,i)=>{
         const el=elements[i];
-        if(!el)return;
-        (r.bonuses||[]).forEach(bid=>{
-          if(map[bid])map[bid].total+=el.bp/(r.bonuses||[]).length;
+        if(!el||!el.bp)return;
+        const bids=(r.bonuses||[]);
+        const totalPct=bids.reduce((s,id)=>{const b=ALL_BONUSES.find(x=>x.id===id);return s+(b?Math.abs(b.pct):0);},0);
+        bids.forEach(bid=>{
+          const b=ALL_BONUSES.find(x=>x.id===bid);
+          if(map[bid]&&b&&totalPct>0) map[bid].total+=el.bp*(Math.abs(b.pct)/totalPct);
+          else if(map[bid]) map[bid].total+=el.bp/bids.length;
         });
       });
       return Object.values(map);
@@ -5370,16 +5384,23 @@
           const catDef = CATEGORY_DEFS[officialImport.kategorie];
           if (catDef) {
             const segs = catDef.segments || [];
-            const firstSeg = segs[0] || "senior_fp";
-            setSegment(firstSeg);
+            // Detect SP vs FP: pick the section with more filled elements
+            let secIdx = 0;
+            if (officialImport.sections && officialImport.sections.length > 1) {
+              const filledCount = (sec) => (sec?.elements || []).filter(e => e.code).length;
+              if (filledCount(officialImport.sections[1]) > filledCount(officialImport.sections[0])) secIdx = 1;
+            }
+            // Match segment: secIdx 0 = first segment (SP), secIdx 1 = second (FP)
+            const targetSeg = segs[Math.min(secIdx, segs.length - 1)] || "senior_fp";
+            setSegment(targetSeg);
 
             // Map element codes from official sheet sections to rows
-            const newRows = Array.from({length: SEGMENT_DEFS[firstSeg].rows}, emptyRow);
+            const newRows = Array.from({length: SEGMENT_DEFS[targetSeg].rows}, emptyRow);
             // Compute correct types locally to avoid stale closure (types depends on previous segment)
-            const importIsPairs = firstSeg.startsWith("pairs_");
+            const importIsPairs = targetSeg.startsWith("pairs_");
             const importTypes = importIsPairs ? ELEMENT_TYPES_PAIRS : ELEMENT_TYPES_FREE;
             if (officialImport.sections && officialImport.sections.length > 0) {
-              const elementsFromSection = officialImport.sections[0]?.elements || [];
+              const elementsFromSection = officialImport.sections[secIdx]?.elements || [];
               // Known type codes sorted by length (longest first for matching)
               const knownTypes = importTypes.map(t=>t.code).sort((a,b)=>b.length-a.length);
               elementsFromSection.forEach((el, idx) => {
@@ -5658,6 +5679,7 @@
       let y=0;
 
       // Helpers
+      const sanitize=(s)=>String(s).replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
       const setLine=()=>{doc.setDrawColor(0,0,0);doc.setLineWidth(lw);};
       const rect=(x,yy,w,h,opts={})=>{
         if(opts.fill){doc.setFillColor(opts.fill);doc.rect(x,yy,w,h,"F");}
@@ -5668,9 +5690,10 @@
         doc.setFont("helvetica",opts.bold?"bold":"normal");
         doc.setFontSize(opts.size||10);
         doc.setTextColor(opts.color||"#000000");
-        if(opts.align==="center")doc.text(str,x,yy,{align:"center"});
-        else if(opts.align==="right")doc.text(str,x,yy,{align:"right"});
-        else doc.text(str,x,yy);
+        const s=sanitize(str);
+        if(opts.align==="center")doc.text(s,x,yy,{align:"center"});
+        else if(opts.align==="right")doc.text(s,x,yy,{align:"right"});
+        else doc.text(s,x,yy);
       };
 
       // Draw World Skate spiral logo
@@ -5868,15 +5891,16 @@
       const {jsPDF} = window.jspdf;
       const doc = new jsPDF({orientation:"landscape", unit:"mm", format:"a4"});
       const pw=297, ph=210, mx=10, cw=pw-2*mx, lw=0.3;
-      let y=10;
+      let y=10, cx;
 
       // Helpers
+      const sanitize=(s)=>String(s).replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
       const setLine=()=>{doc.setDrawColor(0,0,0);doc.setLineWidth(lw);};
       const rectF=(x,yy,w,h,fill)=>{if(fill){doc.setFillColor(fill);doc.rect(x,yy,w,h,"F");}setLine();doc.rect(x,yy,w,h);};
       const txt=(str,x,yy,opts={})=>{
         doc.setFont("helvetica",opts.bold?"bold":"normal");
         doc.setFontSize(opts.size||9);doc.setTextColor(opts.color||"#000000");
-        doc.text(String(str),x,yy,{align:opts.align||"left"});
+        doc.text(sanitize(str),x,yy,{align:opts.align||"left"});
       };
       const pageBreak=(need)=>{if(y+need>ph-12){doc.addPage();y=10;return true;}return false;};
 
@@ -6197,7 +6221,7 @@
         if (!sk.verein && local.verein) merged.verein = local.verein;
       }
       setSkater(merged.name || "");
-      setCat(merged.verein || merged.kategorie || "");
+      setCat(merged.verein || "");
       setMusic(merged.music || "");
       setKategorie(merged.kategorie || "senior");
       setSegment(merged.segment || "senior_fp");
