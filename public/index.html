@@ -62,6 +62,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
 
   <script type="text/babel">
@@ -1032,206 +1033,170 @@
       setSections(newSections);
     },[importFromContent,initSections]);
 
-    // jsPDF-based PDF generation matching original World Skate template exactly
+    // jsPDF-based PDF generation matching original sk8info.org.au World Skate template exactly
+    // Uses jspdf-autotable, navy blue header bands, text+underline info section
     const exportPDF=()=>{
       const {jsPDF}=window.jspdf;
-      const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
-      const pw=210,ph=297;
-      const mx=15,mxr=pw-15; // margins
-      const cw=mxr-mx; // content width
-      const lw=0.35; // line width
+      const doc=new jsPDF({orientation:”portrait”,unit:”mm”,format:”a4”});
+      const W=210,ph=297,m=10,cW=W-m*2;
+      const NAVY=[21,101,192];
       let y=0;
+      const sanitize=(s)=>String(s).replace(/—/g,’-’).replace(/–/g,’-’).replace(/[‘’]/g,”’”).replace(/[“”]/g,’”’).replace(/…/g,’...’).replace(/•/g,’*’).replace(/[^\x20-\x7E\xA0-\xFF]/g,’?’);
+      const san=sanitize;
 
-      // Helpers
-      const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/‘|’/g,"'").replace(/“|”/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
-      const setLine=()=>{doc.setDrawColor(0,0,0);doc.setLineWidth(lw);};
-      const rect=(x,yy,w,h,opts={})=>{
-        if(opts.fill){doc.setFillColor(opts.fill);doc.rect(x,yy,w,h,"F");}
-        setLine();doc.rect(x,yy,w,h);
-      };
-
-      const txt=(str,x,yy,opts={})=>{
-        doc.setFont("helvetica",opts.bold?"bold":"normal");
-        doc.setFontSize(opts.size||10);
-        doc.setTextColor(opts.color||"#000000");
-        const s=sanitize(str);
-        if(opts.align==="center")doc.text(s,x,yy,{align:"center"});
-        else if(opts.align==="right")doc.text(s,x,yy,{align:"right"});
-        else doc.text(s,x,yy);
-      };
-
-      const drawPage=(startSecIdx,endSecIdx,isNewPage)=>{
-        if(isNewPage){doc.addPage();}
-        y=14;
-
-        // === HEADER: World Skate spiral logo (top-left) + big bold title (center-right) ===
-        const logoX=mx+8, logoY=y+5, logoR=6;
-        // Draw spiral arcs (outer=dark grey, mid=grey, inner=green)
-        const drawArc=(cx,cy,r,startDeg,endDeg,color,w)=>{
-          doc.setDrawColor(...color);doc.setLineWidth(w);
-          const steps=40;const s=startDeg*Math.PI/180;const e=endDeg*Math.PI/180;
-          const pts=[];for(let i=0;i<=steps;i++){const a=s+(e-s)*i/steps;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
+      // Draw World Skate logo as spiral arcs (vector)
+      const drawLogo=(lx,ly,sz)=>{
+        const drawArc=(cx,cy,r,s,e,col,w)=>{
+          doc.setDrawColor(...col);doc.setLineWidth(w);
+          const steps=40,sa=s*Math.PI/180,ea=e*Math.PI/180;
+          const pts=[];for(let i=0;i<=steps;i++){const a=sa+(ea-sa)*i/steps;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
           for(let i=0;i<pts.length-1;i++)doc.line(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
         };
-        drawArc(logoX,logoY,logoR,-90,250,[74,74,74],0.9);
-        drawArc(logoX,logoY,logoR*0.72,-90,240,[136,136,136],0.8);
-        drawArc(logoX,logoY,logoR*0.45,-90,220,[122,182,72],0.7);
-        // "WORLD SKATE" text right of logo
-        doc.setFont("helvetica","bold");doc.setFontSize(9);
-        doc.setTextColor(74,74,74);
-        doc.text("WORLD",logoX+logoR+3,logoY+0.5);
-        doc.setTextColor(136,136,136);
-        doc.text("SKATE",logoX+logoR+3,logoY+4);
-        doc.setDrawColor(0,0,0);doc.setLineWidth(lw);doc.setTextColor(0,0,0);
+        const cx=lx+sz/2,cy=ly+sz/2,r=sz/2;
+        drawArc(cx,cy,r,-90,250,[255,255,255],0.9);
+        drawArc(cx,cy,r*0.72,-90,240,[200,210,230],0.7);
+        drawArc(cx,cy,r*0.45,-90,220,[180,220,140],0.6);
+        doc.setFont(“helvetica”,”bold”);doc.setFontSize(7);
+        doc.setTextColor(255,255,255);
+        doc.text(“WORLD”,lx+sz+2,cy-0.5);doc.text(“SKATE”,lx+sz+2,cy+2.5);
+      };
 
-        // Title — big bold, centered in the right portion
-        const titleX=mx+50+(cw-50)/2;
-        const titleText=sheet.title.toUpperCase();
-        const titleSize=titleText.length>36?13:15;
-        txt(titleText,titleX,y+4,{bold:true,size:titleSize,align:"center"});
-        y+=16;
+      // Header band: navy rounded rect + logo + title
+      const hdrBand=(title,yy)=>{
+        doc.setFillColor(...NAVY);
+        doc.roundedRect(m,yy,cW,11,2,2,”F”);
+        drawLogo(m+2,yy+1,9);
+        doc.setFont(“helvetica”,”bold”);doc.setFontSize(13);
+        doc.setTextColor(255,255,255);
+        doc.text(san(title),W/2,yy+7.5,{align:”center”});
+        doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);doc.setLineWidth(0.3);
+        return yy+13;
+      };
 
-        // === INFO TABLE: 4 rows — label | value ===
-        // Determine section-specific choreography label (matches original World Skate format)
-        const firstSec=sheet.sections[startSecIdx];
-        const firstData=sections[startSecIdx];
-        const secIsSP=firstSec?.label?.toUpperCase().includes("SHORT");
-        const secIsPairs=firstSec?.label?.toUpperCase().includes("PAIR");
-        const choreoLabel=secIsPairs
-          ?(secIsSP?"CHOREOGRAPHY — SHORT PROGRAM":"CHOREOGRAPHY — FREE PROGRAM")
-          :(secIsSP?"CHOREOGRAPHY — SHORT":"CHOREOGRAPHY — FREE");
-        const labelW=55;
-        const valW=cw-labelW;
-        const infoH=8;
-        const infoRows=[
-          {label:"COMPETITORS NAME",val:name},
-          {label:"CATEGORY",val:CATEGORY_DEFS[kategorie]?.label||kategorie},
-          {label:"REPRESENTING",val:federation},
-          {label:choreoLabel,val:firstData?.music||choreography||""},
-        ];
-        infoRows.forEach(inf=>{
-          rect(mx,y,labelW,infoH);
-          rect(mx+labelW,y,valW,infoH);
-          txt(inf.label,mx+3,y+5.5,{bold:true,size:9});
-          txt(inf.val||"",mx+labelW+3,y+5.5,{size:10});
-          y+=infoH;
-        });
+      // Element section band
+      const elemBand=(label,yy)=>{
+        doc.setFillColor(...NAVY);
+        doc.roundedRect(m,yy,cW,9,1.5,1.5,”F”);
+        doc.setFont(“helvetica”,”bold”);doc.setFontSize(10);
+        doc.setTextColor(255,255,255);
+        doc.text(san(label),W/2,yy+6.2,{align:”center”});
+        doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);
+        return yy+11;
+      };
+
+      // Draw one page (section range)
+      const drawPage=(startSecIdx,endSecIdx,isNewPage)=>{
+        if(isNewPage) doc.addPage();
+        y=10;
+
+        // Header band with title
+        y=hdrBand(sheet.title.toUpperCase(),y);
+
+        // Info section — text labels with underlines
         y+=2;
+        const catLabel=CATEGORY_DEFS[kategorie]?.label||kategorie;
+        const firstData=sections[startSecIdx];
+        const firstSec=sheet.sections[startSecIdx];
+        const secIsSP=firstSec?.label?.toUpperCase().includes(“SHORT”);
 
-        // === SECTIONS ===
+        // Row 1: NAME + CATEGORY
+        doc.setFont(“helvetica”,”bold”);doc.setFontSize(9);doc.setTextColor(0,0,0);
+        doc.text(“NAME:”,m,y+4);
+        doc.setFont(“helvetica”,”normal”);doc.text(san(name||””),m+15,y+4);
+        doc.setDrawColor(180,180,180);doc.setLineWidth(0.2);
+        doc.line(m+13,y+4.5,m+90,y+4.5);
+        doc.setFont(“helvetica”,”bold”);doc.text(“CATEGORY:”,m+95,y+4);
+        doc.setFont(“helvetica”,”normal”);doc.text(san(catLabel),m+120,y+4);
+        doc.line(m+118,y+4.5,W-m,y+4.5);
+        y+=8;
+
+        // Row 2: REPRESENTING + FEDERATION
+        doc.setFont(“helvetica”,”bold”);doc.text(“REPRESENTING:”,m,y+4);
+        doc.setFont(“helvetica”,”normal”);doc.text(san(federation||””),m+28,y+4);
+        doc.line(m+26,y+4.5,m+100,y+4.5);
+        doc.setFont(“helvetica”,”bold”);doc.text(“FEDERATION / CLUB:”,m+105,y+4);
+        doc.setFont(“helvetica”,”normal”);doc.text(“”,m+145,y+4);
+        doc.line(m+143,y+4.5,W-m,y+4.5);
+        y+=8;
+
+        // Row 3: MUSIC
+        const musicLabel=secIsSP?”Short - Choreography / Music:”:”Free - Choreography / Music:”;
+        doc.setFont(“helvetica”,”bold”);doc.text(san(musicLabel),m,y+4);
+        const mLabelW=doc.getTextWidth(san(musicLabel));
+        doc.setFont(“helvetica”,”normal”);doc.text(san(firstData?.music||choreography||””),m+mLabelW+3,y+4);
+        doc.line(m+mLabelW+1,y+4.5,W-m,y+4.5);
+        y+=8;
+
+        // Draw sections
         for(let si=startSecIdx;si<=endSecIdx;si++){
           const sec=sheet.sections[si];
           const d=sections[si];
           if(!sec)continue;
 
-          // Estimate height needed for this section (subH + colHdrH + rows + spacing)
-          const rh=sec.rows<=9?16:12; // tall rows for <=9 elements, shorter for 12+
-          const estH=7+7+sec.rows*rh+6;
-          if(y+estH>ph-15){doc.addPage();y=14;}
+          // Section element band
+          const elSecIsPairs=sec.label.toUpperCase().includes(“PAIR”);
+          const elSecIsSP=sec.label.toUpperCase().includes(“SHORT”);
+          const bandLabel=elSecIsPairs
+            ?(elSecIsSP?”ELEMENTS — PAIRS SHORT PROGRAM”:”ELEMENTS — PAIRS FREE PROGRAM”)
+            :(elSecIsSP?”ELEMENTS — SHORT PROGRAM”:”ELEMENTS — FREE PROGRAM”);
+          y=elemBand(bandLabel,y);
 
-          // Determine "ELEMENTS PERFORMED" label per section (matches original World Skate)
-          const elSecIsPairs=sec.label.toUpperCase().includes("PAIR");
-          const elSecIsSP=sec.label.toUpperCase().includes("SHORT");
-          const secPerfLabel=elSecIsPairs
-            ?(elSecIsSP?"SHORT PROGRAM ELEMENTS PERFORMED":"FREE PROGRAM ELEMENTS PERFORMED")
-            :"ELEMENTS PERFORMED";
-
-          // Sub-header row: DECLARED | ELEMENTS PERFORMED
-          const colNum=15, colTime=22, colCode=22, colNotes=35;
-          const colPerformed=cw-colNum-colTime-colCode-colNotes;
-          const declW=colNum+colTime+colCode;
-          const subH=7;
-
-          // DECLARED header (spans 3 cols)
-          rect(mx,y,declW,subH,{fill:"#f5f5f5"});
-          txt("DECLARED",mx+declW/2,y+5,{bold:true,size:9,align:"center"});
-          // ELEMENTS PERFORMED header
-          rect(mx+declW,y,colPerformed,subH,{fill:"#f5f5f5"});
-          txt(secPerfLabel,mx+declW+colPerformed/2,y+5,{bold:true,size:9,align:"center"});
-          // Notes header (empty in sub-header row)
-          rect(mx+declW+colPerformed,y,colNotes,subH,{fill:"#f5f5f5"});
-          y+=subH;
-
-          // Column header row: # | Time | Code | (Tech Panel) | Notes
-          const colHdrH=7;
-          let cx=mx;
-          const cols=[
-            {w:colNum,label:"#",bold:true},
-            {w:colTime,label:"Time",bold:true},
-            {w:colCode,label:"Code",bold:true},
-            {w:colPerformed,label:"(Tech Panel)",bold:false,size:9,color:"#444444"},
-            {w:colNotes,label:"Notes",bold:true},
-          ];
-          cols.forEach(c=>{
-            rect(cx,y,c.w,colHdrH);
-            txt(c.label,cx+c.w/2,y+5,{bold:c.bold,size:c.size||10,align:"center",color:c.color});
-            cx+=c.w;
-          });
-          y+=colHdrH;
-
-          // Element rows — tall like original
+          // Build table body from section elements
           const elems=d?.elements||[];
-          elems.forEach((el,i)=>{
-            // Page break check
-            if(y+rh>ph-12){doc.addPage();y=14;}
-            cx=mx;
-            // # column
-            rect(cx,y,colNum,rh);
-            txt(String(i+1),cx+colNum/2,y+rh/2+2,{bold:true,size:12,align:"center"});
-            cx+=colNum;
-            // Time column
-            rect(cx,y,colTime,rh);
-            const timeVal=el.time||"_:__";
-            txt(timeVal,cx+colTime/2,y+rh/2+2,{bold:true,size:11,align:"center"});
-            cx+=colTime;
-            // Code column
-            rect(cx,y,colCode,rh);
-            const codeVal=el.code||"----";
-            txt(codeVal,cx+4,y+rh/2+2,{bold:true,size:11});
-            cx+=colCode;
-            // (Filled by Tech Panel) — empty
-            rect(cx,y,colPerformed,rh);
-            cx+=colPerformed;
-            // Notes column
-            rect(cx,y,colNotes,rh);
-            if(el.notes){const n=el.notes.length>25?el.notes.substring(0,24)+"..":el.notes;txt(n,cx+3,y+rh/2+2,{size:9});}
-            cx+=colNotes;
+          const bodyData=elems.map((el,i)=>[
+            String(i+1),
+            el.time||””,
+            el.code||””,
+            “”,
+            el.notes||””
+          ]);
 
-            y+=rh;
+          // autoTable for element grid
+          doc.autoTable({
+            startY:y,
+            margin:{left:m,right:m},
+            tableWidth:cW,
+            head:[[
+              {content:”#”,styles:{halign:”center”,fontStyle:”bold”}},
+              {content:”Time”,styles:{fontStyle:”bold”}},
+              {content:”Code”,styles:{fontStyle:”bold”}},
+              {content:”(Tech Panel)”,styles:{fontStyle:”bold”}},
+              {content:”Notes”,styles:{fontStyle:”bold”}},
+            ]],
+            body:bodyData,
+            theme:”grid”,
+            headStyles:{fontSize:9,fillColor:NAVY,textColor:[255,255,255]},
+            bodyStyles:{fontSize:12,minCellHeight:25,valign:”middle”},
+            alternateRowStyles:{fillColor:[248,250,252]},
+            columnStyles:{
+              0:{cellWidth:12,halign:”center”},
+              1:{cellWidth:22},
+              2:{cellWidth:24},
+              4:{cellWidth:52},
+            },
           });
-          y+=5;
+          y=doc.lastAutoTable.finalY+5;
         }
       };
 
-      // Determine if we need multiple pages for multi-section sheets (SP+FP)
+      // Draw pages
       if(sheet.sections.length===1){
         drawPage(0,0,false);
       } else {
-        // For combined sheets: first section on page 1, second on page 2
         drawPage(0,0,false);
         drawPage(1,sheet.sections.length-1,true);
       }
-
-      // Signature line on last page
-      y+=10;
-      if(y+20>ph){doc.addPage();y=20;}
-      const sigW=(cw-20)/2;
-      doc.setDrawColor("#999999");doc.setLineWidth(0.2);
-      doc.line(mx,y,mx+sigW,y);
-      doc.line(mx+sigW+20,y,mx+cw,y);
-      txt("Coach Signature",mx+sigW/2,y+4,{size:7,align:"center",color:"#999999"});
-      txt("Date",mx+sigW+20+(cw-sigW-20)/2,y+4,{size:7,align:"center",color:"#999999"});
-      doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
 
       // Footer on all pages
       const totalPages=doc.internal.getNumberOfPages();
       for(let p=1;p<=totalPages;p++){
         doc.setPage(p);
-        txt("Generated by RollArt 2026 - World Skate Official Format",pw/2,ph-8,{size:7,align:"center",color:"#9ca3af"});
+        doc.setFontSize(7);doc.setTextColor(150,150,150);doc.setFont(“helvetica”,”normal”);
+        doc.text(“Generated by RollArt 2026 - World Skate Official Format”,W/2,ph-8,{align:”center”});
       }
 
       // Auto-download
-      const fn=`${(name||"content").replace(/\s+/g,"_")}_${sheetType}_content.pdf`;
+      const fn=`${(name||”content”).replace(/\s+/g,”_”)}_${sheetType}_content.pdf`;
       doc.save(fn);
     };
 
@@ -1292,42 +1257,117 @@
     const importFile=async(e)=>{
       const file=e.target.files?.[0];if(!file)return;e.target.value="";
       if(file.name.toLowerCase().endsWith('.pdf')){
-        // PDF import using pdf.js
+        // PDF import using pdf.js — reconstruct lines from text item positions
         try{
           const buf=await file.arrayBuffer();
           const pdf=await pdfjsLib.getDocument({data:buf}).promise;
-          let fullText="";
+          // Extract text with Y-positions to reconstruct lines
+          const allLines=[];
           for(let p=1;p<=pdf.numPages;p++){
             const pg=await pdf.getPage(p);
             const tc=await pg.getTextContent();
-            const pageText=tc.items.map(it=>it.str).join(" ");
-            fullText+=pageText+"\n";
+            // Group items by Y position (rounded to nearest 2px) to form lines
+            const yMap={};
+            tc.items.forEach(it=>{
+              if(!it.str.trim())return;
+              const yKey=Math.round(it.transform[5]/2)*2; // Y pos, grouped
+              if(!yMap[yKey])yMap[yKey]=[];
+              yMap[yKey].push({x:it.transform[4],text:it.str});
+            });
+            // Sort by Y descending (PDF Y goes bottom-up), then X ascending within line
+            const sortedYs=Object.keys(yMap).map(Number).sort((a,b)=>b-a);
+            sortedYs.forEach(yy=>{
+              const items=yMap[yy].sort((a,b)=>a.x-b.x);
+              allLines.push(items.map(it=>it.text).join(" ").trim());
+            });
           }
-          // Try to extract structured data from PDF text
-          const nm=fullText.match(/(?:COMPETITORS?\s*NAME|Name)[:\s]+([^\n|]+)/i);
-          if(nm)setName(nm[1].trim());
-          const ct=fullText.match(/(?:CATEGORY|Kategorie)[:\s]+([^\n|]+)/i);
-          if(ct){
-            const catVal=ct[1].trim();
-            // Try to match to known category
-            const found=Object.entries(CATEGORY_DEFS).find(([k,v])=>v.label.toLowerCase().includes(catVal.toLowerCase())||catVal.toLowerCase().includes(k));
+          const fullText=allLines.join("\n");
+
+          // Detect title — "FREE PROGRAM CONTENT SHEET" or "SHORT PROGRAM CONTENT SHEET"
+          const titleLine=allLines.find(l=>/CONTENT\s*SHEET/i.test(l))||"";
+          const isFP=/FREE\s*PROGRAM/i.test(titleLine);
+          const isSP=/SHORT\s*PROGRAM/i.test(titleLine);
+          const isPairsSheet=/PAIR/i.test(titleLine);
+
+          // Extract NAME
+          const nmLine=allLines.find(l=>/^NAME:/i.test(l.trim()))||"";
+          const nmMatch=nmLine.match(/NAME:\s*(.+?)(?:\s{2,}|CATEGORY|$)/i);
+          if(nmMatch)setName(nmMatch[1].trim());
+
+          // Extract CATEGORY
+          const catLine=allLines.find(l=>/CATEGORY:/i.test(l))||nmLine;
+          const ctMatch=catLine.match(/CATEGORY:\s*(.+)/i);
+          if(ctMatch){
+            let catVal=ctMatch[1].trim();
+            // Remove "Ladies", "Men", "Boys", "Girls" suffix for matching
+            const catBase=catVal.replace(/\s*(Ladies|Men|Boys|Girls|Damen|Herren)$/i,"").trim().toLowerCase();
+            // Match to CATEGORY_DEFS
+            const found=Object.entries(CATEGORY_DEFS).find(([k,v])=>{
+              const lbl=v.label.toLowerCase();
+              return lbl.includes(catBase)||catBase.includes(k)||k===catBase;
+            });
             if(found)changeKategorie(found[0]);
           }
-          const fd=fullText.match(/(?:Representing|Verein|Federation)[:\s]+([^\n|]+)/i);
-          if(fd)setFederation(fd[1].trim());
-          const ch=fullText.match(/(?:CHOREOGRAPHY|Musik|Choreographie)[:\s]+([^\n|]+)/i);
-          if(ch)setChoreography(ch[1].trim());
-          // Try to extract element codes from PDF text
-          const codePattern=/\b([1-4]?[TSFLA][a-z]*\d?|[A-Z]{2,4}\d?|St[B1-4]|CaSp[B1-4]|USp[B1-4]|SSp[B1-4]|CSp[B1-4]|FoSq[B1-4]|ChSt[B1-4])\b/g;
-          const foundCodes=fullText.match(codePattern)||[];
-          if(foundCodes.length>0){
-            const newSections=[...sections];
-            const els=[...newSections[0].elements];
-            foundCodes.forEach((code,i)=>{if(i<els.length)els[i]={...els[i],code:code};});
-            newSections[0]={...newSections[0],elements:els};
-            setSections(newSections);
+
+          // Extract FEDERATION
+          const fdLine=allLines.find(l=>/^FEDERATION:/i.test(l.trim()))||"";
+          const fdMatch=fdLine.match(/FEDERATION:\s*(.+)/i);
+          if(fdMatch)setFederation(fdMatch[1].trim());
+
+          // Extract MUSIC (Content Sheets use "MUSIC:" not "CHOREOGRAPHY:")
+          const muLine=allLines.find(l=>/^(?:MUSIC|CHOREOGRAPHY|Choreography):/i.test(l.trim()))||"";
+          const muMatch=muLine.match(/(?:MUSIC|CHOREOGRAPHY|Choreography):\s*(.+)/i);
+          if(muMatch)setChoreography(muMatch[1].trim());
+
+          // Extract elements: find lines that start with a number (1-20) followed by optional time + code
+          // Known element type codes for artistic roller skating
+          const validCodes=new Set(["CoJ","SJu","CSp","CSSp","FoSq","ChSt","TFSq","SLSt","CiSt","SeSt","DiSt",
+            "USp","SSp","CaSp","CCoSp","FCCoSp","FCSp","FSSp","FCaSp","FUSp",
+            "CoJ1","CoJ2","CoJ3","CoJ4","SJu1","SJu2","SJu3","SJu4",
+            "CSpB","CSp1","CSp2","CSp3","CSp4","USpB","USp1","USp2","USp3","USp4",
+            "SSpB","SSp1","SSp2","SSp3","SSp4","CaSpB","CaSp1","CaSp2","CaSp3","CaSp4",
+            "FoSqB","FoSq1","FoSq2","FoSq3","FoSq4","ChStB","ChSt1","ChSt2","ChSt3","ChSt4",
+            "TFSqB","TFSq1","TFSq2","TFSq3","TFSq4",
+            "StB","St1","St2","St3","St4","SpB","Sp1","Sp2","Sp3","Sp4",
+            "PCoJ","PSJu","PLi","PCSp","PTw","PDSp","PSoSp",
+            "PLiB","PLi1","PLi2","PLi3","PLi4"]);
+          const parsedElements=[];
+          for(const line of allLines){
+            // Match: row number, optional time (m:ss), element code
+            const rowMatch=line.match(/^\s*(\d{1,2})\s+((\d:\d{2})\s+)?([A-Z][A-Za-z]{1,6}\d?)\b/);
+            if(rowMatch){
+              const num=parseInt(rowMatch[1]);
+              if(num>=1&&num<=20){
+                const time=rowMatch[3]||"";
+                const code=rowMatch[4]||"";
+                // Validate code: must be a known element code or start with known prefix
+                const isValid=validCodes.has(code)||/^(CoJ|SJu|CSp|USp|SSp|CaSp|FoSq|ChSt|TFSq|PLi|PTw|PDSp|PSoSp|PCoJ|PSJu|PCSp|St|Sp|CSSp|CCoSp|FCCoSp|FCSp|FSSp|FCaSp|FUSp)/.test(code);
+                if(isValid){
+                  parsedElements.push({num,time,code,notes:""});
+                }
+              }
+            }
           }
-          alert('PDF importiert. Bitte Daten überprüfen — PDF-Erkennung kann ungenau sein.');
+
+          // Fill into sections
+          if(parsedElements.length>0){
+            const newSections=sections.map(s=>({...s,elements:s.elements.map(el=>({...el}))}));
+            // Determine target section: for sp_fp sheets, FP is section 1, SP is section 0
+            let targetIdx=0;
+            if((sheetType==="sp_fp"||sheetType==="pairs_sp_fp")&&isFP) targetIdx=1;
+            if(targetIdx<newSections.length){
+              const els=newSections[targetIdx].elements;
+              parsedElements.forEach((pe,i)=>{
+                if(i<els.length){
+                  els[i]={...els[i],time:pe.time,code:pe.code,notes:pe.notes};
+                }
+              });
+              // Also set music on the target section
+              if(muMatch) newSections[targetIdx].music=muMatch[1].trim();
+              setSections(newSections);
+            }
+          }
+          alert('PDF erfolgreich importiert!');
         }catch(err){
           alert('Fehler beim PDF-Import: '+err.message);
         }
@@ -5696,200 +5736,161 @@
 
     // ============================================================
     //  OFFICIAL WORLD SKATE CONTENT SHEET — PDF EXPORT
+    //  Matches original sk8info.org.au format exactly:
+    //  - Navy blue rounded header band with logo + title
+    //  - Info section as text with underlines (not table cells)
+    //  - Navy section band “ELEMENTS — PROGRAM”
+    //  - jspdf-autotable grid with exact column widths
     // ============================================================
     const exportOfficialPDF = () => {
       const {jsPDF} = window.jspdf;
-      const doc = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
-      const pw=210, ph=297, mx=15, mxr=pw-15, cw=mxr-mx, lw=0.35;
-      let y=0;
+      const doc = new jsPDF({orientation:”portrait”, unit:”mm”, format:”a4”});
+      const W=210, m=10, cW=W-m*2;
+      const NAVY=[21,101,192];
+      const sanitize=(s)=>String(s).replace(/—/g,’-’).replace(/–/g,’-’).replace(/[‘’]/g,”’”).replace(/[“”]/g,’”’).replace(/…/g,’...’).replace(/•/g,’*’).replace(/[^\x20-\x7E\xA0-\xFF]/g,’?’);
 
-      // Helpers
-      const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/‘|’/g,"'").replace(/“|”/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
-      const setLine=()=>{doc.setDrawColor(0,0,0);doc.setLineWidth(lw);};
-      const rect=(x,yy,w,h,opts={})=>{
-        if(opts.fill){doc.setFillColor(opts.fill);doc.rect(x,yy,w,h,"F");}
-        setLine();doc.rect(x,yy,w,h);
-      };
-
-      const txt=(str,x,yy,opts={})=>{
-        doc.setFont("helvetica",opts.bold?"bold":"normal");
-        doc.setFontSize(opts.size||10);
-        doc.setTextColor(opts.color||"#000000");
-        const s=sanitize(str);
-        if(opts.align==="center")doc.text(s,x,yy,{align:"center"});
-        else if(opts.align==="right")doc.text(s,x,yy,{align:"right"});
-        else doc.text(s,x,yy);
-      };
-
-      // Draw World Skate spiral logo
-      const drawLogo=(logoX,logoY,logoR)=>{
-        const drawArc=(cx,cy,r,startDeg,endDeg,color,w)=>{
-          doc.setDrawColor(...color);doc.setLineWidth(w);
-          const steps=40,s=startDeg*Math.PI/180,e=endDeg*Math.PI/180;
-          const pts=[];for(let i=0;i<=steps;i++){const a=s+(e-s)*i/steps;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
+      // Draw World Skate logo as spiral arcs (vector, no external image)
+      const drawLogo=(lx,ly,sz)=>{
+        const drawArc=(cx,cy,r,s,e,col,w)=>{
+          doc.setDrawColor(...col);doc.setLineWidth(w);
+          const steps=40,sa=s*Math.PI/180,ea=e*Math.PI/180;
+          const pts=[];for(let i=0;i<=steps;i++){const a=sa+(ea-sa)*i/steps;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
           for(let i=0;i<pts.length-1;i++)doc.line(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
         };
-        drawArc(logoX,logoY,logoR,-90,250,[74,74,74],0.9);
-        drawArc(logoX,logoY,logoR*0.72,-90,240,[136,136,136],0.8);
-        drawArc(logoX,logoY,logoR*0.45,-90,220,[122,182,72],0.7);
-        doc.setFont("helvetica","bold");doc.setFontSize(9);
-        doc.setTextColor(74,74,74);doc.text("WORLD",logoX+logoR+3,logoY+0.5);
-        doc.setTextColor(136,136,136);doc.text("SKATE",logoX+logoR+3,logoY+4);
-        doc.setDrawColor(0,0,0);doc.setLineWidth(lw);doc.setTextColor(0,0,0);
+        const cx=lx+sz/2,cy=ly+sz/2,r=sz/2;
+        drawArc(cx,cy,r,-90,250,[255,255,255],0.9);
+        drawArc(cx,cy,r*0.72,-90,240,[200,210,230],0.7);
+        drawArc(cx,cy,r*0.45,-90,220,[180,220,140],0.6);
+        doc.setFont(“helvetica”,”bold”);doc.setFontSize(7);
+        doc.setTextColor(255,255,255);
+        doc.text(“WORLD”,lx+sz+2,cy-0.5);doc.text(“SKATE”,lx+sz+2,cy+2.5);
       };
 
-      // Determine segment type
-      const isSP = segment.endsWith("_sp");
+      // === Header band: navy rounded rect + logo + title ===
+      const hdrBand=(title,y)=>{
+        doc.setFillColor(...NAVY);
+        doc.roundedRect(m,y,cW,11,2,2,”F”);
+        drawLogo(m+2,y+1,9);
+        doc.setFont(“helvetica”,”bold”);doc.setFontSize(13);
+        doc.setTextColor(255,255,255);
+        doc.text(sanitize(title),W/2,y+7.5,{align:”center”});
+        doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);doc.setLineWidth(0.3);
+        return y+13;
+      };
 
-      // Title — match original World Skate Content Sheet exactly
+      // === Element section band ===
+      const elemBand=(label,y)=>{
+        doc.setFillColor(...NAVY);
+        doc.roundedRect(m,y,cW,9,1.5,1.5,”F”);
+        doc.setFont(“helvetica”,”bold”);doc.setFontSize(10);
+        doc.setTextColor(255,255,255);
+        doc.text(sanitize(label),W/2,y+6.2,{align:”center”});
+        doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);
+        return y+11;
+      };
+
+      // Determine segment info
+      const isSP = segment.endsWith(“_sp”);
       const titleText = isPairs
-        ? (isSP ? "PAIRS SHORT PROGRAM CONTENT SHEET 2026" : "PAIRS FREE PROGRAM CONTENT SHEET 2026")
-        : (isSP ? "SHORT PROGRAM CONTENT SHEET 2026" : "FREE PROGRAM CONTENT SHEET 2026");
-
-      // Choreography label — match original (Singles: "— SHORT/FREE", Pairs: "— SHORT/FREE PROGRAM")
-      const choreoLabel = isPairs
-        ? (isSP ? "CHOREOGRAPHY — SHORT PROGRAM" : "CHOREOGRAPHY — FREE PROGRAM")
-        : (isSP ? "CHOREOGRAPHY — SHORT" : "CHOREOGRAPHY — FREE");
-
-      // "ELEMENTS PERFORMED" label — Singles: just "ELEMENTS PERFORMED", Pairs: prefix with program
-      const perfLabel = isPairs
-        ? (isSP ? "SHORT PROGRAM ELEMENTS PERFORMED" : "FREE PROGRAM ELEMENTS PERFORMED")
-        : "ELEMENTS PERFORMED";
-
-      // Standard element counts per World Skate 2026 rules
+        ? (isSP ? “PAIRS SHORT PROGRAM CONTENT SHEET 2026” : “PAIRS FREE PROGRAM CONTENT SHEET 2026”)
+        : (isSP ? “SHORT PROGRAM CONTENT SHEET 2026” : “FREE PROGRAM CONTENT SHEET 2026”);
+      const elemLabel = isPairs
+        ? (isSP ? “ELEMENTS — PAIRS SHORT PROGRAM” : “ELEMENTS — PAIRS FREE PROGRAM”)
+        : (isSP ? “ELEMENTS — SHORT PROGRAM” : “ELEMENTS — FREE PROGRAM”);
       const stdRowCount = isSP ? (isPairs ? 8 : 7) : (isPairs ? 13 : 9);
 
-      // Map element rows to official format
+      // Map element rows + pad to standard count
       const mappedRows = rows.map((r,i) => {
         const typeDef = types.find(t=>t.code===r.typeCode);
-        let code = "";
-        let notes = "";
-        if (typeDef) {
-          if (typeDef.isCombo) {
-            code = typeDef.code;
-            const parts = (r.comboEls||[]).filter(sub=>sub.code).map(sub=>{
-              const el = typeDef.data.find(e=>e.code===sub.code);
-              return el ? el.code : sub.code;
-            });
-            notes = parts.join(" + ");
+        let code=””,notes=””;
+        if(typeDef){
+          if(typeDef.isCombo){
+            code=typeDef.code;
+            notes=(r.comboEls||[]).filter(sub=>sub.code).map(sub=>{
+              const el=typeDef.data.find(e=>e.code===sub.code);return el?el.code:sub.code;
+            }).join(“ + “);
           } else {
-            const el = typeDef.data.find(e=>e.code===r.elCode);
-            code = el ? el.code : r.elCode || r.typeCode;
-            notes = el ? el.name : "";
+            const el=typeDef.data.find(e=>e.code===r.elCode);
+            code=el?el.code:r.elCode||r.typeCode;notes=el?el.name:””;
           }
         }
-        return {num:i+1, time:"", code, notes};
+        return [String(i+1),””,code,””,notes];
       });
-      // Pad to standard row count (empty rows for unfilled element slots)
-      const officialRows = [];
-      for (let i = 0; i < Math.max(mappedRows.length, stdRowCount); i++) {
-        officialRows.push(i < mappedRows.length ? mappedRows[i] : {num:i+1, time:"", code:"", notes:""});
-      }
+      while(mappedRows.length<stdRowCount) mappedRows.push([String(mappedRows.length+1),””,””,””,””]);
 
       // === PAGE DRAWING ===
-      y = 12;
+      let y=10;
+      y=hdrBand(titleText,y);
 
-      // Header: World Skate logo (top-left) + title (center-right)
-      const logoX=mx+8, logoY=y+5, logoR=6;
-      drawLogo(logoX,logoY,logoR);
-      const titleX = mx+50+(cw-50)/2;
-      // Dynamic title size — shorter titles get larger font
-      const titleSize = titleText.length > 36 ? 13 : 15;
-      txt(titleText, titleX, y+4, {bold:true, size:titleSize, align:"center"});
-      y += 16;
-
-      // Info table: 4 rows — label | value (all one unified visual block)
-      const labelW=55, valW=cw-labelW, infoH=8;
-      const catLabel = CATEGORY_DEFS[kategorie]?.label || kategorie;
-      const infoData=[
-        {label:"COMPETITORS NAME", val:skater||""},
-        {label:"CATEGORY", val:catLabel},
-        {label:"REPRESENTING", val:cat||""},
-        {label:choreoLabel, val:music||""},
-      ];
-      infoData.forEach(inf=>{
-        rect(mx,y,labelW,infoH);
-        rect(mx+labelW,y,valW,infoH);
-        txt(inf.label,mx+3,y+5.5,{bold:true,size:9});
-        txt(inf.val,mx+labelW+3,y+5.5,{size:10});
-        y+=infoH;
-      });
+      // Info section — text labels with underlines (matches original exactly)
       y+=2;
+      const catLabel = CATEGORY_DEFS[kategorie]?.label || kategorie;
+      const san=sanitize;
 
-      // Column widths for element table
-      const colNum=15, colTime=22, colCode=22, colNotes=35;
-      const colPerformed=cw-colNum-colTime-colCode-colNotes;
-      const declW=colNum+colTime+colCode;
-      const subH=7;
+      // Row 1: NAME + CATEGORY (side by side)
+      doc.setFont(“helvetica”,”bold”);doc.setFontSize(9);doc.setTextColor(0,0,0);
+      doc.text(“NAME:”,m,y+4);
+      doc.setFont(“helvetica”,”normal”);doc.text(san(skater||””),m+15,y+4);
+      doc.setDrawColor(180,180,180);doc.setLineWidth(0.2);
+      doc.line(m+13,y+4.5,m+90,y+4.5);
+      doc.setFont(“helvetica”,”bold”);doc.text(“CATEGORY:”,m+95,y+4);
+      doc.setFont(“helvetica”,”normal”);doc.text(san(catLabel),m+120,y+4);
+      doc.line(m+118,y+4.5,W-m,y+4.5);
+      y+=8;
 
-      // Sub-header: DECLARED | [program] ELEMENTS PERFORMED
-      rect(mx,y,declW,subH,{fill:"#f5f5f5"});
-      txt("DECLARED",mx+declW/2,y+5,{bold:true,size:9,align:"center"});
-      rect(mx+declW,y,colPerformed,subH,{fill:"#f5f5f5"});
-      txt(perfLabel,mx+declW+colPerformed/2,y+5,{bold:true,size:9,align:"center"});
-      rect(mx+declW+colPerformed,y,colNotes,subH,{fill:"#f5f5f5"});
-      y+=subH;
+      // Row 2: REPRESENTING + FEDERATION/CLUB (side by side)
+      doc.setFont(“helvetica”,”bold”);doc.text(“REPRESENTING:”,m,y+4);
+      doc.setFont(“helvetica”,”normal”);doc.text(san(cat||””),m+28,y+4);
+      doc.line(m+26,y+4.5,m+100,y+4.5);
+      doc.setFont(“helvetica”,”bold”);doc.text(“FEDERATION / CLUB:”,m+105,y+4);
+      doc.setFont(“helvetica”,”normal”);doc.text(“”,m+145,y+4);
+      doc.line(m+143,y+4.5,W-m,y+4.5);
+      y+=8;
 
-      // Column headers: # | Time | Code | (Tech Panel) | Notes
-      const colHdrH=7;
-      let cx=mx;
-      const cols=[
-        {w:colNum,label:"#",bold:true},
-        {w:colTime,label:"Time",bold:true},
-        {w:colCode,label:"Code",bold:true},
-        {w:colPerformed,label:"(Tech Panel)",bold:false,size:9,color:"#444444"},
-        {w:colNotes,label:"Notes",bold:true},
-      ];
-      cols.forEach(c=>{
-        rect(cx,y,c.w,colHdrH);
-        txt(c.label,cx+c.w/2,y+5,{bold:c.bold,size:c.size||10,align:"center",color:c.color});
-        cx+=c.w;
+      // Row 3: MUSIC (full width)
+      const musicLabel = isPairs
+        ? (isSP ? “Short Program - Choreography / Music:” : “Free Program - Choreography / Music:”)
+        : (isSP ? “Short - Choreography / Music:” : “Free - Choreography / Music:”);
+      doc.setFont(“helvetica”,”bold”);doc.text(san(musicLabel),m,y+4);
+      const mLabelW=doc.getTextWidth(san(musicLabel));
+      doc.setFont(“helvetica”,”normal”);doc.text(san(music||””),m+mLabelW+3,y+4);
+      doc.line(m+mLabelW+1,y+4.5,W-m,y+4.5);
+      y+=8;
+
+      // === Element section band ===
+      y=elemBand(elemLabel,y);
+
+      // === Element table using autoTable (exact original format) ===
+      doc.autoTable({
+        startY:y,
+        margin:{left:m,right:m},
+        tableWidth:cW,
+        head:[[
+          {content:”#”,styles:{halign:”center”,fontStyle:”bold”}},
+          {content:”Time”,styles:{fontStyle:”bold”}},
+          {content:”Code”,styles:{fontStyle:”bold”}},
+          {content:”(Tech Panel)”,styles:{fontStyle:”bold”}},
+          {content:”Notes”,styles:{fontStyle:”bold”}},
+        ]],
+        body:mappedRows,
+        theme:”grid”,
+        headStyles:{fontSize:9,fillColor:[21,101,192],textColor:[255,255,255]},
+        bodyStyles:{fontSize:12,minCellHeight:25,valign:”middle”},
+        alternateRowStyles:{fillColor:[248,250,252]},
+        columnStyles:{
+          0:{cellWidth:12,halign:”center”},
+          1:{cellWidth:22},
+          2:{cellWidth:24},
+          4:{cellWidth:52},
+        },
       });
-      y+=colHdrH;
-
-      // Element rows — tall rows for <=9 elements, shorter for 10+
-      const rh = officialRows.length <= 9 ? 16 : 12;
-      officialRows.forEach(el=>{
-        if(y+rh>ph-20){doc.addPage();y=14;}
-        cx=mx;
-        // #
-        rect(cx,y,colNum,rh);
-        txt(String(el.num),cx+colNum/2,y+rh/2+2,{bold:true,size:12,align:"center"});
-        cx+=colNum;
-        // Time
-        rect(cx,y,colTime,rh);
-        txt(el.time||"_:__",cx+colTime/2,y+rh/2+2,{size:11,align:"center"});
-        cx+=colTime;
-        // Code (declared element code)
-        rect(cx,y,colCode,rh);
-        if(el.code) txt(el.code,cx+4,y+rh/2+2,{bold:true,size:11});
-        cx+=colCode;
-        // (Tech Panel) — empty column for tech panel to fill during competition
-        rect(cx,y,colPerformed,rh);
-        cx+=colPerformed;
-        // Notes
-        rect(cx,y,colNotes,rh);
-        if(el.notes){const n=el.notes.length>28?el.notes.substring(0,27)+"..":el.notes;txt(n,cx+3,y+rh/2+2,{size:8});}
-        cx+=colNotes;
-        y+=rh;
-      });
-
-      // Signature line
-      y+=10;
-      if(y+20>ph){doc.addPage();y=20;}
-      const sigW=(cw-20)/2;
-      doc.setDrawColor("#999999");doc.setLineWidth(0.2);
-      doc.line(mx,y,mx+sigW,y);
-      doc.line(mx+sigW+20,y,mx+cw,y);
-      txt("Coach Signature",mx+sigW/2,y+4,{size:7,align:"center",color:"#999999"});
-      txt("Date",mx+sigW+20+(cw-sigW-20)/2,y+4,{size:7,align:"center",color:"#999999"});
-      doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
 
       // Footer
-      txt("Generated by RollArt 2026 - World Skate Official Format",pw/2,ph-8,{size:7,align:"center",color:"#9ca3af"});
+      doc.setFontSize(7);doc.setTextColor(150,150,150);doc.setFont(“helvetica”,”normal”);
+      doc.text(“Generated by RollArt 2026 - World Skate Official Format”,W/2,287,{align:”center”});
 
       // Save
-      const fn=`${(skater||"content_sheet").replace(/\s+/g,"_")}_${segDef.label.replace(/\s+/g,"_")}_WorldSkate.pdf`;
+      const fn=`${(skater||”content_sheet”).replace(/\s+/g,”_”)}_${segDef.label.replace(/\s+/g,”_”)}_WorldSkate.pdf`;
       doc.save(fn);
     };
 
