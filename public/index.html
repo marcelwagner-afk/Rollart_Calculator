@@ -5835,6 +5835,245 @@
       doc.save(fn);
     };
 
+    // ============================================================
+    //  DETAIL PDF EXPORT — 1:1 Screen Layout (Landscape A4)
+    // ============================================================
+    const exportDetailPDF = () => {
+      const {jsPDF} = window.jspdf;
+      const doc = new jsPDF({orientation:"landscape", unit:"mm", format:"a4"});
+      const pw=297, ph=210, mx=10, cw=pw-2*mx, lw=0.3;
+      let y=10;
+
+      // Helpers
+      const setLine=()=>{doc.setDrawColor(0,0,0);doc.setLineWidth(lw);};
+      const rectF=(x,yy,w,h,fill)=>{if(fill){doc.setFillColor(fill);doc.rect(x,yy,w,h,"F");}setLine();doc.rect(x,yy,w,h);};
+      const txt=(str,x,yy,opts={})=>{
+        doc.setFont("helvetica",opts.bold?"bold":"normal");
+        doc.setFontSize(opts.size||9);doc.setTextColor(opts.color||"#000000");
+        doc.text(String(str),x,yy,{align:opts.align||"left"});
+      };
+      const pageBreak=(need)=>{if(y+need>ph-12){doc.addPage();y=10;return true;}return false;};
+
+      // Title bar
+      rectF(mx,y,cw,10,"#f0fdf4");
+      txt(skater||"—", mx+4, y+7, {bold:true, size:13, color:"#065f46"});
+      txt(segDef.label, mx+cw-4, y+7, {bold:true, size:11, align:"right", color:"#065f46"});
+      y+=10;
+      rectF(mx,y,cw,6,"#f9fafb");
+      txt(`Kategorie: ${cat||"—"}  │  Musik: ${music||"—"}  │  Judges: ${judgeCount}  │  ${new Date().toLocaleDateString("de-DE")}`, mx+4, y+4.5, {size:7, color:"#555555"});
+      y+=8;
+
+      // Column widths — dynamic for judge count
+      const colNum=8, colTyp=25, colRot=11, colBase=16, colJ=14, colQoe=16, colNvDg=13, colScore=18;
+      const colEl = cw - colNum - colTyp - colRot - colBase - judgeCount*colJ - colQoe - colNvDg - colScore;
+
+      // Header row
+      const hh=7;
+      const hdrs = [
+        {w:colNum,label:"#",a:"center"},{w:colTyp,label:"TYP",a:"left"},{w:colEl,label:"ELEMENT",a:"left"},
+        {w:colRot,label:"ROT.",a:"center"},{w:colBase,label:"BASE",a:"right"},
+      ];
+      for(let i=0;i<judgeCount;i++) hdrs.push({w:colJ,label:"J"+(i+1),a:"center"});
+      hdrs.push({w:colQoe,label:"QOE",a:"right"},{w:colNvDg,label:"NV/DG",a:"center"},{w:colScore,label:"SCORE",a:"right"});
+
+      let cx=mx;
+      hdrs.forEach(c=>{
+        rectF(cx,y,c.w,hh,"#f0fdf4");
+        const tx=c.a==="center"?cx+c.w/2:c.a==="right"?cx+c.w-2:cx+2;
+        txt(c.label,tx,y+5,{bold:true,size:8,align:c.a,color:"#065f46"});
+        cx+=c.w;
+      });
+      y+=hh;
+      // Bottom border of header
+      doc.setDrawColor("#059669");doc.setLineWidth(0.6);doc.line(mx,y,mx+cw,y);
+      doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
+
+      // Element rows
+      rows.forEach((r,i)=>{
+        const {base,goeVal,score,typeDef:td} = computeRow(r, types, judgeCount);
+        if(!td) return;
+
+        const rh=7;
+        pageBreak(rh + (td.isCombo?(r.comboEls||[]).filter(s=>s.code).length*5.5:0));
+
+        cx=mx;
+        const bg = i%2===0?"#ffffff":"#f9fafb";
+
+        // #
+        rectF(cx,y,colNum,rh,bg);
+        txt(String(i+1),cx+colNum/2,y+5,{bold:true,size:9,align:"center"});cx+=colNum;
+        // TYP
+        rectF(cx,y,colTyp,rh,bg);
+        const tLabel=(td.label||r.typeCode||"").length>14?(td.label||r.typeCode).substring(0,13)+"…":(td.label||r.typeCode);
+        txt(tLabel,cx+2,y+5,{size:7,bold:true});cx+=colTyp;
+        // ELEMENT
+        rectF(cx,y,colEl,rh,bg);
+        if(td.isCombo){
+          const subCodes=(r.comboEls||[]).filter(s=>s.code).map(s=>{const el=td.data.find(e=>e.code===s.code);return el?el.code:"";}).filter(Boolean).join(" + ");
+          txt(subCodes||"(Kombination)",cx+2,y+5,{size:8,color:"#374151"});
+        } else {
+          const el=td.data.find(e=>e.code===r.elCode);
+          if(el){
+            const eName=`${el.code} - ${el.name}`;
+            const maxLen=Math.floor(colEl/1.8);
+            txt(eName.length>maxLen?eName.substring(0,maxLen-1)+"…":eName,cx+2,y+5,{size:8});
+          }
+        }
+        cx+=colEl;
+        // ROT.
+        rectF(cx,y,colRot,rh,bg);
+        if(!td.isCombo && r.rotation && r.rotation!=="normal"){
+          const rl=r.rotation==="lt"?"<":"<<";
+          txt(rl,cx+colRot/2,y+5,{size:9,align:"center",bold:true,color:"#dc2626"});
+        } else if(!td.isCombo){
+          txt("N",cx+colRot/2,y+5,{size:7,align:"center",color:"#9ca3af"});
+        }
+        cx+=colRot;
+        // BASE
+        rectF(cx,y,colBase,rh,bg);
+        txt(base.toFixed(2),cx+colBase-2,y+5,{size:9,bold:true,align:"right"});cx+=colBase;
+        // J1-Jn
+        for(let ji=0;ji<judgeCount;ji++){
+          rectF(cx,y,colJ,rh,bg);
+          if(!td.isCombo){
+            const g=(r.judgeGoe||[])[ji]||0;
+            txt(g>0?"+"+g:String(g),cx+colJ/2,y+5,{size:8,align:"center",color:g>0?"#059669":g<0?"#dc2626":"#6b7280"});
+          } else {
+            txt("↕",cx+colJ/2,y+5,{size:7,align:"center",color:"#9ca3af"});
+          }
+          cx+=colJ;
+        }
+        // QOE
+        rectF(cx,y,colQoe,rh,bg);
+        txt((goeVal>=0?"+":"")+goeVal.toFixed(2),cx+colQoe-2,y+5,{size:8,bold:true,align:"right",color:goeVal>0?"#059669":goeVal<0?"#dc2626":"#6b7280"});cx+=colQoe;
+        // NV/DG
+        rectF(cx,y,colNvDg,rh,bg);
+        if(r.nv) txt("NV",cx+colNvDg/2,y+5,{size:7,bold:true,align:"center",color:"#dc2626"});
+        else if(r.dg) txt("DG",cx+colNvDg/2,y+5,{size:7,bold:true,align:"center",color:"#f59e0b"});
+        cx+=colNvDg;
+        // SCORE
+        rectF(cx,y,colScore,rh,bg);
+        txt(score.toFixed(2),cx+colScore-2,y+5,{size:10,bold:true,align:"right",color:"#059669"});
+        y+=rh;
+
+        // Combo sub-elements
+        if(td.isCombo){
+          const hasCV=td.data.some(e=>e.combo!==undefined);
+          (r.comboEls||[]).forEach((sub,si)=>{
+            if(!sub.code)return;
+            const el=td.data.find(e=>e.code===sub.code);
+            if(!el)return;
+            const srh=5.5;
+            pageBreak(srh);
+            const isJC=hasCV&&el.combo!==undefined;
+            const sBase=sub.nv?0:(isJC?getBase(el,true,sub.rotation):el.base);
+            const sGoe=el&&!sub.nv?calcJudgeGoe(el,sub.judgeGoe||[0,0,0,0,0],judgeCount):0;
+            const sbg="#f5f5f5";
+            cx=mx;
+            rectF(cx,y,colNum,srh,sbg);cx+=colNum;
+            rectF(cx,y,colTyp,srh,sbg);
+            txt(`  ${si+1}.`,cx+2,y+4,{size:7,color:"#6b7280"});cx+=colTyp;
+            rectF(cx,y,colEl,srh,sbg);
+            const bv=isJC?el.combo:el.base;
+            txt(`${el.code} - ${el.name} (${typeof bv==="number"?bv.toFixed(1):bv})`,cx+4,y+4,{size:7,color:"#374151"});cx+=colEl;
+            rectF(cx,y,colRot,srh,sbg);
+            if(sub.nv) txt("NV",cx+colRot/2,y+4,{size:6,align:"center",bold:true,color:"#dc2626"});
+            cx+=colRot;
+            rectF(cx,y,colBase,srh,sbg);
+            txt(sBase.toFixed(2),cx+colBase-2,y+4,{size:7,align:"right"});cx+=colBase;
+            for(let ji=0;ji<judgeCount;ji++){
+              rectF(cx,y,colJ,srh,sbg);
+              const g=(sub.judgeGoe||[])[ji]||0;
+              txt(g>0?"+"+g:String(g),cx+colJ/2,y+4,{size:7,align:"center",color:g>0?"#059669":g<0?"#dc2626":"#9ca3af"});
+              cx+=colJ;
+            }
+            rectF(cx,y,colQoe,srh,sbg);
+            txt((sGoe>=0?"+":"")+sGoe.toFixed(2),cx+colQoe-2,y+4,{size:7,align:"right",color:sGoe>0?"#059669":sGoe<0?"#dc2626":"#9ca3af"});cx+=colQoe;
+            rectF(cx,y,colNvDg,srh,sbg);cx+=colNvDg;
+            rectF(cx,y,colScore,srh,sbg);
+            y+=srh;
+          });
+        }
+      });
+
+      // TES total
+      pageBreak(9);
+      const tesH=8;
+      doc.setDrawColor("#059669");doc.setLineWidth(0.6);doc.line(mx,y,mx+cw,y);doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
+      rectF(mx,y,cw-colScore,tesH,"#f0fdf4");
+      txt("Technical Element Score (TES)",mx+cw-colScore-4,y+6,{bold:true,size:10,align:"right",color:"#065f46"});
+      rectF(mx+cw-colScore,y,colScore,tesH,"#f0fdf4");
+      txt(tes.toFixed(2),mx+cw-2,y+6,{bold:true,size:13,align:"right",color:"#059669"});
+      y+=tesH+6;
+
+      // PCS table — DRIV Layout
+      pageBreak(45);
+      const pColFact=16, pColJ=16, pColAvg=16, pColSc=20;
+      const pColComp=cw-pColFact-judgeCount*pColJ-pColAvg-pColSc;
+
+      // PCS header bar
+      rectF(mx,y,cw,7,"#e5e7eb");
+      txt("PROGRAM COMPONENTS",mx+cw/2,y+5,{bold:true,size:9,align:"center"});y+=7;
+
+      // PCS column headers
+      const pHdrs=[{w:pColComp,label:"Component",a:"left"},{w:pColFact,label:"Factor",a:"center"}];
+      for(let i=0;i<judgeCount;i++) pHdrs.push({w:pColJ,label:"J"+(i+1),a:"center"});
+      pHdrs.push({w:pColAvg,label:"Avg",a:"center"},{w:pColSc,label:"Score",a:"right"});
+      cx=mx;
+      pHdrs.forEach(c=>{
+        rectF(cx,y,c.w,6,"#f9fafb");
+        const tx=c.a==="center"?cx+c.w/2:c.a==="right"?cx+c.w-2:cx+2;
+        txt(c.label,tx,y+4.5,{bold:true,size:7,align:c.a});cx+=c.w;
+      });
+      y+=6;
+      doc.setDrawColor("#374151");doc.setLineWidth(0.5);doc.line(mx,y,mx+cw,y);doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
+
+      // PCS rows
+      PCS_COMPONENTS.forEach(comp=>{
+        const avg=calcPcsAvg(pcs[comp.key],judgeCount);
+        const sc=Math.round(avg*pcsFactor*100)/100;
+        const prh=6;cx=mx;
+        rectF(cx,y,pColComp,prh);txt(comp.label,cx+2,y+4.5,{size:8,bold:true});cx+=pColComp;
+        rectF(cx,y,pColFact,prh);txt(pcsFactor.toFixed(1),cx+pColFact/2,y+4.5,{size:8,align:"center",color:"#6b7280"});cx+=pColFact;
+        for(let ji=0;ji<judgeCount;ji++){
+          rectF(cx,y,pColJ,prh);txt(pcs[comp.key][ji].toFixed(2),cx+pColJ/2,y+4.5,{size:8,align:"center",bold:true});cx+=pColJ;
+        }
+        rectF(cx,y,pColAvg,prh);txt(avg.toFixed(2),cx+pColAvg/2,y+4.5,{size:8,bold:true,align:"center"});cx+=pColAvg;
+        rectF(cx,y,pColSc,prh);txt(sc.toFixed(2),cx+pColSc-2,y+4.5,{size:9,bold:true,align:"right"});
+        y+=prh;
+      });
+      // PCS total
+      doc.setDrawColor("#374151");doc.setLineWidth(0.5);doc.line(mx,y,mx+cw,y);doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
+      rectF(mx,y,cw-pColSc,7,"#f9fafb");
+      txt("Program Component Score (PCS)",mx+cw-pColSc-4,y+5,{bold:true,size:9,align:"right"});
+      rectF(mx+cw-pColSc,y,pColSc,7,"#f9fafb");
+      txt(pcsTotal.toFixed(2),mx+cw-2,y+5,{bold:true,size:12,align:"right"});
+      y+=11;
+
+      // Deductions / Extra / Total — bottom right
+      pageBreak(25);
+      const sumW=100, sumX=mx+cw-sumW, sH=7;
+      if(deductions>0){
+        rectF(sumX,y,sumW*0.65,sH);txt("Abzüge (PE)",sumX+4,y+5,{bold:true,size:8});
+        rectF(sumX+sumW*0.65,y,sumW*0.35,sH);txt("-"+deductions.toFixed(2),sumX+sumW-4,y+5,{bold:true,size:9,align:"right",color:"#dc2626"});y+=sH;
+      }
+      if(extraPoints>0){
+        rectF(sumX,y,sumW*0.65,sH);txt("Extra Punkte",sumX+4,y+5,{bold:true,size:8});
+        rectF(sumX+sumW*0.65,y,sumW*0.35,sH);txt("+"+extraPoints.toFixed(2),sumX+sumW-4,y+5,{bold:true,size:9,align:"right",color:"#059669"});y+=sH;
+      }
+      const tH=9;
+      rectF(sumX,y,sumW*0.65,tH,"#f0fdf4");txt("TOTAL SCORE",sumX+4,y+6.5,{bold:true,size:10});
+      rectF(sumX+sumW*0.65,y,sumW*0.35,tH,"#f0fdf4");txt(totalScore.toFixed(2),sumX+sumW-4,y+6.5,{bold:true,size:13,align:"right",color:"#059669"});
+      y+=tH+8;
+
+      // Footer
+      doc.setFontSize(6);doc.setTextColor("#9ca3af");
+      doc.text("Generated by RollArt 2026 — Artistic Roller Skating Dashboard — Detail Export",pw/2,Math.min(y,ph-5),{align:"center"});
+
+      const fn=`${(skater||"detail").replace(/\s+/g,"_")}_${segDef.label.replace(/\s+/g,"_")}_Detail.pdf`;
+      doc.save(fn);
+    };
+
     // Skater save/load functions
     const loadSkaters = async () => {
       try {
@@ -6340,6 +6579,7 @@
                 </label>
                 <button onClick={exportTxt} style={{...btnBase,background:"#059669",color:"white"}}>TXT Export</button>
                 <button onClick={exportOfficialPDF} style={{...btnBase,background:"#dc2626",color:"white"}}>PDF (World Skate)</button>
+                <button onClick={exportDetailPDF} style={{...btnBase,background:"#7c3aed",color:"white"}}>PDF (Detail)</button>
                 {divider}
                 {/* Läufer Group */}
                 <button onClick={saveSkater} disabled={savingSkater} style={{...btnBase,background:"#3b82f6",color:"white",opacity:savingSkater?0.6:1}}>Speichern</button>
