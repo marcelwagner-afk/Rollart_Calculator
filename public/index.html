@@ -867,34 +867,28 @@
 
     return(
       <div style={{marginBottom:16}}>
-        {/* Section header — matches original World Skate format */}
-        <div style={{background:"#e8e8e8",border:B,padding:"8px 12px",textAlign:"center",fontWeight:800,fontSize:14,fontFamily:"Arial,sans-serif",letterSpacing:1}}>
+        {/* Section header — blue band matching sk8info original */}
+        <div style={{background:"#4472C4",padding:"8px 12px",textAlign:"center",fontWeight:800,fontSize:13,fontFamily:"Arial,sans-serif",letterSpacing:1,color:"white"}}>
           ELEMENTS — {section.label.toUpperCase()}
         </div>
-        {/* Sub-headers: DECLARED | ELEMENTS PERFORMED */}
+        {/* Column headers: # | TIME | CODE (wide) | NOTES */}
         <table style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
-          <colgroup><col style={{width:36}}/><col style={{width:65}}/><col style={{width:65}}/><col/><col style={{width:110}}/></colgroup>
+          <colgroup><col style={{width:36}}/><col style={{width:70}}/><col/><col style={{width:160}}/></colgroup>
           <thead>
-            <tr>
-              <th colSpan={3} style={{border:B,background:"#f5f5f5",padding:"4px",fontSize:11,fontWeight:700,textAlign:"center",fontFamily:"Arial,sans-serif"}}>DECLARED</th>
-              <th style={{border:B,background:"#f5f5f5",padding:"4px",fontSize:11,fontWeight:700,textAlign:"center",fontFamily:"Arial,sans-serif"}}>ELEMENTS PERFORMED</th>
-              <th style={{border:B,background:"#f5f5f5",padding:"4px",fontSize:11,fontWeight:700,textAlign:"center",fontFamily:"Arial,sans-serif"}}></th>
-            </tr>
-            <tr>
-              <th style={{border:B,padding:"4px 6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif"}}>#</th>
-              <th style={{border:B,padding:"4px 6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif"}}>Time</th>
-              <th style={{border:B,padding:"4px 6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif"}}>Code</th>
-              <th style={{border:B,padding:"4px 6px",fontSize:11,fontFamily:"Arial,sans-serif",color:"#666"}}>(Tech Panel)</th>
-              <th style={{border:B,padding:"4px 6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif"}}>Notes</th>
+            <tr style={{background:"#5B8FD4"}}>
+              <th style={{border:B,padding:"6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif",color:"white",textAlign:"center"}}>#</th>
+              <th style={{border:B,padding:"6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif",color:"white",textAlign:"center"}}>TIME</th>
+              <th style={{border:B,padding:"6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif",color:"white",textAlign:"center"}}>CODE</th>
+              <th style={{border:B,padding:"6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif",color:"white",textAlign:"center"}}>NOTES</th>
             </tr>
           </thead>
           <tbody>
             {sec.elements.map((el,i)=>(
               <tr key={i}>
-                <td style={{border:B,padding:"10px 6px",textAlign:"center",fontWeight:700,fontSize:15,fontFamily:"Arial,sans-serif"}}>{i+1}</td>
+                <td style={{border:B,padding:"10px 6px",textAlign:"center",fontWeight:700,fontSize:15,fontFamily:"Arial,sans-serif",background:"#f0f0f0"}}>{i+1}</td>
                 <td style={{border:B,padding:"10px 6px",textAlign:"center",fontFamily:"Arial,sans-serif"}}>
                   <input value={el.time||""} onChange={e=>updateEl(i,"time",e.target.value)}
-                    placeholder="_:__" maxLength={5} style={{...inputS,textAlign:"center",fontWeight:700}}/>
+                    placeholder="0:00" maxLength={5} style={{...inputS,textAlign:"center",fontWeight:700}}/>
                 </td>
                 <td style={{border:B,padding:"10px 6px",fontFamily:"Arial,sans-serif"}}>
                   <select value={el.code||""} onChange={e=>updateEl(i,"code",e.target.value)} style={selS}>
@@ -902,9 +896,8 @@
                     {section.codes.map(c=><option key={c} value={c}>{c}</option>)}
                   </select>
                 </td>
-                <td style={{border:B,padding:"10px 6px",fontFamily:"Arial,sans-serif",minHeight:40}}></td>
                 <td style={{border:B,padding:"10px 6px",fontFamily:"Arial,sans-serif"}}>
-                  <input value={el.notes||""} onChange={e=>updateEl(i,"notes",e.target.value)} style={inputS}/>
+                  <input value={el.notes||""} onChange={e=>updateEl(i,"notes",e.target.value)} placeholder="Optional notes..." style={inputS}/>
                 </td>
               </tr>
             ))}
@@ -1039,49 +1032,61 @@
       const {jsPDF}=window.jspdf;
       const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
       const W=210,ph=297,m=10,cW=W-m*2;
-      const NAVY=[21,101,192];
       let y=0;
       const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/['']/g,"'").replace(/[""]/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
       const san=sanitize;
 
-      // Draw World Skate logo as spiral arcs (vector)
+      const BLUE=[68,114,196]; // #4472C4 — matches sk8info original
+
+      // Draw World Skate logo as concentric spiral arcs (white on blue)
       const drawLogo=(lx,ly,sz)=>{
-        const drawArc=(cx,cy,r,s,e,col,w)=>{
+        const drawArc=(cx,cy,r,startDeg,endDeg,col,w)=>{
           doc.setDrawColor(...col);doc.setLineWidth(w);
-          const steps=40,sa=s*Math.PI/180,ea=e*Math.PI/180;
+          const steps=50,sa=startDeg*Math.PI/180,ea=endDeg*Math.PI/180;
           const pts=[];for(let i=0;i<=steps;i++){const a=sa+(ea-sa)*i/steps;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
           for(let i=0;i<pts.length-1;i++)doc.line(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
         };
-        const cx=lx+sz/2,cy=ly+sz/2,r=sz/2;
-        drawArc(cx,cy,r,-90,250,[255,255,255],0.9);
-        drawArc(cx,cy,r*0.72,-90,240,[200,210,230],0.7);
-        drawArc(cx,cy,r*0.45,-90,220,[180,220,140],0.6);
-        doc.setFont("helvetica","bold");doc.setFontSize(7);
+        const cx=lx+sz/2,cy=ly+sz/2;
+        drawArc(cx,cy,sz*0.45,-100,260,[255,255,255],0.8);
+        drawArc(cx,cy,sz*0.32,-100,250,[220,230,245],0.65);
+        drawArc(cx,cy,sz*0.20,-100,230,[200,215,240],0.5);
+        doc.setFont("helvetica","bold");doc.setFontSize(6.5);
         doc.setTextColor(255,255,255);
-        doc.text("WORLD",lx+sz+2,cy-0.5);doc.text("SKATE",lx+sz+2,cy+2.5);
+        doc.text("WORLD",lx+sz+1.5,cy-0.3);doc.text("SKATE",lx+sz+1.5,cy+2.2);
       };
 
-      // Header band: navy rounded rect + logo + title
+      // Header band: blue rounded rect + logo + title (matching sk8info)
       const hdrBand=(title,yy)=>{
-        doc.setFillColor(...NAVY);
-        doc.roundedRect(m,yy,cW,11,2,2,"F");
-        drawLogo(m+2,yy+1,9);
-        doc.setFont("helvetica","bold");doc.setFontSize(13);
+        doc.setFillColor(...BLUE);
+        doc.roundedRect(m,yy,cW,12,2,2,"F");
+        drawLogo(m+2,yy+1,10);
+        doc.setFont("helvetica","bold");doc.setFontSize(14);
         doc.setTextColor(255,255,255);
-        doc.text(san(title),W/2,yy+7.5,{align:"center"});
+        doc.text(san(title),m+26,yy+8.5);
         doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);doc.setLineWidth(0.3);
-        return yy+13;
+        return yy+15;
       };
 
       // Element section band
       const elemBand=(label,yy)=>{
-        doc.setFillColor(...NAVY);
-        doc.roundedRect(m,yy,cW,9,1.5,1.5,"F");
+        doc.setFillColor(...BLUE);
+        doc.roundedRect(m,yy,cW,8,1.5,1.5,"F");
         doc.setFont("helvetica","bold");doc.setFontSize(10);
         doc.setTextColor(255,255,255);
-        doc.text(san(label),W/2,yy+6.2,{align:"center"});
+        doc.text(san(label),W/2,yy+5.8,{align:"center"});
         doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);
-        return yy+11;
+        return yy+10;
+      };
+
+      // Draw bordered input field
+      const drawField=(x,yy,w,label,value)=>{
+        doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(80,80,80);
+        doc.text(san(label),x,yy);
+        doc.setDrawColor(200,210,220);doc.setLineWidth(0.3);
+        doc.setFillColor(247,250,252);
+        doc.roundedRect(x,yy+1,w,7,1,1,"FD");
+        doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(0,0,0);
+        doc.text(san(value||""),x+2,yy+5.8);
       };
 
       // Draw one page (section range)
@@ -1092,40 +1097,27 @@
         // Header band with title
         y=hdrBand(sheet.title.toUpperCase(),y);
 
-        // Info section — text labels with underlines
-        y+=2;
+        // Info section — 2-column grid with bordered fields (matching sk8info)
         const catLabel=CATEGORY_DEFS[kategorie]?.label||kategorie;
         const firstData=sections[startSecIdx];
         const firstSec=sheet.sections[startSecIdx];
         const secIsSP=firstSec?.label?.toUpperCase().includes("SHORT");
+        const halfW=(cW-4)/2;
 
-        // Row 1: NAME + CATEGORY
-        doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(0,0,0);
-        doc.text("NAME:",m,y+4);
-        doc.setFont("helvetica","normal");doc.text(san(name||""),m+15,y+4);
-        doc.setDrawColor(180,180,180);doc.setLineWidth(0.2);
-        doc.line(m+13,y+4.5,m+90,y+4.5);
-        doc.setFont("helvetica","bold");doc.text("CATEGORY:",m+95,y+4);
-        doc.setFont("helvetica","normal");doc.text(san(catLabel),m+120,y+4);
-        doc.line(m+118,y+4.5,W-m,y+4.5);
-        y+=8;
+        // Row 1: COMPETITORS NAME | CATEGORY
+        drawField(m,y,halfW,"COMPETITORS NAME",name||"");
+        drawField(m+halfW+4,y,halfW,"CATEGORY",catLabel);
+        y+=12;
 
-        // Row 2: REPRESENTING + FEDERATION
-        doc.setFont("helvetica","bold");doc.text("REPRESENTING:",m,y+4);
-        doc.setFont("helvetica","normal");doc.text(san(federation||""),m+28,y+4);
-        doc.line(m+26,y+4.5,m+100,y+4.5);
-        doc.setFont("helvetica","bold");doc.text("FEDERATION / CLUB:",m+105,y+4);
-        doc.setFont("helvetica","normal");doc.text("",m+145,y+4);
-        doc.line(m+143,y+4.5,W-m,y+4.5);
-        y+=8;
+        // Row 2: REPRESENTING | FEDERATION / CLUB
+        drawField(m,y,halfW,"REPRESENTING",federation||"");
+        drawField(m+halfW+4,y,halfW,"FEDERATION / CLUB","");
+        y+=12;
 
-        // Row 3: MUSIC
-        const musicLabel=secIsSP?"Short - Choreography / Music:":"Free - Choreography / Music:";
-        doc.setFont("helvetica","bold");doc.text(san(musicLabel),m,y+4);
-        const mLabelW=doc.getTextWidth(san(musicLabel));
-        doc.setFont("helvetica","normal");doc.text(san(firstData?.music||choreography||""),m+mLabelW+3,y+4);
-        doc.line(m+mLabelW+1,y+4.5,W-m,y+4.5);
-        y+=8;
+        // Row 3: Choreography / Music (full width)
+        const musicLabel=secIsSP?"Short — Choreography / Music":"Free — Choreography / Music";
+        drawField(m,y,cW,musicLabel,firstData?.music||choreography||"");
+        y+=12;
 
         // Draw sections
         for(let si=startSecIdx;si<=endSecIdx;si++){
@@ -1141,38 +1133,35 @@
             :(elSecIsSP?"ELEMENTS — SHORT PROGRAM":"ELEMENTS — FREE PROGRAM");
           y=elemBand(bandLabel,y);
 
-          // Build table body from section elements
+          // Build table body from section elements (4 columns: # | TIME | CODE | NOTES)
           const elems=d?.elements||[];
           const bodyData=elems.map((el,i)=>[
             String(i+1),
             el.time||"",
             el.code||"",
-            "",
             el.notes||""
           ]);
 
-          // autoTable for element grid
+          // autoTable for element grid — matching sk8info 4-column layout
           doc.autoTable({
             startY:y,
             margin:{left:m,right:m},
             tableWidth:cW,
             head:[[
               {content:"#",styles:{halign:"center",fontStyle:"bold"}},
-              {content:"Time",styles:{fontStyle:"bold"}},
-              {content:"Code",styles:{fontStyle:"bold"}},
-              {content:"(Tech Panel)",styles:{fontStyle:"bold"}},
-              {content:"Notes",styles:{fontStyle:"bold"}},
+              {content:"TIME",styles:{fontStyle:"bold",halign:"center"}},
+              {content:"CODE",styles:{fontStyle:"bold",halign:"center"}},
+              {content:"NOTES",styles:{fontStyle:"bold"}},
             ]],
             body:bodyData,
             theme:"grid",
-            headStyles:{fontSize:9,fillColor:NAVY,textColor:[255,255,255]},
-            bodyStyles:{fontSize:12,minCellHeight:25,valign:"middle"},
+            headStyles:{fontSize:9,fillColor:[91,143,212],textColor:[255,255,255]},
+            bodyStyles:{fontSize:11,minCellHeight:12,valign:"middle"},
             alternateRowStyles:{fillColor:[248,250,252]},
             columnStyles:{
-              0:{cellWidth:12,halign:"center"},
-              1:{cellWidth:22},
-              2:{cellWidth:24},
-              4:{cellWidth:52},
+              0:{cellWidth:12,halign:"center",fontStyle:"bold",fillColor:[240,240,240]},
+              1:{cellWidth:22,halign:"center"},
+              2:{cellWidth:50,halign:"center"},
             },
           });
           y=doc.lastAutoTable.finalY+5;
@@ -1192,7 +1181,7 @@
       for(let p=1;p<=totalPages;p++){
         doc.setPage(p);
         doc.setFontSize(7);doc.setTextColor(150,150,150);doc.setFont("helvetica","normal");
-        doc.text("Generated by RollArt 2026 - World Skate Official Format",W/2,ph-8,{align:"center"});
+        doc.text("Generated by RollArt 2026 — World Skate Official Format",W/2,ph-8,{align:"center"});
       }
 
       // Auto-download
@@ -1460,44 +1449,64 @@
           <button onClick={()=>{setName("");setKategorie("senior");setFederation("");setChoreography("");setSections(initSections(sheetType));}} style={{padding:"6px 14px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Löschen</button>
         </div>
 
-        {/* Official Sheet — matching original sk8info template */}
+        {/* Official Sheet — matching original sk8info.org.au World Skate template */}
         <div id="official-sheet-print" className="r-table-wrap" style={{background:"white",border:"1px solid #ccc",overflow:"auto",boxShadow:"0 2px 8px rgba(0,0,0,.12)",maxWidth:820,margin:"0 auto"}}>
-          {/* Header: Logo area + Title */}
-          <div style={{display:"flex",alignItems:"center",padding:"12px 16px 8px",gap:16,borderBottom:"1px solid #ddd",background:"#fafafa"}}>
-            <div style={{minWidth:70,textAlign:"center"}}>
-              <svg width="55" height="55" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <path d="M50 5 A45 45 0 1 1 15 75" fill="none" stroke="#4a4a4a" strokeWidth="5" strokeLinecap="round"/>
-                <path d="M50 15 A35 35 0 1 1 22 68" fill="none" stroke="#888888" strokeWidth="4.5" strokeLinecap="round"/>
-                <path d="M50 25 A25 25 0 1 1 30 62" fill="none" stroke="#7ab648" strokeWidth="4" strokeLinecap="round"/>
-              </svg>
+          {/* Header: Blue banner with World Skate logo + Title */}
+          <div style={{background:"#4472C4",borderRadius:"8px 8px 0 0",padding:"10px 20px",display:"flex",alignItems:"center",gap:12}}>
+            <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <path d="M50 8 A42 42 0 1 1 12 72" fill="none" stroke="white" strokeWidth="6" strokeLinecap="round"/>
+              <path d="M50 20 A30 30 0 1 1 22 63" fill="none" stroke="rgba(255,255,255,.7)" strokeWidth="5" strokeLinecap="round"/>
+              <path d="M50 32 A18 18 0 1 1 34 55" fill="none" stroke="rgba(255,255,255,.45)" strokeWidth="4" strokeLinecap="round"/>
+            </svg>
+            <div style={{lineHeight:1.1}}>
+              <div style={{color:"white",fontSize:11,fontWeight:700,fontFamily:"Arial,sans-serif",letterSpacing:1}}>WORLD</div>
+              <div style={{color:"white",fontSize:11,fontWeight:700,fontFamily:"Arial,sans-serif",letterSpacing:1}}>SKATE</div>
             </div>
-            <h2 style={{margin:0,fontSize:24,fontWeight:900,fontFamily:"Arial,sans-serif",color:"#000",flex:1,textAlign:"center"}}>
-              {sheet.title.replace(" 2026","")}
+            <h2 style={{margin:0,fontSize:20,fontWeight:900,fontFamily:"Arial,sans-serif",color:"white",flex:1,letterSpacing:0.5}}>
+              {sheet.title}
             </h2>
           </div>
 
-          {/* Competitor Info — 4 rows like original */}
-          <table style={{width:"100%",borderCollapse:"collapse",fontFamily:"Arial,sans-serif"}}>
-            <tbody>
-              {[
-                {label:"COMPETITORS NAME",val:name,set:setName,ph:"Name"},
-                {label:"CATEGORY",val:CATEGORY_DEFS[kategorie]?.label||kategorie,set:()=>{},ph:"",readonly:true},
-                {label:"Representing",val:federation,set:setFederation,ph:"Verein / Verband"},
-                {label:"CHOREOGRAPHY",val:choreography,set:setChoreography,ph:"Musik / Choreographie"},
-              ].map((inf,i)=>(
-                <tr key={i}>
-                  <td style={{border:"1px solid #000",padding:"6px 10px",fontWeight:700,fontSize:12,width:200,background:"#fff",fontFamily:"Arial,sans-serif"}}>{inf.label}</td>
-                  <td style={{border:"1px solid #000",padding:"6px 10px"}}>
-                    <input value={inf.val} onChange={e=>inf.set(e.target.value)} placeholder={inf.ph} readOnly={inf.readonly||false}
-                      style={{border:"none",outline:"none",width:"100%",fontSize:14,fontFamily:"Arial,sans-serif",padding:0,background:"transparent"}}/>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Competitor Info — 2-column grid matching sk8info original */}
+          <div style={{padding:"12px 16px",fontFamily:"Arial,sans-serif"}}>
+            {/* Row 1: NAME | CATEGORY */}
+            <div style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:12,marginBottom:10}}>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"#4a5568",marginBottom:3,textTransform:"uppercase"}}>Competitors Name</div>
+                <input value={name} onChange={e=>setName(e.target.value)} placeholder="Enter name..."
+                  style={{width:"100%",padding:"7px 10px",border:"1px solid #cbd5e0",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"#f7fafc",outline:"none",boxSizing:"border-box"}}/>
+              </div>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"#4a5568",marginBottom:3,textTransform:"uppercase"}}>Category</div>
+                <input value={CATEGORY_DEFS[kategorie]?.label||kategorie} readOnly
+                  style={{width:"100%",padding:"7px 10px",border:"1px solid #cbd5e0",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"#edf2f7",outline:"none",boxSizing:"border-box",color:"#2d3748"}}/>
+              </div>
+            </div>
+            {/* Row 2: REPRESENTING | FEDERATION / CLUB */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:10}}>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"#4a5568",marginBottom:3,textTransform:"uppercase"}}>Representing</div>
+                <input value={federation} onChange={e=>setFederation(e.target.value)} placeholder="Representing..."
+                  style={{width:"100%",padding:"7px 10px",border:"1px solid #cbd5e0",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"#f7fafc",outline:"none",boxSizing:"border-box"}}/>
+              </div>
+              <div>
+                <div style={{fontSize:11,fontWeight:700,color:"#4a5568",marginBottom:3,textTransform:"uppercase"}}>Federation / Club</div>
+                <input value={""} readOnly placeholder="Federation or club..."
+                  style={{width:"100%",padding:"7px 10px",border:"1px solid #cbd5e0",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"#edf2f7",outline:"none",boxSizing:"border-box"}}/>
+              </div>
+            </div>
+            {/* Row 3: Choreography / Music — full width */}
+            <div style={{marginBottom:4}}>
+              <div style={{fontSize:11,fontWeight:700,color:"#4a5568",marginBottom:3}}>
+                {sheet.sections[0]?.label?.toUpperCase().includes("SHORT")?"Short":"Free"} — Choreography / Music
+              </div>
+              <input value={choreography} onChange={e=>setChoreography(e.target.value)} placeholder="Music title..."
+                style={{width:"100%",padding:"7px 10px",border:"1px solid #cbd5e0",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"#f7fafc",outline:"none",boxSizing:"border-box"}}/>
+            </div>
+          </div>
 
           {/* Sections */}
-          <div style={{padding:"12px 0 0"}}>
+          <div style={{padding:"4px 0 0"}}>
             {sheet.sections.map((sec,si)=>(
               <OfficialSheetSection key={si} section={sec} sIdx={si} data={sections} onChange={updateSection}/>
             ))}
@@ -5484,8 +5493,11 @@
     // Handle official import
     useEffect(() => {
       if (officialImport) {
-        setSkater(officialImport.name || "");
-        setCat(officialImport.federation || "");
+        // Clean name
+        let oName = (officialImport.name || "");
+        oName = oName.replace(/^:\s*/, "").replace(/\s+CATEGORY:\s+.+$/i, "").trim();
+        setSkater(oName);
+        setCat(officialImport.federation || CATEGORY_DEFS[officialImport.kategorie]?.label || "");
         setMusic(officialImport.choreography || "");
 
         // Set kategorie and segment
@@ -5538,8 +5550,12 @@
     // Handle competition import
     useEffect(() => {
       if (compImport) {
-        setSkater(compImport.name || "");
-        setCat(compImport.verein || "");
+        // Clean name: strip leading ": " and trailing "CATEGORY: xxx"
+        let cName = (compImport.name || "");
+        const cCatMatch = cName.match(/\s+CATEGORY:\s+(.+)$/i);
+        cName = cName.replace(/^:\s*/, "").replace(/\s+CATEGORY:\s+.+$/i, "").trim();
+        setSkater(cName);
+        setCat(compImport.verein || (cCatMatch ? cCatMatch[1].trim() : CATEGORY_DEFS[compImport.kategorie]?.label || ""));
         setMusic(compImport.music || "");
         setKategorie(compImport.kategorie || "senior");
         setSegment(compImport.segment || "senior_fp");
@@ -5791,47 +5807,59 @@
       const {jsPDF} = window.jspdf;
       const doc = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
       const W=210, m=10, cW=W-m*2;
-      const NAVY=[21,101,192];
+      const BLUE=[68,114,196]; // #4472C4 — matches sk8info original
       const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/['']/g,"'").replace(/[""]/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
+      const san=sanitize;
 
-      // Draw World Skate logo as spiral arcs (vector, no external image)
+      // Draw World Skate logo as concentric spiral arcs (white on blue)
       const drawLogo=(lx,ly,sz)=>{
-        const drawArc=(cx,cy,r,s,e,col,w)=>{
+        const drawArc=(cx,cy,r,startDeg,endDeg,col,w)=>{
           doc.setDrawColor(...col);doc.setLineWidth(w);
-          const steps=40,sa=s*Math.PI/180,ea=e*Math.PI/180;
+          const steps=50,sa=startDeg*Math.PI/180,ea=endDeg*Math.PI/180;
           const pts=[];for(let i=0;i<=steps;i++){const a=sa+(ea-sa)*i/steps;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
           for(let i=0;i<pts.length-1;i++)doc.line(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
         };
-        const cx=lx+sz/2,cy=ly+sz/2,r=sz/2;
-        drawArc(cx,cy,r,-90,250,[255,255,255],0.9);
-        drawArc(cx,cy,r*0.72,-90,240,[200,210,230],0.7);
-        drawArc(cx,cy,r*0.45,-90,220,[180,220,140],0.6);
-        doc.setFont("helvetica","bold");doc.setFontSize(7);
+        const cx=lx+sz/2,cy=ly+sz/2;
+        drawArc(cx,cy,sz*0.45,-100,260,[255,255,255],0.8);
+        drawArc(cx,cy,sz*0.32,-100,250,[220,230,245],0.65);
+        drawArc(cx,cy,sz*0.20,-100,230,[200,215,240],0.5);
+        doc.setFont("helvetica","bold");doc.setFontSize(6.5);
         doc.setTextColor(255,255,255);
-        doc.text("WORLD",lx+sz+2,cy-0.5);doc.text("SKATE",lx+sz+2,cy+2.5);
+        doc.text("WORLD",lx+sz+1.5,cy-0.3);doc.text("SKATE",lx+sz+1.5,cy+2.2);
       };
 
-      // === Header band: navy rounded rect + logo + title ===
+      // Header band: blue rounded rect + logo + title (matching sk8info)
       const hdrBand=(title,y)=>{
-        doc.setFillColor(...NAVY);
-        doc.roundedRect(m,y,cW,11,2,2,"F");
-        drawLogo(m+2,y+1,9);
-        doc.setFont("helvetica","bold");doc.setFontSize(13);
+        doc.setFillColor(...BLUE);
+        doc.roundedRect(m,y,cW,12,2,2,"F");
+        drawLogo(m+2,y+1,10);
+        doc.setFont("helvetica","bold");doc.setFontSize(14);
         doc.setTextColor(255,255,255);
-        doc.text(sanitize(title),W/2,y+7.5,{align:"center"});
+        doc.text(san(title),m+26,y+8.5);
         doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);doc.setLineWidth(0.3);
-        return y+13;
+        return y+15;
       };
 
-      // === Element section band ===
+      // Element section band
       const elemBand=(label,y)=>{
-        doc.setFillColor(...NAVY);
-        doc.roundedRect(m,y,cW,9,1.5,1.5,"F");
+        doc.setFillColor(...BLUE);
+        doc.roundedRect(m,y,cW,8,1.5,1.5,"F");
         doc.setFont("helvetica","bold");doc.setFontSize(10);
         doc.setTextColor(255,255,255);
-        doc.text(sanitize(label),W/2,y+6.2,{align:"center"});
+        doc.text(san(label),W/2,y+5.8,{align:"center"});
         doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);
-        return y+11;
+        return y+10;
+      };
+
+      // Draw bordered input field
+      const drawField=(x,yy,w,label,value)=>{
+        doc.setFont("helvetica","bold");doc.setFontSize(8);doc.setTextColor(80,80,80);
+        doc.text(san(label),x,yy);
+        doc.setDrawColor(200,210,220);doc.setLineWidth(0.3);
+        doc.setFillColor(247,250,252);
+        doc.roundedRect(x,yy+1,w,7,1,1,"FD");
+        doc.setFont("helvetica","normal");doc.setFontSize(10);doc.setTextColor(0,0,0);
+        doc.text(san(value||""),x+2,yy+5.8);
       };
 
       // Determine segment info
@@ -5844,7 +5872,7 @@
         : (isSP ? "ELEMENTS — SHORT PROGRAM" : "ELEMENTS — FREE PROGRAM");
       const stdRowCount = isSP ? (isPairs ? 8 : 7) : (isPairs ? 13 : 9);
 
-      // Map element rows + pad to standard count
+      // Map element rows + pad to standard count (4 columns: # | TIME | CODE | NOTES)
       const mappedRows = rows.map((r,i) => {
         const typeDef = types.find(t=>t.code===r.typeCode);
         let code="",notes="";
@@ -5859,83 +5887,70 @@
             code=el?el.code:r.elCode||r.typeCode;notes=el?el.name:"";
           }
         }
-        return [String(i+1),"",code,"",notes];
+        return [String(i+1),"",code,notes];
       });
-      while(mappedRows.length<stdRowCount) mappedRows.push([String(mappedRows.length+1),"","","",""]);
+      while(mappedRows.length<stdRowCount) mappedRows.push([String(mappedRows.length+1),"","",""]);
 
       // === PAGE DRAWING ===
       let y=10;
       y=hdrBand(titleText,y);
 
-      // Info section — text labels with underlines (matches original exactly)
-      y+=2;
+      // Info section — 2-column grid with bordered fields (matching sk8info)
       const catLabel = CATEGORY_DEFS[kategorie]?.label || kategorie;
-      const san=sanitize;
+      const halfW=(cW-4)/2;
 
-      // Row 1: NAME + CATEGORY (side by side)
-      doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(0,0,0);
-      doc.text("NAME:",m,y+4);
-      doc.setFont("helvetica","normal");doc.text(san(skater||""),m+15,y+4);
-      doc.setDrawColor(180,180,180);doc.setLineWidth(0.2);
-      doc.line(m+13,y+4.5,m+90,y+4.5);
-      doc.setFont("helvetica","bold");doc.text("CATEGORY:",m+95,y+4);
-      doc.setFont("helvetica","normal");doc.text(san(catLabel),m+120,y+4);
-      doc.line(m+118,y+4.5,W-m,y+4.5);
-      y+=8;
+      // Clean name for PDF
+      let pdfName = (skater||"").replace(/^:\s*/, "").replace(/\s+CATEGORY:\s+.+$/i, "").trim();
 
-      // Row 2: REPRESENTING + FEDERATION/CLUB (side by side)
-      doc.setFont("helvetica","bold");doc.text("REPRESENTING:",m,y+4);
-      doc.setFont("helvetica","normal");doc.text(san(cat||""),m+28,y+4);
-      doc.line(m+26,y+4.5,m+100,y+4.5);
-      doc.setFont("helvetica","bold");doc.text("FEDERATION / CLUB:",m+105,y+4);
-      doc.setFont("helvetica","normal");doc.text("",m+145,y+4);
-      doc.line(m+143,y+4.5,W-m,y+4.5);
-      y+=8;
+      // Row 1: COMPETITORS NAME | CATEGORY
+      drawField(m,y,halfW,"COMPETITORS NAME",pdfName);
+      drawField(m+halfW+4,y,halfW,"CATEGORY",catLabel);
+      y+=12;
 
-      // Row 3: MUSIC (full width)
+      // Row 2: REPRESENTING | FEDERATION / CLUB
+      drawField(m,y,halfW,"REPRESENTING",cat||"");
+      drawField(m+halfW+4,y,halfW,"FEDERATION / CLUB","");
+      y+=12;
+
+      // Row 3: Choreography / Music (full width)
       const musicLabel = isPairs
-        ? (isSP ? "Short Program - Choreography / Music:" : "Free Program - Choreography / Music:")
-        : (isSP ? "Short - Choreography / Music:" : "Free - Choreography / Music:");
-      doc.setFont("helvetica","bold");doc.text(san(musicLabel),m,y+4);
-      const mLabelW=doc.getTextWidth(san(musicLabel));
-      doc.setFont("helvetica","normal");doc.text(san(music||""),m+mLabelW+3,y+4);
-      doc.line(m+mLabelW+1,y+4.5,W-m,y+4.5);
-      y+=8;
+        ? (isSP ? "Short Program — Choreography / Music" : "Free Program — Choreography / Music")
+        : (isSP ? "Short — Choreography / Music" : "Free — Choreography / Music");
+      drawField(m,y,cW,musicLabel,music||"");
+      y+=12;
 
       // === Element section band ===
       y=elemBand(elemLabel,y);
 
-      // === Element table using autoTable (exact original format) ===
+      // === Element table using autoTable — 4-column layout matching sk8info ===
       doc.autoTable({
         startY:y,
         margin:{left:m,right:m},
         tableWidth:cW,
         head:[[
           {content:"#",styles:{halign:"center",fontStyle:"bold"}},
-          {content:"Time",styles:{fontStyle:"bold"}},
-          {content:"Code",styles:{fontStyle:"bold"}},
-          {content:"(Tech Panel)",styles:{fontStyle:"bold"}},
-          {content:"Notes",styles:{fontStyle:"bold"}},
+          {content:"TIME",styles:{fontStyle:"bold",halign:"center"}},
+          {content:"CODE",styles:{fontStyle:"bold",halign:"center"}},
+          {content:"NOTES",styles:{fontStyle:"bold"}},
         ]],
         body:mappedRows,
         theme:"grid",
-        headStyles:{fontSize:9,fillColor:[21,101,192],textColor:[255,255,255]},
-        bodyStyles:{fontSize:12,minCellHeight:25,valign:"middle"},
+        headStyles:{fontSize:9,fillColor:[91,143,212],textColor:[255,255,255]},
+        bodyStyles:{fontSize:11,minCellHeight:12,valign:"middle"},
         alternateRowStyles:{fillColor:[248,250,252]},
         columnStyles:{
-          0:{cellWidth:12,halign:"center"},
-          1:{cellWidth:22},
-          2:{cellWidth:24},
-          4:{cellWidth:52},
+          0:{cellWidth:12,halign:"center",fontStyle:"bold",fillColor:[240,240,240]},
+          1:{cellWidth:22,halign:"center"},
+          2:{cellWidth:50,halign:"center"},
         },
       });
 
       // Footer
       doc.setFontSize(7);doc.setTextColor(150,150,150);doc.setFont("helvetica","normal");
-      doc.text("Generated by RollArt 2026 - World Skate Official Format",W/2,287,{align:"center"});
+      doc.text("Generated by RollArt 2026 — World Skate Official Format",W/2,287,{align:"center"});
 
       // Save
-      const fn=`${(skater||"content_sheet").replace(/\s+/g,"_")}_${segDef.label.replace(/\s+/g,"_")}_WorldSkate.pdf`;
+      const fn=`${(pdfName||"content_sheet").replace(/\s+/g,"_")}_${segDef.label.replace(/\s+/g,"_")}_WorldSkate.pdf`;
       doc.save(fn);
     };
 
@@ -6275,8 +6290,13 @@
         if (!sk.music && local.music) merged.music = local.music;
         if (!sk.verein && local.verein) merged.verein = local.verein;
       }
-      setSkater(merged.name || "");
-      setCat(merged.verein || "");
+      // Clean name: strip leading ": " and trailing "CATEGORY: xxx"
+      let cleanName = (merged.name || "");
+      const catFromName = cleanName.match(/\s+CATEGORY:\s+(.+)$/i);
+      cleanName = cleanName.replace(/^:\s*/, "").replace(/\s+CATEGORY:\s+.+$/i, "").trim();
+      setSkater(cleanName);
+      // Use verein if available, otherwise extract category from name
+      setCat(merged.verein || (catFromName ? catFromName[1].trim() : CATEGORY_DEFS[merged.kategorie]?.label || ""));
       setMusic(merged.music || "");
       setKategorie(merged.kategorie || "senior");
       setSegment(merged.segment || "senior_fp");
