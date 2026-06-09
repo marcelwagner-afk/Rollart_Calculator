@@ -6,11 +6,11 @@
   <title>RollArt DRIV — Artistic Roller Skating 2026</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23373435'/%3E%3Cstop offset='100%25' stop-color='%23D70010'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='url(%23g)'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-family='Inter,sans-serif' font-weight='800' font-size='32' fill='%23FFD800'%3ERA%3C/text%3E%3C/svg%3E">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2322221C'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-family='Open+Sans,sans-serif' font-weight='800' font-size='32' fill='white'%3ERA%3C/text%3E%3C/svg%3E">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9f8f6; }
+    body { font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #ffffff; }
     select, input, button { font-family: inherit; }
     /* Hide default number input spinners */
     input[type="number"]::-webkit-inner-spin-button,
@@ -473,7 +473,7 @@
   // ============================================================
   const GOE_KEYS=["3","2","1","m1","m2","m3"];
   const GOE_LABELS=["+3","+2","+1","-1","-2","-3"];
-  const GOE_COLORS=["#16a34a","#22c55e","#FFD800","#fca5a5","#ef4444","#dc2626"];
+  const GOE_COLORS=["#16a34a","#22c55e","#DEE2E6","#fca5a5","#ef4444","#dc2626"];
 
   const getBase = (el, isCombo, rotation) => {
     if (!el) return 0;
@@ -744,7 +744,7 @@
                   judgeCount={judgeCount} />
               ))}
               {(row.comboEls||[]).length < 5 && (
-                <button onClick={addSub} style={{ marginTop:2, padding:"2px 8px", borderRadius:3, border:"1px dashed #059669", background:"#FFF8E1", color:"#059669", fontSize:10, fontWeight:600, cursor:"pointer" }}>
+                <button onClick={addSub} style={{ marginTop:2, padding:"2px 8px", borderRadius:3, border:"1px dashed #059669", background:"#f0f1f2", color:"#059669", fontSize:10, fontWeight:600, cursor:"pointer" }}>
                   + Element hinzufügen
                 </button>
               )}
@@ -1432,7 +1432,7 @@
         <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
           {Object.entries(SHEET_TYPES).map(([k,v])=>(
             <button key={k} onClick={()=>changeSheet(k)} style={{padding:"7px 16px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
-              background:sheetType===k?"#373435":"#e5e7eb",color:sheetType===k?"white":"#374151"}}>{v.short||v.title.replace(" 2026","")}</button>
+              background:sheetType===k?"#22221C":"#e5e7eb",color:sheetType===k?"white":"#374151"}}>{v.short||v.title.replace(" 2026","")}</button>
           ))}
         </div>
 
@@ -1449,12 +1449,12 @@
         {/* Actions */}
         <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
           <button onClick={exportPDF} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#dc2626",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>PDF exportieren</button>
-          <button onClick={saveTxt} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#D70010",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>TXT exportieren</button>
-          <label style={{padding:"6px 14px",borderRadius:5,border:"1px solid #D70010",background:"#FFF8E1",color:"#D70010",fontWeight:600,fontSize:11,cursor:"pointer"}}>
+          <button onClick={saveTxt} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#22221C",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>TXT exportieren</button>
+          <label style={{padding:"6px 14px",borderRadius:5,border:"1px solid #22221C",background:"#f0f1f2",color:"#22221C",fontWeight:600,fontSize:11,cursor:"pointer"}}>
             Importieren (PDF/TXT)
             <input type="file" accept=".pdf,.txt" onChange={importFile} style={{display:"none"}}/>
           </label>
-          <button onClick={handleSendToContent} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#D70010",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
+          <button onClick={handleSendToContent} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#22221C",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
             &#9654; An Content Elements Sheet senden
           </button>
           <button onClick={()=>{setName("");setKategorie("senior");setFederation("");setChoreography("");setSections(initSections(sheetType));}} style={{padding:"6px 14px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Löschen</button>
@@ -2201,16 +2201,16 @@
     },[rows,elements,tes,pcsTotal,types,pcs,judgeCount]);
 
     const tabStyle=(t)=>({padding:"5px 12px",borderRadius:"6px 6px 0 0",border:"none",fontSize:11,fontWeight:700,cursor:"pointer",
-      background:tab===t?"white":"transparent",color:tab===t?"#373435":"#9ca3af",
-      borderBottom:tab===t?"2px solid #FFD800":"2px solid transparent"});
+      background:tab===t?"white":"transparent",color:tab===t?"#22221C":"#9ca3af",
+      borderBottom:tab===t?"2px solid #22221C":"2px solid transparent"});
 
     const statusColor=errorCount>0?"#dc2626":warnCount>0?"#f59e0b":"#059669";
     const statusText=errorCount>0?`${errorCount} Fehler`:warnCount>0?`${warnCount} Hinweise`:"Alles OK";
 
     return(
-      <div style={{background:"white",borderRadius:12,border:"2px solid #E22028",overflow:"hidden",marginTop:12}}>
+      <div style={{background:"white",borderRadius:12,border:"2px solid #DEE2E6",overflow:"hidden",marginTop:12}}>
         {/* Header */}
-        <div onClick={()=>setOpen(!open)} style={{background:"linear-gradient(135deg,#D70010,#E22028)",padding:"10px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
+        <div onClick={()=>setOpen(!open)} style={{background:"#22221C",padding:"10px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:8}}>
           <span style={{fontSize:18}}>{"\uD83E\uDD16"}</span>
           <span style={{color:"white",fontWeight:800,fontSize:14,flex:1}}>KI-Coach</span>
           <span style={{background:statusColor,color:"white",borderRadius:10,padding:"2px 8px",fontSize:10,fontWeight:700}}>{statusText}</span>
@@ -2220,7 +2220,7 @@
         {open&&(
           <div>
             {/* Tabs */}
-            <div style={{display:"flex",gap:0,borderBottom:"1px solid #e5e7eb",padding:"0 8px",background:"#FFF8E1"}}>
+            <div style={{display:"flex",gap:0,borderBottom:"1px solid #e5e7eb",padding:"0 8px",background:"#f0f1f2"}}>
               <button onClick={()=>setTab("rules")} style={tabStyle("rules")}>
                 Regelcheck {errorCount>0&&<span style={{background:"#dc2626",color:"white",borderRadius:8,padding:"0 5px",fontSize:9,marginLeft:3}}>{errorCount}</span>}
               </button>
@@ -2236,9 +2236,9 @@
             </div>
 
             {/* Category Info Banner */}
-            <div style={{padding:"6px 12px",background:"linear-gradient(90deg,#ede9fe,#FFF8E1)",borderBottom:"1px solid #e5e7eb",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-              <span style={{fontSize:10,fontWeight:700,color:"#D70010",textTransform:"uppercase",letterSpacing:1}}>Kategorie:</span>
-              <span style={{fontSize:12,fontWeight:700,color:"#4c1d95"}}>{catDef.label}</span>
+            <div style={{padding:"6px 12px",background:"#f0f1f2",borderBottom:"1px solid #e5e7eb",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <span style={{fontSize:10,fontWeight:700,color:"#22221C",textTransform:"uppercase",letterSpacing:1}}>Kategorie:</span>
+              <span style={{fontSize:12,fontWeight:700,color:"#22221C"}}>{catDef.label}</span>
               <span style={{fontSize:10,color:"#6b7280"}}>{rules.info||rules.label}</span>
             </div>
 
@@ -2250,10 +2250,10 @@
                   {ruleChecks.map((c,i)=>(
                     <div key={i} style={{display:"flex",gap:6,alignItems:"flex-start",padding:"4px 0",borderBottom:"1px solid #f3f4f6",fontSize:11}}>
                       <span style={{fontSize:13,lineHeight:1}}>{c.icon}</span>
-                      <span style={{color:c.type==="error"?"#dc2626":c.type==="warning"?"#92400e":"#373435",fontWeight:c.type==="ok"?400:600}}>{c.msg}</span>
+                      <span style={{color:c.type==="error"?"#dc2626":c.type==="warning"?"#92400e":"#22221C",fontWeight:c.type==="ok"?400:600}}>{c.msg}</span>
                     </div>
                   ))}
-                  {isCompliant&&<div style={{marginTop:8,padding:"6px 10px",background:"#FFF8E1",borderRadius:6,fontSize:11,color:"#373435",fontWeight:600}}>
+                  {isCompliant&&<div style={{marginTop:8,padding:"6px 10px",background:"#f0f1f2",borderRadius:6,fontSize:11,color:"#22221C",fontWeight:600}}>
                     {"\u2705"} Programm ist regelkonform!
                   </div>}
                 </div>
@@ -2271,8 +2271,8 @@
                       </div>
                       {optimizations.map((tip,i)=>(
                         <div key={i} style={{padding:"6px 8px",marginBottom:4,borderRadius:6,
-                          background:tip.priority===1?"#fef2f2":tip.priority===2?"#fffbeb":"#FFF8E1",
-                          border:`1px solid ${tip.priority===1?"#fca5a5":tip.priority===2?"#fde68a":"#FFD800"}`,fontSize:11}}>
+                          background:tip.priority===1?"#fef2f2":tip.priority===2?"#fffbeb":"#f0f1f2",
+                          border:`1px solid ${tip.priority===1?"#fca5a5":tip.priority===2?"#fde68a":"#DEE2E6"}`,fontSize:11}}>
                           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                             <span style={{color:"#374151",flex:1}}>{tip.msg}</span>
                             {tip.points>0&&<span style={{fontWeight:800,color:"#059669",fontSize:12,whiteSpace:"nowrap",marginLeft:6}}>+{tip.points.toFixed(2)}</span>}
@@ -2290,7 +2290,7 @@
                   {trainingTips.length===0?(
                     <div style={{fontSize:11,color:"#9ca3af",fontStyle:"italic",padding:8}}>Fülle Elemente aus, um Trainingstipps zu erhalten.</div>
                   ):trainingTips.map((tip,i)=>(
-                    <div key={i} style={{padding:"8px 10px",marginBottom:6,borderRadius:8,background:"#FFF8E1",border:"1px solid #ddd6fe"}}>
+                    <div key={i} style={{padding:"8px 10px",marginBottom:6,borderRadius:8,background:"#f0f1f2",border:"1px solid #ddd6fe"}}>
                       <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:3}}>
                         <span style={{fontSize:15}}>{tip.icon}</span>
                         <span style={{fontWeight:700,fontSize:12,color:"#374151"}}>{tip.title}</span>
@@ -2315,13 +2315,13 @@
                 <div>
                   {/* Quick actions */}
                   <div style={{display:"flex",gap:4,marginBottom:8,flexWrap:"wrap"}}>
-                    <button onClick={quickAnalysis} disabled={kiLoading} style={{padding:"5px 10px",borderRadius:6,border:"1px solid #D70010",background:"#FFF8E1",color:"#D70010",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                    <button onClick={quickAnalysis} disabled={kiLoading} style={{padding:"5px 10px",borderRadius:6,border:"1px solid #22221C",background:"#f0f1f2",color:"#22221C",fontSize:10,fontWeight:700,cursor:"pointer"}}>
                       {"\uD83D\uDD0D"} Komplett-Analyse
                     </button>
                     <button onClick={()=>sendToKI("Prüfe ob mein Programm regelkonform ist und liste alle Regelverstöße auf.")} disabled={kiLoading} style={{padding:"5px 10px",borderRadius:6,border:"1px solid #dc2626",background:"#fef2f2",color:"#dc2626",fontSize:10,fontWeight:700,cursor:"pointer"}}>
                       {"\u2696\uFE0F"} Regelprüfung
                     </button>
-                    <button onClick={()=>sendToKI("Welche Elemente sollte ich upgraden oder tauschen für maximale Punkte? Gib konkrete Vorschläge.")} disabled={kiLoading} style={{padding:"5px 10px",borderRadius:6,border:"1px solid #D70010",background:"#FFF8E1",color:"#D70010",fontSize:10,fontWeight:700,cursor:"pointer"}}>
+                    <button onClick={()=>sendToKI("Welche Elemente sollte ich upgraden oder tauschen für maximale Punkte? Gib konkrete Vorschläge.")} disabled={kiLoading} style={{padding:"5px 10px",borderRadius:6,border:"1px solid #22221C",background:"#f0f1f2",color:"#22221C",fontSize:10,fontWeight:700,cursor:"pointer"}}>
                       {"\uD83D\uDCC8"} Optimieren
                     </button>
                     <button onClick={()=>sendToKI("Erstelle einen Trainingsplan für die nächsten 4 Wochen basierend auf meinem aktuellen Programm.")} disabled={kiLoading} style={{padding:"5px 10px",borderRadius:6,border:"1px solid #f59e0b",background:"#fffbeb",color:"#92400e",fontSize:10,fontWeight:700,cursor:"pointer"}}>
@@ -2334,21 +2334,21 @@
                     {kiHistory.length===0&&!kiLoading&&(
                       <div style={{padding:24,textAlign:"center",color:"#9ca3af",fontSize:12}}>
                         <div style={{fontSize:36,marginBottom:8}}>{"\uD83E\uDDE0"}</div>
-                        <div style={{fontWeight:700,color:"#D70010",fontSize:14,marginBottom:4}}>KI-Coach bereit</div>
+                        <div style={{fontWeight:700,color:"#22221C",fontSize:14,marginBottom:4}}>KI-Coach bereit</div>
                         Frage den KI-Coach! Er kennt alle World Skate 2026 Regeln und analysiert dein Programm.
                       </div>
                     )}
                     {kiHistory.map((m,i)=>(
                       <div key={i} style={{padding:"10px 14px",borderBottom:"1px solid #f3f4f6",
                         background:m.role==="user"?"#ede9fe":m.role==="error"?"#fef2f2":"white"}}>
-                        <div style={{fontSize:10,fontWeight:700,color:m.role==="user"?"#D70010":m.role==="error"?"#dc2626":"#059669",marginBottom:3}}>
+                        <div style={{fontSize:10,fontWeight:700,color:m.role==="user"?"#22221C":m.role==="error"?"#dc2626":"#059669",marginBottom:3}}>
                           {m.role==="user"?"Du":m.role==="error"?"Fehler":"KI-Coach"}
                         </div>
                         <div style={{fontSize:12,color:"#374151",lineHeight:1.6,whiteSpace:"pre-wrap"}}>{m.text}</div>
                       </div>
                     ))}
                     {kiLoading&&(
-                      <div style={{padding:"16px",textAlign:"center",color:"#D70010",fontSize:12,fontWeight:600}}>
+                      <div style={{padding:"16px",textAlign:"center",color:"#22221C",fontSize:12,fontWeight:600}}>
                         {"\uD83E\uDDE0"} KI analysiert... <span style={{animation:"pulse 1.5s infinite"}}>{"●●●"}</span>
                       </div>
                     )}
@@ -2361,7 +2361,7 @@
                       placeholder="Frage an den KI-Coach..." disabled={kiLoading}
                       style={{flex:1,padding:"10px 12px",borderRadius:8,border:"1px solid #d1d5db",fontSize:12,outline:"none"}}/>
                     <button onClick={()=>sendToKI(kiMsg)} disabled={kiLoading||!kiMsg.trim()}
-                      style={{padding:"10px 18px",borderRadius:8,border:"none",background:kiLoading?"#d1d5db":"#D70010",color:"white",fontWeight:700,fontSize:12,cursor:kiLoading?"wait":"pointer"}}>
+                      style={{padding:"10px 18px",borderRadius:8,border:"none",background:kiLoading?"#d1d5db":"#22221C",color:"white",fontWeight:700,fontSize:12,cursor:kiLoading?"wait":"pointer"}}>
                       Senden
                     </button>
                   </div>
@@ -2378,8 +2378,8 @@
   //  TRAINING SIMULATOR
   // ============================================================
   function SimBonusPill({active,label,onClick}){
-    return <button onClick={onClick} style={{padding:"3px 8px",borderRadius:10,border:active?"2px solid #D70010":"1px solid #d1d5db",
-      background:active?"#D70010":"white",color:active?"white":"#374151",fontSize:10,fontWeight:600,cursor:"pointer",lineHeight:1.4,
+    return <button onClick={onClick} style={{padding:"3px 8px",borderRadius:10,border:active?"2px solid #22221C":"1px solid #d1d5db",
+      background:active?"#22221C":"white",color:active?"white":"#374151",fontSize:10,fontWeight:600,cursor:"pointer",lineHeight:1.4,
       transition:"all .15s"}}>{label}</button>;
   }
 
@@ -2439,15 +2439,15 @@
     const showRot=!isCombo&&typeDef?.hasRotation&&el&&(el.lt!==undefined&&el.lt>0);
     const hasElements=isCombo?(row.comboEls||[]).some(s=>s.code):!!el;
 
-    const cardBg=row.nv?"#fef2f2":bonuses.length>0?"#FFF8E1":"white";
-    const borderColor=row.nv?"#fca5a5":bonuses.length>0?"#FFD800":"#e5e7eb";
+    const cardBg=row.nv?"#fef2f2":bonuses.length>0?"#f0f1f2":"white";
+    const borderColor=row.nv?"#fca5a5":bonuses.length>0?"#DEE2E6":"#e5e7eb";
 
     return(
       <div style={{background:cardBg,borderRadius:10,border:`2px solid ${borderColor}`,padding:12,marginBottom:8,
         boxShadow:"0 1px 3px rgba(0,0,0,.06)",opacity:row.nv?0.6:1}}>
         {/* Header row */}
         <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:8,flexWrap:"wrap"}}>
-          <span style={{background:"#D70010",color:"white",borderRadius:6,padding:"2px 8px",fontSize:13,fontWeight:800,minWidth:28,textAlign:"center"}}>{num}</span>
+          <span style={{background:"#22221C",color:"white",borderRadius:6,padding:"2px 8px",fontSize:13,fontWeight:800,minWidth:28,textAlign:"center"}}>{num}</span>
           <select value={row.typeCode} onChange={e=>{
             const newType=types.find(t=>t.code===e.target.value);
             const nr={typeCode:e.target.value,elCode:"",judgeGoe:[0,0,0,0,0],rotation:"normal",comboEls:[],nv:false,dg:false,bonuses:[]};
@@ -2482,7 +2482,7 @@
 
         {/* Combo sub-elements */}
         {isCombo&&typeDef&&(
-          <div style={{marginBottom:8,paddingLeft:10,borderLeft:"3px solid #FFD800"}}>
+          <div style={{marginBottom:8,paddingLeft:10,borderLeft:"3px solid #DEE2E6"}}>
             {(row.comboEls||[]).map((sub,i)=>(
               <ComboSubRow key={sub._id||i} idx={i} sub={sub} data={typeDef.data}
                 hasComboValues={typeDef.data.some(e=>e.combo!==undefined)}
@@ -2491,7 +2491,7 @@
                 judgeCount={judgeCount}/>
             ))}
             {(row.comboEls||[]).length<5&&(
-              <button onClick={addSub} style={{marginTop:2,padding:"2px 8px",borderRadius:3,border:"1px dashed #D70010",background:"#FFF8E1",color:"#D70010",fontSize:10,fontWeight:600,cursor:"pointer"}}>+ Element</button>
+              <button onClick={addSub} style={{marginTop:2,padding:"2px 8px",borderRadius:3,border:"1px dashed #22221C",background:"#f0f1f2",color:"#22221C",fontSize:10,fontWeight:600,cursor:"pointer"}}>+ Element</button>
             )}
           </div>
         )}
@@ -2519,7 +2519,7 @@
         {/* Bonus pills */}
         {applicableBonuses.length>0&&hasElements&&!row.nv&&(
           <div style={{marginBottom:8}}>
-            <div style={{fontSize:10,fontWeight:700,color:"#373435",marginBottom:3}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#22221C",marginBottom:3}}>
               {isSpin?"Positionen & Variationen:":"Bonus:"}
             </div>
             <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
@@ -2532,7 +2532,7 @@
 
         {/* Score line */}
         {hasElements&&(
-          <div style={{display:"flex",gap:8,alignItems:"center",padding:"6px 8px",background:"#f9f8f6",borderRadius:6,flexWrap:"wrap"}}>
+          <div style={{display:"flex",gap:8,alignItems:"center",padding:"6px 8px",background:"#f8f9fa",borderRadius:6,flexWrap:"wrap"}}>
             <span style={{fontSize:11,color:"#6b7280"}}>Base: <strong style={{color:"#374151"}}>{rawBase.toFixed(2)}</strong></span>
             {bonusPoints!==0&&<span style={{fontSize:11,color:bonusPoints>0?"#059669":"#dc2626",fontWeight:700}}>
               Bonus: {bonusPoints>0?"+":""}{bonusPoints.toFixed(2)}
@@ -2682,7 +2682,7 @@
     return(
       <div style={{padding:"16px 20px",maxWidth:1200,margin:"0 auto"}}>
         {/* Was-wäre-wenn Banner */}
-        {snapshot&&<div style={{background:"linear-gradient(135deg,#eff6ff,#f5f3ff)",border:"1px solid #c7d2fe",borderRadius:10,padding:12,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+        {snapshot&&<div style={{background:"#f0f1f2",border:"1px solid #DEE2E6",borderRadius:10,padding:12,marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
           <div>
             <div style={{fontSize:12,fontWeight:700,color:"#4338ca"}}>Was-wäre-wenn Vergleich</div>
             <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>Snapshot: TES {snapshot.tes.toFixed(2)} + PCS {snapshot.pcsTotal.toFixed(2)} = {snapshot.totalScore.toFixed(2)}</div>
@@ -2691,7 +2691,7 @@
             <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#6b7280"}}>TES</div><div style={{fontSize:16,fontWeight:800,color:diff.tes>=0?"#059669":"#dc2626"}}>{diff.tes>=0?"+":""}{diff.tes.toFixed(2)}</div></div>
             <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#6b7280"}}>PCS</div><div style={{fontSize:16,fontWeight:800,color:diff.pcs>=0?"#059669":"#dc2626"}}>{diff.pcs>=0?"+":""}{diff.pcs.toFixed(2)}</div></div>
             <div style={{textAlign:"center"}}><div style={{fontSize:10,color:"#6b7280"}}>Total</div><div style={{fontSize:20,fontWeight:800,color:diff.total>=0?"#059669":"#dc2626"}}>{diff.total>=0?"+":""}{diff.total.toFixed(2)}</div></div>
-            <button onClick={()=>setSnapshot(null)} style={{padding:"5px 10px",borderRadius:5,border:"1px solid #c7d2fe",background:"white",fontSize:11,cursor:"pointer"}}>× Schließen</button>
+            <button onClick={()=>setSnapshot(null)} style={{padding:"5px 10px",borderRadius:5,border:"1px solid #DEE2E6",background:"white",fontSize:11,cursor:"pointer"}}>× Schließen</button>
           </div>
         </div>}
 
@@ -2706,19 +2706,19 @@
           </select>
           {(CATEGORY_DEFS[kategorie]?.segments||[]).map(seg=>(
             <button key={seg} onClick={()=>changeSegment(seg)} style={{padding:"6px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",
-              background:segment===seg?"#D70010":"#e5e7eb",color:segment===seg?"white":"#374151"}}>{SEGMENT_DEFS[seg]?.label}</button>
+              background:segment===seg?"#22221C":"#e5e7eb",color:segment===seg?"white":"#374151"}}>{SEGMENT_DEFS[seg]?.label}</button>
           ))}
           {!isPairs&&<>
             <span style={{fontSize:11,color:"#6b7280"}}>Geschlecht:</span>
             {[{k:"damen",l:"Damen"},{k:"herren",l:"Herren"}].map(g=>(
               <button key={g.k} onClick={()=>setGeschlecht(g.k)} style={{padding:"5px 12px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
-                background:geschlecht===g.k?"#D70010":"#e5e7eb",color:geschlecht===g.k?"white":"#374151"}}>{g.l}</button>
+                background:geschlecht===g.k?"#22221C":"#e5e7eb",color:geschlecht===g.k?"white":"#374151"}}>{g.l}</button>
             ))}
           </>}
           <span style={{marginLeft:"auto",fontSize:11,color:"#6b7280"}}>Judges:</span>
           {[3,5].map(n=>(
             <button key={n} onClick={()=>setJudgeCount(n)} style={{padding:"5px 12px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
-              background:judgeCount===n?"#D70010":"#e5e7eb",color:judgeCount===n?"white":"#374151"}}>{n}</button>
+              background:judgeCount===n?"#22221C":"#e5e7eb",color:judgeCount===n?"white":"#374151"}}>{n}</button>
           ))}
         </div>
 
@@ -2731,7 +2731,7 @@
 
         {/* Actions */}
         <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
-          <label style={{padding:"6px 12px",borderRadius:5,border:"1px solid #D70010",background:"#f5f3ff",color:"#D70010",fontWeight:600,fontSize:11,cursor:"pointer"}}>
+          <label style={{padding:"6px 12px",borderRadius:5,border:"1px solid #22221C",background:"#f8f9fa",color:"#22221C",fontWeight:600,fontSize:11,cursor:"pointer"}}>
             Content Sheet laden (PDF/TXT)
             <input type="file" accept=".pdf,.txt" onChange={e=>{
               // Reuse the same upload logic by simulating through a hidden content sheet
@@ -2792,17 +2792,17 @@
               }
             }} style={{display:"none"}}/>
           </label>
-          <button onClick={addRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #D70010",background:"#FFF8E1",color:"#D70010",fontWeight:600,fontSize:11,cursor:"pointer"}}>+ Element</button>
+          <button onClick={addRow} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #22221C",background:"#f0f1f2",color:"#22221C",fontWeight:600,fontSize:11,cursor:"pointer"}}>+ Element</button>
           <button onClick={clearAll} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Alles löschen</button>
-          <button onClick={takeSnapshot} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #D70010",background:snapshot?"#D70010":"#f5f3ff",color:snapshot?"white":"#D70010",fontWeight:600,fontSize:11,cursor:"pointer"}}>{snapshot?"↻ Neuer Snapshot":"📸 Was-wäre-wenn"}</button>
-          {importMsg&&<span style={{fontSize:11,color:"#D70010",fontWeight:600,background:"#FFF8E1",padding:"4px 10px",borderRadius:5,border:"1px solid #FFD800"}}>{importMsg}</span>}
+          <button onClick={takeSnapshot} style={{padding:"6px 12px",borderRadius:5,border:"1px solid #22221C",background:snapshot?"#22221C":"#f8f9fa",color:snapshot?"white":"#22221C",fontWeight:600,fontSize:11,cursor:"pointer"}}>{snapshot?"↻ Neuer Snapshot":"📸 Was-wäre-wenn"}</button>
+          {importMsg&&<span style={{fontSize:11,color:"#22221C",fontWeight:600,background:"#f0f1f2",padding:"4px 10px",borderRadius:5,border:"1px solid #DEE2E6"}}>{importMsg}</span>}
           <div style={{marginLeft:"auto",fontSize:11,color:"#6b7280"}}>{filled} / {rows.length} Elemente</div>
         </div>
 
         <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:screen.mobile?"1fr":"1fr 300px",gap:screen.mobile?10:16,alignItems:"start"}}>
           {/* Element cards */}
           <div>
-            <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:800,color:"#373435"}}>Programm-Elemente</h3>
+            <h3 style={{margin:"0 0 10px",fontSize:14,fontWeight:800,color:"#22221C"}}>Programm-Elemente</h3>
             {rows.map((r,i)=>(
               <SimElementCard key={r._id||i} num={i+1} row={r} types={types} judgeCount={judgeCount}
                 onChange={d=>updateRow(i,d)} onRemove={()=>removeRow(i)} totalRows={rows.length}/>
@@ -2879,10 +2879,10 @@
                   <button onClick={()=>setDeductions(0)} style={{padding:"2px 6px",borderRadius:3,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:6}}>
-                  <span style={{fontSize:12,fontWeight:700,color:"#D70010"}}>Extra:</span>
-                  <button onClick={()=>setExtraPoints(d=>Math.round((d+0.5)*100)/100)} style={{padding:"2px 6px",borderRadius:3,border:"1px solid #FFD800",background:"#FFF8E1",color:"#D70010",fontWeight:700,fontSize:11,cursor:"pointer"}}>+0.5</button>
+                  <span style={{fontSize:12,fontWeight:700,color:"#22221C"}}>Extra:</span>
+                  <button onClick={()=>setExtraPoints(d=>Math.round((d+0.5)*100)/100)} style={{padding:"2px 6px",borderRadius:3,border:"1px solid #DEE2E6",background:"#f0f1f2",color:"#22221C",fontWeight:700,fontSize:11,cursor:"pointer"}}>+0.5</button>
                   <input type="number" min="0" step="0.1" value={extraPoints} onChange={e=>setExtraPoints(Math.max(0,parseFloat(e.target.value)||0))}
-                    style={{width:50,padding:"4px",borderRadius:4,border:"2px solid #FFD800",fontSize:13,fontWeight:800,textAlign:"center",color:"#D70010"}}/>
+                    style={{width:50,padding:"4px",borderRadius:4,border:"2px solid #DEE2E6",fontSize:13,fontWeight:800,textAlign:"center",color:"#22221C"}}/>
                   <button onClick={()=>setExtraPoints(0)} style={{padding:"2px 6px",borderRadius:3,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
                 </div>
               </div>
@@ -2892,7 +2892,7 @@
           {/* Sidebar summary */}
           <div style={{position:"sticky",top:16}}>
             {/* Score card */}
-            <div style={{background:"linear-gradient(135deg,#373435 0%,#D70010 50%,#E22028 100%)",borderRadius:12,padding:16,color:"white",marginBottom:12}}>
+            <div style={{background:"#22221C",borderRadius:12,padding:16,color:"white",marginBottom:12}}>
               <div style={{fontSize:10,fontWeight:600,opacity:.8,letterSpacing:1,textTransform:"uppercase"}}>Total Score</div>
               <div style={{fontSize:38,fontWeight:800,lineHeight:1.1}}>{totalScore.toFixed(2)}</div>
               <div style={{fontSize:10,opacity:.75,marginTop:4}}>TES {tes.toFixed(2)} + PCS {pcsTotal.toFixed(2)}</div>
@@ -2902,7 +2902,7 @@
 
             {/* TES breakdown */}
             <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:12,marginBottom:12}}>
-              <div style={{fontSize:12,fontWeight:700,color:"#373435",marginBottom:6}}>TES Aufschlüsselung</div>
+              <div style={{fontSize:12,fontWeight:700,color:"#22221C",marginBottom:6}}>TES Aufschlüsselung</div>
               <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:4}}>
                 <span style={{color:"#6b7280"}}>Basiswerte:</span>
                 <span style={{fontWeight:700}}>{(tes-bonusTotal-elements.reduce((s,e)=>s+e.goeVal,0)).toFixed(2)}</span>
@@ -2917,14 +2917,14 @@
                   {elements.reduce((s,e)=>s+e.goeVal,0)>=0?"+":""}{elements.reduce((s,e)=>s+e.goeVal,0).toFixed(2)}
                 </span>
               </div>
-              <div style={{borderTop:"2px solid #D70010",paddingTop:4,display:"flex",justifyContent:"space-between",fontSize:13,fontWeight:800,color:"#D70010"}}>
+              <div style={{borderTop:"2px solid #22221C",paddingTop:4,display:"flex",justifyContent:"space-between",fontSize:13,fontWeight:800,color:"#22221C"}}>
                 <span>TES:</span><span>{tes.toFixed(2)}</span>
               </div>
             </div>
 
             {/* Bonus summary */}
             <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:12}}>
-              <div style={{fontSize:12,fontWeight:700,color:"#373435",marginBottom:6}}>Aktive Boni</div>
+              <div style={{fontSize:12,fontWeight:700,color:"#22221C",marginBottom:6}}>Aktive Boni</div>
               {bonusSummary.length===0?(
                 <div style={{fontSize:11,color:"#9ca3af",fontStyle:"italic"}}>Keine Boni ausgewählt</div>
               ):bonusSummary.map((b,i)=>(
@@ -2937,7 +2937,7 @@
 
             {/* Element quality */}
             <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:12,marginTop:12}}>
-              <div style={{fontSize:12,fontWeight:700,color:"#373435",marginBottom:6}}>Element-Qualität</div>
+              <div style={{fontSize:12,fontWeight:700,color:"#22221C",marginBottom:6}}>Element-Qualität</div>
               {elements.map((el,i)=>{
                 if(!el.typeDef)return null;
                 const pct=el.rawBase>0?Math.round((el.finalScore/el.rawBase)*100):0;
@@ -3025,7 +3025,7 @@
 
     if (loading) return React.createElement('div', {
       style: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh',
-        background: 'linear-gradient(135deg,#D70010,#E22028)', color: 'white', fontSize: 18, fontWeight: 600 }
+        background: '#22221C', color: 'white', fontSize: 18, fontWeight: 600 }
     }, 'RollArt wird geladen...');
 
     // Helper: License-Status berechnen
@@ -3081,26 +3081,26 @@
 
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-        background: "linear-gradient(135deg,#373435 0%,#D70010 50%,#E22028 100%)", padding: 20 }}>
+        background: "#22221C", padding: 20 }}>
         <div style={{ background: "white", borderRadius: 16, padding: 32, width: "100%", maxWidth: 420,
           boxShadow: "0 20px 60px rgba(0,0,0,.2)" }}>
           {/* DRIV Logo */}
           <div style={{ textAlign: "center", marginBottom: 24 }}>
             <img src="DRIV-Logo.svg" alt="DRIV" style={{ height: 60, marginBottom: 8 }} />
-            <h1 style={{ margin: "4px 0", fontSize: 28, fontWeight: 800, color: "#373435" }}>RollArt 2026</h1>
+            <h1 style={{ margin: "4px 0", fontSize: 28, fontWeight: 800, color: "#22221C" }}>RollArt 2026</h1>
             <p style={{ fontSize: 12, color: "#6b7280" }}>Artistic Roller Skating — DRIV</p>
           </div>
 
           {/* Tabs */}
-          <div style={{ display: "flex", marginBottom: 20, borderRadius: 8, overflow: "hidden", border: "2px solid #D70010" }}>
+          <div style={{ display: "flex", marginBottom: 20, borderRadius: 8, overflow: "hidden", border: "2px solid #22221C" }}>
             <button onClick={() => { setMode("login"); setError(""); }}
               style={{ flex: 1, padding: "10px", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                background: mode === "login" ? "#D70010" : "white", color: mode === "login" ? "white" : "#D70010" }}>
+                background: mode === "login" ? "#22221C" : "white", color: mode === "login" ? "white" : "#22221C" }}>
               Anmelden
             </button>
             <button onClick={() => { setMode("register"); setError(""); }}
               style={{ flex: 1, padding: "10px", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer",
-                background: mode === "register" ? "#D70010" : "white", color: mode === "register" ? "white" : "#D70010" }}>
+                background: mode === "register" ? "#22221C" : "white", color: mode === "register" ? "white" : "#22221C" }}>
               Registrieren
             </button>
           </div>
@@ -3149,7 +3149,7 @@
 
             <button type="submit" disabled={loading}
               style={{ width: "100%", padding: "12px", borderRadius: 8, border: "none",
-                background: loading ? "#9ca3af" : "linear-gradient(135deg,#D70010,#E22028)",
+                background: loading ? "#9ca3af" : "#22221C",
                 color: "white", fontSize: 15, fontWeight: 700, cursor: loading ? "wait" : "pointer",
                 marginTop: 8, transition: "all .2s" }}>
               {loading ? "Bitte warten..." : mode === "login" ? "Anmelden" : "Konto erstellen"}
@@ -3160,7 +3160,7 @@
             {mode === "login" ? "Noch kein Konto?" : "Bereits registriert?"}
             {" "}
             <span onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}
-              style={{ color: "#D70010", fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>
+              style={{ color: "#E10716", fontWeight: 600, cursor: "pointer", textDecoration: "underline" }}>
               {mode === "login" ? "Jetzt registrieren" : "Jetzt anmelden"}
             </span>
           </p>
@@ -3217,13 +3217,13 @@
     return (
       <div style={{ padding: "20px", maxWidth: 500, margin: "0 auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#373435" }}>Mein Profil</h2>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: "#22221C" }}>Mein Profil</h2>
           <button onClick={onClose} style={{ padding: "5px 12px", borderRadius: 6, border: "none",
             background: "#e5e7eb", color: "#374151", fontWeight: 600, fontSize: 12, cursor: "pointer" }}>Zurueck</button>
         </div>
 
         {/* User info badge */}
-        <div style={{ background: "linear-gradient(135deg,#D70010,#E22028)", borderRadius: 12, padding: 16,
+        <div style={{ background: "#22221C", borderRadius: 12, padding: 16,
           color: "white", marginBottom: 20, display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,.2)",
             display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 800 }}>
@@ -3242,8 +3242,8 @@
 
           {error && <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 6,
             padding: "6px 10px", marginBottom: 12, fontSize: 11, color: "#dc2626" }}>{error}</div>}
-          {msg && <div style={{ background: "#FFF8E1", border: "1px solid #FFD800", borderRadius: 6,
-            padding: "6px 10px", marginBottom: 12, fontSize: 11, color: "#D70010", fontWeight: 600 }}>{msg}</div>}
+          {msg && <div style={{ background: "#f0f1f2", border: "1px solid #DEE2E6", borderRadius: 6,
+            padding: "6px 10px", marginBottom: 12, fontSize: 11, color: "#22221C", fontWeight: 600 }}>{msg}</div>}
 
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>Name</label>
@@ -3262,7 +3262,7 @@
             <input value={kategorie} onChange={e => setKategorie(e.target.value)} placeholder="z.B. Cadet, Junior, Senior..." style={inputStyle} />
           </div>
           <button onClick={handleSave} disabled={saving}
-            style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: "#D70010",
+            style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: "#22221C",
               color: "white", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
             {saving ? "Speichern..." : "Profil speichern"}
           </button>
@@ -3278,8 +3278,8 @@
               {showPwChange ? "Abbrechen" : "Passwort aendern"}
             </button>
           </div>
-          {pwMsg && <div style={{ background: "#FFF8E1", border: "1px solid #FFD800", borderRadius: 6,
-            padding: "6px 10px", marginTop: 10, fontSize: 11, color: "#D70010", fontWeight: 600 }}>{pwMsg}</div>}
+          {pwMsg && <div style={{ background: "#f0f1f2", border: "1px solid #DEE2E6", borderRadius: 6,
+            padding: "6px 10px", marginTop: 10, fontSize: 11, color: "#22221C", fontWeight: 600 }}>{pwMsg}</div>}
           {showPwChange && (
             <div style={{ marginTop: 12 }}>
               {pwError && <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", borderRadius: 6,
@@ -3404,13 +3404,13 @@
       const lic = u.license || { plan:'full', active:true, expiresAt:null };
       if (!lic.active) return { label:"Gesperrt", color:"#6b7280", bg:"#f3f4f6" };
       if (lic.expiresAt && lic.expiresAt < new Date().toISOString().split('T')[0]) return { label:"Abgelaufen", color:"#dc2626", bg:"#fef2f2" };
-      return { label:"Aktiv", color:"#D70010", bg:"#FFF8E1" };
+      return { label:"Aktiv", color:"#22221C", bg:"#f0f1f2" };
     };
     const planLabel = (p) => p==='einzel'?'Einzellauf':p==='pairs'?'Paarlauf':'Voll';
 
     const tabS = (t) => ({ padding:"8px 16px", borderRadius:"8px 8px 0 0", border:"none", fontSize:12, fontWeight:700,
-      cursor:"pointer", background:tab===t?"white":"transparent", color:tab===t?"#D70010":"#9ca3af",
-      borderBottom:tab===t?"3px solid #D70010":"3px solid transparent" });
+      cursor:"pointer", background:tab===t?"white":"transparent", color:tab===t?"#22221C":"#9ca3af",
+      borderBottom:tab===t?"3px solid #22221C":"3px solid transparent" });
     const cS = { background:"white", borderRadius:12, border:"1px solid #e5e7eb", padding:16, marginBottom:12 };
     const iS = { padding:"6px 10px", borderRadius:6, border:"2px solid #d1d5db", fontSize:13, width:"100%", fontFamily:"inherit" };
 
@@ -3420,12 +3420,12 @@
       <div style={{ padding:"16px 20px", maxWidth:1100, margin:"0 auto" }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
           <div>
-            <h2 style={{ margin:0, fontSize:22, fontWeight:800, color:"#D70010" }}>Admin Dashboard</h2>
+            <h2 style={{ margin:0, fontSize:22, fontWeight:800, color:"#22221C" }}>Admin Dashboard</h2>
             <p style={{ margin:0, fontSize:12, color:"#6b7280" }}>{user?.name} ({user?.email})</p>
           </div>
           <button onClick={onClose} style={{ padding:"6px 14px", borderRadius:6, border:"none", background:"#e5e7eb", color:"#374151", fontWeight:600, fontSize:12, cursor:"pointer" }}>Zurueck</button>
         </div>
-        {msg && <div style={{ background:"#FFF8E1", border:"1px solid #FFD800", borderRadius:8, padding:"8px 14px", marginBottom:12, fontSize:12, color:"#D70010", fontWeight:600 }}>{msg}</div>}
+        {msg && <div style={{ background:"#f0f1f2", border:"1px solid #DEE2E6", borderRadius:8, padding:"8px 14px", marginBottom:12, fontSize:12, color:"#22221C", fontWeight:600 }}>{msg}</div>}
         <div style={{ display:"flex", gap:0, borderBottom:"1px solid #e5e7eb", marginBottom:16 }}>
           <button onClick={()=>setTab("stats")} style={tabS("stats")}>Statistiken</button>
           <button onClick={()=>setTab("users")} style={tabS("users")}>Benutzer ({users.length})</button>
@@ -3435,7 +3435,7 @@
         {/* === STATS === */}
         {tab==="stats"&&stats&&(<div>
           <div className="r-grid2-mobile" style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:16 }}>
-            {[{l:"Gesamt",v:stats.total,c:"#D70010",b:"#f5f3ff"},{l:"Heute",v:stats.todayCount,c:"#D70010",b:"#FFF8E1"},
+            {[{l:"Gesamt",v:stats.total,c:"#22221C",b:"#f8f9fa"},{l:"Heute",v:stats.todayCount,c:"#22221C",b:"#f0f1f2"},
               {l:"Diese Woche",v:stats.weekCount,c:"#2563eb",b:"#eff6ff"},{l:"Dieser Monat",v:stats.monthCount,c:"#f59e0b",b:"#fffbeb"}
             ].map((k,i)=>(
               <div key={i} style={{ background:k.b, borderRadius:12, padding:16, border:"1px solid "+k.c+"33" }}>
@@ -3448,9 +3448,9 @@
           {stats.licenseStats&&(<div style={{ ...cS, marginBottom:16 }}>
             <h3 style={{ margin:"0 0 12px", fontSize:14, fontWeight:700, color:"#374151" }}>Lizenzen</h3>
             <div className="r-grid2-mobile" style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:10, marginBottom:12 }}>
-              <div style={{ background:"#FFF8E1", borderRadius:8, padding:12, textAlign:"center", border:"1px solid #FFECB333" }}>
+              <div style={{ background:"#f0f1f2", borderRadius:8, padding:12, textAlign:"center", border:"1px solid #DEE2E633" }}>
                 <div style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Aktiv</div>
-                <div style={{ fontSize:24, fontWeight:800, color:"#D70010" }}>{stats.licenseStats.active}</div>
+                <div style={{ fontSize:24, fontWeight:800, color:"#22221C" }}>{stats.licenseStats.active}</div>
               </div>
               <div style={{ background:"#fef2f2", borderRadius:8, padding:12, textAlign:"center", border:"1px solid #fca5a533" }}>
                 <div style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Abgelaufen</div>
@@ -3462,9 +3462,9 @@
               </div>
             </div>
             <div style={{ display:"flex", gap:16, fontSize:12, color:"#6b7280" }}>
-              <span>Voll: <strong style={{color:"#D70010"}}>{stats.licenseStats.planFull}</strong></span>
-              <span>Einzellauf: <strong style={{color:"#D70010"}}>{stats.licenseStats.planEinzel}</strong></span>
-              <span>Paarlauf: <strong style={{color:"#D70010"}}>{stats.licenseStats.planPairs}</strong></span>
+              <span>Voll: <strong style={{color:"#22221C"}}>{stats.licenseStats.planFull}</strong></span>
+              <span>Einzellauf: <strong style={{color:"#22221C"}}>{stats.licenseStats.planEinzel}</strong></span>
+              <span>Paarlauf: <strong style={{color:"#22221C"}}>{stats.licenseStats.planPairs}</strong></span>
             </div>
           </div>)}
           <div style={cS}>
@@ -3474,7 +3474,7 @@
                 const mx=Math.max(...stats.daily.map(x=>x.count),1);
                 return(<div key={i} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:2 }}>
                   <span style={{ fontSize:8, fontWeight:700, color:"#6b7280" }}>{d.count||""}</span>
-                  <div style={{ width:"100%", height:Math.max(d.count/mx*80,2), background:d.count>0?"#D70010":"#e5e7eb", borderRadius:3 }}/>
+                  <div style={{ width:"100%", height:Math.max(d.count/mx*80,2), background:d.count>0?"#22221C":"#e5e7eb", borderRadius:3 }}/>
                   <span style={{ fontSize:7, color:"#9ca3af" }}>{d.date.slice(5)}</span>
                 </div>);
               })}
@@ -3485,7 +3485,7 @@
               <h3 style={{ margin:"0 0 8px", fontSize:13, fontWeight:700 }}>Top Vereine</h3>
               {(stats.topVereine||[]).length===0?<span style={{ fontSize:11, color:"#9ca3af" }}>Keine Daten</span>:
                 stats.topVereine.map((v,i)=>(<div key={i} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", fontSize:12, borderBottom:"1px solid #f3f4f6" }}>
-                  <span>{v.name}</span><span style={{ fontWeight:700, color:"#D70010" }}>{v.count}</span></div>))}
+                  <span>{v.name}</span><span style={{ fontWeight:700, color:"#22221C" }}>{v.count}</span></div>))}
             </div>
             <div style={cS}>
               <h3 style={{ margin:"0 0 8px", fontSize:13, fontWeight:700 }}>Top Kategorien</h3>
@@ -3502,24 +3502,24 @@
             <input placeholder="Suche Name, Email, Verein..." value={searchTerm} onChange={e=>setSearchTerm(e.target.value)}
               style={{ ...iS, maxWidth:400, flex:1 }}/>
             <button onClick={()=>{setShowCreateUser(true);setCreatedPw(null);setNewUserForm({email:"",name:"",verein:"",kategorie:"",plan:"full",expiresAt:"",sendEmail:true});}}
-              style={{ padding:"8px 16px", borderRadius:6, border:"none", background:"#D70010", color:"white", fontWeight:700, fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>
+              style={{ padding:"8px 16px", borderRadius:6, border:"none", background:"#22221C", color:"white", fontWeight:700, fontSize:12, cursor:"pointer", whiteSpace:"nowrap" }}>
               + Neuer Benutzer
             </button>
           </div>
 
           {/* CREATE USER FORM */}
-          {showCreateUser&&(<div style={{ ...cS, border:"2px solid #D70010", marginBottom:16 }}>
+          {showCreateUser&&(<div style={{ ...cS, border:"2px solid #22221C", marginBottom:16 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-              <h3 style={{ margin:0, fontSize:14, fontWeight:700, color:"#D70010" }}>Neuen Benutzer anlegen</h3>
+              <h3 style={{ margin:0, fontSize:14, fontWeight:700, color:"#22221C" }}>Neuen Benutzer anlegen</h3>
               <button onClick={()=>{setShowCreateUser(false);setCreatedPw(null);}} style={{ padding:"4px 10px", borderRadius:4, border:"1px solid #d1d5db", background:"white", fontSize:11, cursor:"pointer" }}>X</button>
             </div>
             {createdPw ? (
               <div>
-                <div style={{ background:"#FFF8E1", border:"1px solid #FFECB3", borderRadius:8, padding:16, marginBottom:12 }}>
-                  <div style={{ fontSize:13, fontWeight:700, color:"#D70010", marginBottom:8 }}>Benutzer erfolgreich erstellt!</div>
+                <div style={{ background:"#f0f1f2", border:"1px solid #DEE2E6", borderRadius:8, padding:16, marginBottom:12 }}>
+                  <div style={{ fontSize:13, fontWeight:700, color:"#22221C", marginBottom:8 }}>Benutzer erfolgreich erstellt!</div>
                   <div style={{ fontSize:12, marginBottom:4 }}>Email: <strong>{newUserForm.email}</strong></div>
                   <div style={{ fontSize:12, marginBottom:8 }}>Generiertes Passwort: <code style={{ background:"#e5e7eb", padding:"2px 8px", borderRadius:4, fontSize:14, fontWeight:700, letterSpacing:1 }}>{createdPw}</code></div>
-                  <button onClick={()=>{navigator.clipboard.writeText(createdPw);showMsg("Passwort kopiert!");}} style={{ padding:"4px 12px", borderRadius:4, border:"1px solid #D70010", background:"white", color:"#D70010", fontSize:11, fontWeight:600, cursor:"pointer" }}>Passwort kopieren</button>
+                  <button onClick={()=>{navigator.clipboard.writeText(createdPw);showMsg("Passwort kopiert!");}} style={{ padding:"4px 12px", borderRadius:4, border:"1px solid #22221C", background:"white", color:"#22221C", fontSize:11, fontWeight:600, cursor:"pointer" }}>Passwort kopieren</button>
                 </div>
                 <button onClick={()=>{setShowCreateUser(false);setCreatedPw(null);}} style={{ padding:"6px 14px", borderRadius:6, border:"none", background:"#e5e7eb", color:"#374151", fontWeight:600, fontSize:12, cursor:"pointer" }}>Schliessen</button>
               </div>
@@ -3546,7 +3546,7 @@
                 </label>
                 <div style={{ display:"flex", gap:6 }}>
                   <button onClick={createUser} disabled={creating||!newUserForm.email||!newUserForm.name}
-                    style={{ padding:"8px 18px", borderRadius:6, border:"none", background:creating?"#9ca3af":"#D70010", color:"white", fontWeight:700, fontSize:12, cursor:creating?"wait":"pointer" }}>
+                    style={{ padding:"8px 18px", borderRadius:6, border:"none", background:creating?"#9ca3af":"#22221C", color:"white", fontWeight:700, fontSize:12, cursor:creating?"wait":"pointer" }}>
                     {creating?"Erstelle...":"Benutzer erstellen"}
                   </button>
                   <button onClick={()=>setShowCreateUser(false)} style={{ padding:"8px 14px", borderRadius:6, border:"1px solid #d1d5db", background:"white", color:"#374151", fontWeight:600, fontSize:12, cursor:"pointer" }}>Abbrechen</button>
@@ -3556,8 +3556,8 @@
           </div>)}
 
           {/* EDIT USER */}
-          {editUser&&(<div style={{ ...cS, border:"2px solid #D70010" }}>
-            <h3 style={{ margin:"0 0 10px", fontSize:14, fontWeight:700, color:"#D70010" }}>Bearbeiten: {editUser.email}</h3>
+          {editUser&&(<div style={{ ...cS, border:"2px solid #22221C" }}>
+            <h3 style={{ margin:"0 0 10px", fontSize:14, fontWeight:700, color:"#22221C" }}>Bearbeiten: {editUser.email}</h3>
             <div className="r-grid1-mobile r-grid2-tablet" style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr 1fr", gap:8, marginBottom:10 }}>
               <div><label style={{ fontSize:10, fontWeight:600, color:"#6b7280" }}>Name</label>
                 <input value={editUser.name||""} onChange={e=>setEditUser({...editUser,name:e.target.value})} style={iS}/></div>
@@ -3580,7 +3580,7 @@
                   <option value="true">Aktiv</option><option value="false">Gesperrt</option></select></div>
             </div>
             <div style={{ display:"flex", gap:6 }}>
-              <button onClick={saveUserEdit} style={{ padding:"6px 14px", borderRadius:6, border:"none", background:"#D70010", color:"white", fontWeight:700, fontSize:12, cursor:"pointer" }}>Speichern</button>
+              <button onClick={saveUserEdit} style={{ padding:"6px 14px", borderRadius:6, border:"none", background:"#22221C", color:"white", fontWeight:700, fontSize:12, cursor:"pointer" }}>Speichern</button>
               <button onClick={()=>setEditUser(null)} style={{ padding:"6px 14px", borderRadius:6, border:"1px solid #d1d5db", background:"white", color:"#374151", fontWeight:600, fontSize:12, cursor:"pointer" }}>Abbrechen</button>
             </div>
           </div>)}
@@ -3602,18 +3602,18 @@
                     <td style={{ padding:"6px 8px" }}>{u.verein}</td>
                     <td style={{ padding:"6px 8px" }}>
                       <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700,
-                        background:u.role==="admin"?"#f5f3ff":"#FFF8E1", color:u.role==="admin"?"#D70010":"#D70010" }}>{u.role}</span></td>
+                        background:u.role==="admin"?"#f8f9fa":"#f0f1f2", color:u.role==="admin"?"#22221C":"#22221C" }}>{u.role}</span></td>
                     <td style={{ padding:"6px 8px" }}>
                       <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700,
-                        background:lic.plan==="einzel"?"#FFF8E1":lic.plan==="pairs"?"#f5f3ff":"#eff6ff",
-                        color:lic.plan==="einzel"?"#059669":lic.plan==="pairs"?"#D70010":"#2563eb" }}>
+                        background:lic.plan==="einzel"?"#f0f1f2":lic.plan==="pairs"?"#f8f9fa":"#eff6ff",
+                        color:lic.plan==="einzel"?"#059669":lic.plan==="pairs"?"#22221C":"#2563eb" }}>
                         {planLabel(lic.plan)}</span></td>
                     <td style={{ padding:"6px 8px" }}>
                       <span style={{ padding:"2px 8px", borderRadius:10, fontSize:10, fontWeight:700, background:ls.bg, color:ls.color }}>{ls.label}</span></td>
                     <td style={{ padding:"6px 8px", fontSize:11, color:"#6b7280" }}>{lic.expiresAt||"Unbegrenzt"}</td>
                     <td style={{ padding:"6px 8px" }}>
                       <div style={{ display:"flex", gap:3, flexWrap:"wrap" }}>
-                        <button onClick={()=>{const e={...u};e._licPlan=(u.license||{}).plan||'full';e._licExpires=(u.license||{}).expiresAt||'';e._licActive=(u.license||{}).active!==false;setEditUser(e);}} style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #D70010", background:"#f5f3ff", color:"#D70010", fontSize:10, fontWeight:600, cursor:"pointer" }}>Edit</button>
+                        <button onClick={()=>{const e={...u};e._licPlan=(u.license||{}).plan||'full';e._licExpires=(u.license||{}).expiresAt||'';e._licActive=(u.license||{}).active!==false;setEditUser(e);}} style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #22221C", background:"#f8f9fa", color:"#22221C", fontSize:10, fontWeight:600, cursor:"pointer" }}>Edit</button>
                         <button onClick={()=>sendCredentials(u.id)} title="Neues PW generieren & per E-Mail senden" style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #2563eb", background:"#eff6ff", color:"#2563eb", fontSize:10, fontWeight:600, cursor:"pointer" }}>Senden</button>
                         {u.id!==user?.id&&<button onClick={()=>deleteUser(u.id,u.name)} style={{ padding:"2px 7px", borderRadius:4, border:"1px solid #fca5a5", background:"#fef2f2", color:"#dc2626", fontSize:10, fontWeight:600, cursor:"pointer" }}>Del</button>}
                       </div>
@@ -3665,7 +3665,7 @@
                 <input type="number" value={settings.maxUsersPerVerein||50} onChange={e=>setSettings({...settings,maxUsersPerVerein:parseInt(e.target.value)||50})} style={{ ...iS, width:100 }}/>
               </div>
             </div>
-            <button onClick={saveSettings} style={{ padding:"8px 20px", borderRadius:6, border:"none", background:"#D70010", color:"white", fontWeight:700, fontSize:13, cursor:"pointer" }}>Einstellungen speichern</button>
+            <button onClick={saveSettings} style={{ padding:"8px 20px", borderRadius:6, border:"none", background:"#22221C", color:"white", fontWeight:700, fontSize:13, cursor:"pointer" }}>Einstellungen speichern</button>
           </div>
         </div>)}
       </div>
@@ -4542,17 +4542,17 @@
         {/* Left: competitions */}
         <div className="r-sidebar-mobile r-sidebar-tablet" style={{ width:"280px", background:"#fff", borderRight:"1px solid #e5e7eb", overflowY:"auto", padding:"12px" }}>
           <div style={{ marginBottom:"12px" }}>
-            <label style={{ display:"flex", alignItems:"center", gap:"6px", padding:"8px 10px", borderRadius:"6px", border:"1px solid #D70010", background:"#FFF8E1", color:"#D70010", fontWeight:"600", fontSize:"11px", cursor:"pointer" }}>
+            <label style={{ display:"flex", alignItems:"center", gap:"6px", padding:"8px 10px", borderRadius:"6px", border:"1px solid #22221C", background:"#f0f1f2", color:"#22221C", fontWeight:"600", fontSize:"11px", cursor:"pointer" }}>
               + Endergebnis-PDF hochladen
               <input type="file" accept=".pdf" onChange={handleUpload} disabled={uploading} style={{ display:"none" }} />
             </label>
           </div>
-          {uploadMsg && <div style={{ fontSize:"10px", color: uploadMsg.includes("Fehler") ? "#dc2626" : "#D70010", marginBottom:"8px", padding:"4px" }}>{uploadMsg}</div>}
+          {uploadMsg && <div style={{ fontSize:"10px", color: uploadMsg.includes("Fehler") ? "#dc2626" : "#22221C", marginBottom:"8px", padding:"4px" }}>{uploadMsg}</div>}
           <div style={{ fontSize:"10px", fontWeight:"600", color:"#6b7280", textTransform:"uppercase", marginBottom:"8px" }}>Wettbewerbe ({competitions.length})</div>
           {competitions.map((comp, idx) => (
-            <div key={comp.id} style={{ padding:"8px 10px", borderRadius:"6px", background: selectedCompIdx===idx ? "#FFF8E1" : "white", border: selectedCompIdx===idx ? "2px solid #D70010" : "1px solid #e5e7eb", marginBottom:"6px", fontSize:"12px" }}>
+            <div key={comp.id} style={{ padding:"8px 10px", borderRadius:"6px", background: selectedCompIdx===idx ? "#f0f1f2" : "white", border: selectedCompIdx===idx ? "2px solid #22221C" : "1px solid #e5e7eb", marginBottom:"6px", fontSize:"12px" }}>
               <div onClick={() => { setSelectedCompIdx(idx); setSelectedSkaterIdx(null); }} style={{ cursor:"pointer" }}>
-                <div style={{ fontWeight:"600", color:"#373435" }}>{comp.name}</div>
+                <div style={{ fontWeight:"600", color:"#22221C" }}>{comp.name}</div>
                 <div style={{ fontSize:"10px", color:"#6b7280", marginTop:"2px" }}>{comp.category} — {comp.skaters?.length || 0} Läufer</div>
               </div>
               <button onClick={() => handleDeleteComp(idx)} style={{ marginTop:"4px", padding:"3px 8px", borderRadius:"4px", border:"1px solid #fca5a5", background:"#fef2f2", color:"#dc2626", fontWeight:"600", fontSize:"9px", cursor:"pointer", width:"100%" }}>Löschen</button>
@@ -4570,7 +4570,7 @@
             </div>
           ) : !selectedSkater ? (
             <div>
-              <h2 style={{ fontSize:"18px", fontWeight:"700", color:"#373435", marginBottom:"4px" }}>{selectedComp.name}</h2>
+              <h2 style={{ fontSize:"18px", fontWeight:"700", color:"#22221C", marginBottom:"4px" }}>{selectedComp.name}</h2>
               <p style={{ fontSize:"12px", color:"#6b7280", marginBottom:"16px" }}>{selectedComp.category}</p>
               <div className="r-table-wrap">
               <table style={{ width:"100%", borderCollapse:"collapse", fontSize:"12px", minWidth:500 }}>
@@ -4583,8 +4583,8 @@
                 </thead>
                 <tbody>
                   {(selectedComp.skaters || []).map((sk, idx) => (
-                    <tr key={idx} onClick={() => setSelectedSkaterIdx(idx)} style={{ borderBottom:"1px solid #f3f4f6", cursor:"pointer", background: selectedSkaterIdx===idx ? "#FFF8E1" : "white" }}>
-                      <td style={{ padding:"8px", fontWeight:"700", color:"#373435", textAlign:"right" }}>{sk.place}</td>
+                    <tr key={idx} onClick={() => setSelectedSkaterIdx(idx)} style={{ borderBottom:"1px solid #f3f4f6", cursor:"pointer", background: selectedSkaterIdx===idx ? "#f0f1f2" : "white" }}>
+                      <td style={{ padding:"8px", fontWeight:"700", color:"#22221C", textAlign:"right" }}>{sk.place}</td>
                       <td style={{ padding:"8px", fontWeight:"600" }}>{sk.name}</td>
                       <td style={{ padding:"8px", color:"#6b7280", fontSize:"11px" }}>{sk.club}</td>
                       <td style={{ padding:"8px", textAlign:"right" }}>{(sk.tes||0).toFixed(2)}</td>
@@ -4601,15 +4601,15 @@
             <div>
               <button onClick={() => setSelectedSkaterIdx(null)} style={{ padding:"5px 10px", borderRadius:"5px", border:"1px solid #d1d5db", background:"white", fontSize:"11px", fontWeight:"600", cursor:"pointer", marginBottom:"12px" }}>← Zurück</button>
               <div style={{ display:"flex", alignItems:"baseline", gap:"12px", marginBottom:"6px" }}>
-                <h2 style={{ fontSize:"16px", fontWeight:"700", color:"#373435" }}>{selectedSkater.name}</h2>
+                <h2 style={{ fontSize:"16px", fontWeight:"700", color:"#22221C" }}>{selectedSkater.name}</h2>
                 <span style={{ fontSize:"12px", color:"#059669", fontWeight:"700" }}>Platz {selectedSkater.place}</span>
               </div>
               {selectedSkater.club && <p style={{ fontSize:"11px", color:"#6b7280", marginBottom:"12px" }}>{selectedSkater.club}</p>}
               <div className="r-grid2-mobile" style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:"8px", marginBottom:"16px" }}>
                 {[["TES", selectedSkater.tes], ["PCS", selectedSkater.pcs], ["DED", selectedSkater.deductions], ["Total", selectedSkater.total]].map(([label, val]) => (
-                  <div key={label} style={{ padding:"10px", background:"#FFF8E1", borderRadius:"8px", borderLeft:"3px solid " + (label==="DED" && val > 0 ? "#dc2626" : "#059669") }}>
+                  <div key={label} style={{ padding:"10px", background:"#f0f1f2", borderRadius:"8px", borderLeft:"3px solid " + (label==="DED" && val > 0 ? "#dc2626" : "#059669") }}>
                     <div style={{ fontSize:"10px", color:"#6b7280", fontWeight:"600" }}>{label}</div>
-                    <div style={{ fontSize:"18px", fontWeight:"700", color: label==="Total" ? "#059669" : label==="DED" && val > 0 ? "#dc2626" : "#373435" }}>
+                    <div style={{ fontSize:"18px", fontWeight:"700", color: label==="Total" ? "#059669" : label==="DED" && val > 0 ? "#dc2626" : "#22221C" }}>
                       {label==="DED" && val > 0 ? "-" : ""}{(val||0).toFixed(2)}
                     </div>
                   </div>
@@ -4666,7 +4666,7 @@
                   </tbody>
                 </table>
               </div>
-              <button onClick={() => handleLoadSkater(selectedSkater)} style={{ padding:"10px 20px", borderRadius:"6px", border:"none", background:"#D70010", color:"white", fontWeight:"700", fontSize:"13px", cursor:"pointer" }}>
+              <button onClick={() => handleLoadSkater(selectedSkater)} style={{ padding:"10px 20px", borderRadius:"6px", border:"none", background:"#22221C", color:"white", fontWeight:"700", fontSize:"13px", cursor:"pointer" }}>
                 ▶ Ins Content Sheet laden
               </button>
             </div>
@@ -4716,7 +4716,7 @@
           <svg viewBox="0 0 120 80" style={{width:120,height:80,margin:"0 auto 12px",display:"block",opacity:.6}}>
             <rect x="10" y="55" width="12" height="20" rx="2" fill="#d1d5db"/><rect x="30" y="40" width="12" height="35" rx="2" fill="#d1d5db"/>
             <rect x="50" y="25" width="12" height="50" rx="2" fill="#d1d5db"/><rect x="70" y="35" width="12" height="40" rx="2" fill="#d1d5db"/>
-            <rect x="90" y="15" width="12" height="60" rx="2" fill="#d1d5db"/><path d="M16 52 L36 37 L56 22 L76 32 L96 12" fill="none" stroke="#D70010" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 4"/>
+            <rect x="90" y="15" width="12" height="60" rx="2" fill="#d1d5db"/><path d="M16 52 L36 37 L56 22 L76 32 L96 12" fill="none" stroke="#22221C" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="4 4"/>
           </svg>
           <p style={{color:"#374151",fontSize:14,fontWeight:600,margin:"0 0 4px"}}>Noch keine Scores vorhanden</p>
           <p style={{color:"#9ca3af",fontSize:12,margin:0}}>Gehe zum Content Sheet und klicke "Score speichern", um deine Entwicklung zu verfolgen.</p>
@@ -4742,10 +4742,10 @@
           {pts.map((pt,i)=><text key={i} x={pt.x} y={height-5} textAnchor="middle" fontSize={8} fill="#9ca3af" transform={`rotate(-30,${pt.x},${height-5})`}>{pt.date.slice(5)}</text>)}
           <path d={line(tesP)} fill="none" stroke="#3b82f6" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.6}/>
           <path d={line(pcsP)} fill="none" stroke="#8b5cf6" strokeWidth={1.5} strokeDasharray="4,3" opacity={0.6}/>
-          <path d={line(pts)} fill="none" stroke="#D70010" strokeWidth={2.5}/>
-          {pts.map((pt,i)=><circle key={i} cx={pt.x} cy={pt.y} r={4} fill="#D70010" stroke="white" strokeWidth={2}><title>{pt.date}: Total {pt.total.toFixed(2)} (TES {pt.tes.toFixed(2)} + PCS {pt.pcs.toFixed(2)})</title></circle>)}
+          <path d={line(pts)} fill="none" stroke="#22221C" strokeWidth={2.5}/>
+          {pts.map((pt,i)=><circle key={i} cx={pt.x} cy={pt.y} r={4} fill="#22221C" stroke="white" strokeWidth={2}><title>{pt.date}: Total {pt.total.toFixed(2)} (TES {pt.tes.toFixed(2)} + PCS {pt.pcs.toFixed(2)})</title></circle>)}
           <g transform={`translate(${pad.l+10},${pad.t})`}>
-            <rect x={0} y={0} width={10} height={3} fill="#D70010"/><text x={14} y={4} fontSize={9} fill="#374151">Total</text>
+            <rect x={0} y={0} width={10} height={3} fill="#22221C"/><text x={14} y={4} fontSize={9} fill="#374151">Total</text>
             <rect x={60} y={0} width={10} height={3} fill="#3b82f6" opacity={0.6}/><text x={74} y={4} fontSize={9} fill="#374151">TES</text>
             <rect x={105} y={0} width={10} height={3} fill="#8b5cf6" opacity={0.6}/><text x={119} y={4} fontSize={9} fill="#374151">PCS</text>
           </g>
@@ -4773,7 +4773,7 @@
       return(
         <div className="r-table-wrap" style={{overflow:"auto",WebkitOverflowScrolling:"touch"}}>
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,minWidth:500}}>
-            <thead><tr style={{background:"#FFF8E1",borderBottom:"2px solid #D70010"}}>
+            <thead><tr style={{background:"#f0f1f2",borderBottom:"2px solid #22221C"}}>
               <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700}}>Läufer</th>
               <th style={{padding:"8px 10px",textAlign:"left"}}>Kategorie</th>
               <th style={{padding:"8px 10px",textAlign:"right"}}>TES</th>
@@ -4818,7 +4818,7 @@
           <svg viewBox="0 0 100 80" style={{width:100,height:80,margin:"0 auto 12px",display:"block",opacity:.6}}>
             <rect x="15" y="10" width="70" height="55" rx="6" fill="#d1d5db"/><rect x="25" y="22" width="40" height="4" rx="2" fill="#f3f4f6"/>
             <rect x="25" y="32" width="50" height="4" rx="2" fill="#f3f4f6"/><rect x="25" y="42" width="30" height="4" rx="2" fill="#f3f4f6"/>
-            <circle cx="72" cy="52" r="14" fill="#D70010" opacity=".3"/><text x="72" y="57" textAnchor="middle" fontSize="16" fill="#D70010" fontWeight="bold">+</text>
+            <circle cx="72" cy="52" r="14" fill="#22221C" opacity=".3"/><text x="72" y="57" textAnchor="middle" fontSize="16" fill="#22221C" fontWeight="bold">+</text>
           </svg>
           <p style={{color:"#374151",fontSize:14,fontWeight:600,margin:"0 0 4px"}}>Keine Element-Daten vorhanden</p>
           <p style={{color:"#9ca3af",fontSize:12,margin:0}}>Trage Trainingseinheiten im Tagebuch ein, um Erfolgsquoten zu sehen.</p>
@@ -4830,7 +4830,7 @@
             const pct=Math.round(el.landed/el.attempts*100);
             const color=pct>=80?"#059669":pct>=60?"#f59e0b":"#dc2626";
             return <div key={el.code} style={{background:"white",border:"1px solid #e5e7eb",borderRadius:8,padding:10}}>
-              <div style={{fontWeight:700,fontSize:13,color:"#373435"}}>{el.code}</div>
+              <div style={{fontWeight:700,fontSize:13,color:"#22221C"}}>{el.code}</div>
               <div style={{margin:"6px 0",background:"#f3f4f6",borderRadius:4,height:8,overflow:"hidden"}}>
                 <div style={{width:pct+"%",height:"100%",background:color,borderRadius:4,transition:"width 0.3s"}}/>
               </div>
@@ -4852,7 +4852,7 @@
         <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
           {[{k:"verlauf",l:"Score-Verlauf"},{k:"vergleich",l:"Läufer-Vergleich"},{k:"elemente",l:"Element-Erfolgsquote"}].map(t=>(
             <button key={t.k} onClick={()=>setTab(t.k)} style={{padding:"7px 16px",borderRadius:6,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
-              background:tab===t.k?"#D70010":"#e5e7eb",color:tab===t.k?"white":"#374151"}}>{t.l}</button>
+              background:tab===t.k?"#22221C":"#e5e7eb",color:tab===t.k?"white":"#374151"}}>{t.l}</button>
           ))}
           {tab==="verlauf"&&<>
             <span style={{marginLeft:"auto",fontSize:11,color:"#6b7280"}}>Läufer:</span>
@@ -4864,7 +4864,7 @@
         </div>
 
         {tab==="verlauf"&&<div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16}}>
-          <h3 style={{margin:"0 0 12px",fontSize:15,fontWeight:800,color:"#373435"}}>Score-Verlauf {selectedSkater!=="all"&&`— ${selectedSkater}`}</h3>
+          <h3 style={{margin:"0 0 12px",fontSize:15,fontWeight:800,color:"#22221C"}}>Score-Verlauf {selectedSkater!=="all"&&`— ${selectedSkater}`}</h3>
           <ScoreChart data={filtered}/>
           {filtered.length>0&&<div style={{marginTop:12,overflow:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
             <thead><tr style={{borderBottom:"1px solid #e5e7eb"}}><th style={{padding:"4px 8px",textAlign:"left"}}>Datum</th><th style={{padding:"4px 8px",textAlign:"left"}}>Läufer</th><th style={{padding:"4px 8px",textAlign:"left"}}>Label</th><th style={{padding:"4px 8px",textAlign:"right"}}>TES</th><th style={{padding:"4px 8px",textAlign:"right"}}>PCS</th><th style={{padding:"4px 8px",textAlign:"right",fontWeight:700}}>Total</th></tr></thead>
@@ -4873,12 +4873,12 @@
         </div>}
 
         {tab==="vergleich"&&<div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16}}>
-          <h3 style={{margin:"0 0 12px",fontSize:15,fontWeight:800,color:"#373435"}}>Läufer-Vergleich</h3>
+          <h3 style={{margin:"0 0 12px",fontSize:15,fontWeight:800,color:"#22221C"}}>Läufer-Vergleich</h3>
           <SkaterComparison/>
         </div>}
 
         {tab==="elemente"&&<div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16}}>
-          <h3 style={{margin:"0 0 12px",fontSize:15,fontWeight:800,color:"#373435"}}>Element-Erfolgsquote</h3>
+          <h3 style={{margin:"0 0 12px",fontSize:15,fontWeight:800,color:"#22221C"}}>Element-Erfolgsquote</h3>
           <p style={{fontSize:11,color:"#6b7280",marginBottom:12}}>Basierend auf allen Trainingseinheiten im Tagebuch</p>
           <ElementStats/>
         </div>}
@@ -4917,12 +4917,12 @@
               <button onClick={()=>rmEl(i)} style={{background:"none",border:"none",color:"#dc2626",cursor:"pointer",fontSize:14}}>×</button>
             </div>
           ))}
-          <button onClick={addEl} style={{fontSize:11,color:"#D70010",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>+ Element</button>
+          <button onClick={addEl} style={{fontSize:11,color:"#E10716",background:"none",border:"none",cursor:"pointer",fontWeight:600}}>+ Element</button>
         </div>
         <label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Notizen</label>
         <textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows={2} placeholder="Wie lief das Training?" style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12,marginTop:4,resize:"vertical"}}/>
         <div style={{display:"flex",gap:6,marginTop:10}}>
-          <button onClick={()=>onSave(form)} style={{padding:"7px 16px",borderRadius:5,border:"none",background:"#D70010",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>Speichern</button>
+          <button onClick={()=>onSave(form)} style={{padding:"7px 16px",borderRadius:5,border:"none",background:"#22221C",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>Speichern</button>
           <button onClick={onCancel} style={{padding:"7px 16px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontSize:12,cursor:"pointer"}}>Abbrechen</button>
         </div>
       </div>
@@ -4983,8 +4983,8 @@
     return(
       <div style={{padding:"16px 20px",maxWidth:1000,margin:"0 auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <h2 style={{margin:0,fontSize:18,fontWeight:800,color:"#373435"}}>Trainings-Tagebuch</h2>
-          <button onClick={()=>{setEditing(emptyEntry());setShowForm(true);}} style={{padding:"7px 16px",borderRadius:6,border:"none",background:"#D70010",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Neuer Eintrag</button>
+          <h2 style={{margin:0,fontSize:18,fontWeight:800,color:"#22221C"}}>Trainings-Tagebuch</h2>
+          <button onClick={()=>{setEditing(emptyEntry());setShowForm(true);}} style={{padding:"7px 16px",borderRadius:6,border:"none",background:"#22221C",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Neuer Eintrag</button>
         </div>
 
         {showForm&&<TrainingEntryForm initial={editing} onSave={save} onCancel={()=>{setShowForm(false);setEditing(null);}} skaters={skaters}/>}
@@ -4995,7 +4995,7 @@
               <rect x="20" y="5" width="60" height="70" rx="6" fill="#d1d5db"/><rect x="28" y="16" width="44" height="3" rx="1.5" fill="#f3f4f6"/>
               <rect x="28" y="24" width="36" height="3" rx="1.5" fill="#f3f4f6"/><rect x="28" y="32" width="44" height="3" rx="1.5" fill="#f3f4f6"/>
               <rect x="28" y="40" width="28" height="3" rx="1.5" fill="#f3f4f6"/><rect x="28" y="48" width="40" height="3" rx="1.5" fill="#f3f4f6"/>
-              <circle cx="28" cy="61" r="3" fill="#D70010" opacity=".5"/><rect x="34" y="59.5" width="20" height="3" rx="1.5" fill="#D70010" opacity=".3"/>
+              <circle cx="28" cy="61" r="3" fill="#22221C" opacity=".5"/><rect x="34" y="59.5" width="20" height="3" rx="1.5" fill="#22221C" opacity=".3"/>
             </svg>
             <p style={{color:"#374151",fontSize:14,fontWeight:600,margin:"0 0 4px"}}>Noch keine Trainingseinheiten</p>
             <p style={{color:"#9ca3af",fontSize:12,margin:0}}>Klicke "Neuer Eintrag", um dein erstes Training zu dokumentieren.</p>
@@ -5005,7 +5005,7 @@
               <div key={log.id} style={{background:"white",borderRadius:8,border:"1px solid #e5e7eb",padding:12}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                   <div>
-                    <div style={{fontWeight:700,fontSize:14,color:"#373435"}}>{log.date} {log.skaterName&&<span style={{fontWeight:400,color:"#6b7280"}}>— {log.skaterName}</span>}</div>
+                    <div style={{fontWeight:700,fontSize:14,color:"#22221C"}}>{log.date} {log.skaterName&&<span style={{fontWeight:400,color:"#6b7280"}}>— {log.skaterName}</span>}</div>
                     <div style={{fontSize:11,color:"#6b7280",marginTop:2}}>{log.duration} Min {log.goals&&<span>• Ziel: {log.goals}</span>}</div>
                   </div>
                   <div style={{display:"flex",gap:4}}>
@@ -5018,7 +5018,7 @@
                     {log.elements.filter(e=>e.code).map((el,i)=>{
                       const pct=el.attempts>0?Math.round(el.landed/el.attempts*100):0;
                       const color=pct>=80?"#059669":pct>=60?"#f59e0b":"#dc2626";
-                      return <span key={i} style={{display:"inline-flex",gap:4,alignItems:"center",padding:"3px 8px",borderRadius:4,background:"#FFF8E1",border:"1px solid #FFECB3",fontSize:11}}>
+                      return <span key={i} style={{display:"inline-flex",gap:4,alignItems:"center",padding:"3px 8px",borderRadius:4,background:"#f0f1f2",border:"1px solid #DEE2E6",fontSize:11}}>
                         <strong>{el.code}</strong> <span style={{color}}>{el.landed}/{el.attempts} ({pct}%)</span>
                       </span>;
                     })}
@@ -5049,7 +5049,7 @@
         </div>
         <div style={{marginBottom:10}}><label style={{fontSize:10,fontWeight:600,color:"#6b7280"}}>Notizen</label><textarea value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})} rows={2} style={{width:"100%",padding:"6px 8px",borderRadius:5,border:"1px solid #d1d5db",fontSize:12,resize:"vertical"}}/></div>
         <div style={{display:"flex",gap:6}}>
-          <button onClick={()=>onSave(form)} style={{padding:"7px 16px",borderRadius:5,border:"none",background:"#D70010",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>Speichern</button>
+          <button onClick={()=>onSave(form)} style={{padding:"7px 16px",borderRadius:5,border:"none",background:"#22221C",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>Speichern</button>
           <button onClick={onCancel} style={{padding:"7px 16px",borderRadius:5,border:"1px solid #d1d5db",background:"white",fontSize:12,cursor:"pointer"}}>Abbrechen</button>
         </div>
       </div>
@@ -5126,14 +5126,14 @@
     return(
       <div style={{padding:"16px 20px",maxWidth:900,margin:"0 auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <h2 style={{margin:0,fontSize:18,fontWeight:800,color:"#373435"}}>Wettkampf-Kalender</h2>
-          <button onClick={()=>{setEditing(null);setShowForm(true);}} style={{padding:"7px 16px",borderRadius:6,border:"none",background:"#D70010",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Wettkampf</button>
+          <h2 style={{margin:0,fontSize:18,fontWeight:800,color:"#22221C"}}>Wettkampf-Kalender</h2>
+          <button onClick={()=>{setEditing(null);setShowForm(true);}} style={{padding:"7px 16px",borderRadius:6,border:"none",background:"#22221C",color:"white",fontWeight:700,fontSize:12,cursor:"pointer"}}>+ Wettkampf</button>
         </div>
 
         {showForm&&<CompetitionCompForm initial={editing} onSave={save} onCancel={()=>{setShowForm(false);setEditing(null);}}/>}
 
         {upcoming.length>0&&<>
-          <h3 style={{fontSize:14,fontWeight:700,color:"#373435",margin:"16px 0 8px"}}>Anstehende Wettkämpfe</h3>
+          <h3 style={{fontSize:14,fontWeight:700,color:"#22221C",margin:"16px 0 8px"}}>Anstehende Wettkämpfe</h3>
           {upcoming.map(comp=>{
             const days=daysUntil(comp.date);
             const checkDone=(comp.checklist||[]).filter(c=>c.done).length;
@@ -5141,7 +5141,7 @@
             return <div key={comp.id} style={{background:"white",borderRadius:10,border:days<=7?"2px solid #f59e0b":"1px solid #e5e7eb",padding:16,marginBottom:10}}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
                 <div>
-                  <div style={{fontWeight:800,fontSize:16,color:"#373435"}}>{comp.name}</div>
+                  <div style={{fontWeight:800,fontSize:16,color:"#22221C"}}>{comp.name}</div>
                   <div style={{fontSize:12,color:"#6b7280",marginTop:2}}>{comp.date} • {comp.location||"Ort offen"}</div>
                 </div>
                 <div style={{textAlign:"right"}}>
@@ -5162,7 +5162,7 @@
                     <span style={{textDecoration:c.done?"line-through":"none",color:c.done?"#9ca3af":"#374151"}}>{c.item}</span>
                   </label>
                 ))}
-                <button onClick={()=>{const item=prompt('Neuer Checklisten-Punkt:');if(item)addCheckItem(comp,item);}} style={{fontSize:11,color:"#D70010",background:"none",border:"none",cursor:"pointer",fontWeight:600,marginTop:4}}>+ Punkt hinzufügen</button>
+                <button onClick={()=>{const item=prompt('Neuer Checklisten-Punkt:');if(item)addCheckItem(comp,item);}} style={{fontSize:11,color:"#E10716",background:"none",border:"none",cursor:"pointer",fontWeight:600,marginTop:4}}>+ Punkt hinzufügen</button>
               </div>
               <div style={{display:"flex",gap:4,marginTop:8}}>
                 <button onClick={()=>{setEditing(comp);setShowForm(true);}} style={{padding:"4px 10px",borderRadius:4,border:"1px solid #d1d5db",background:"white",fontSize:11,cursor:"pointer"}}>Bearbeiten</button>
@@ -5206,17 +5206,17 @@
     const scr=useScreen();
     const Section=({icon,title,children})=>(
       <div style={{background:"white",borderRadius:10,border:"1px solid #e5e7eb",padding:scr.mobile?12:20,marginBottom:12}}>
-        <h3 style={{margin:"0 0 10px",fontSize:scr.mobile?14:16,fontWeight:800,color:"#373435"}}>{icon} {title}</h3>
+        <h3 style={{margin:"0 0 10px",fontSize:scr.mobile?14:16,fontWeight:800,color:"#22221C"}}>{icon} {title}</h3>
         <div style={{fontSize:scr.mobile?12:13,color:"#374151",lineHeight:1.7}}>{children}</div>
       </div>
     );
     const Tip=({children})=><div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:6,padding:"8px 12px",margin:"8px 0",fontSize:12,color:"#92400e"}}><strong>Tipp:</strong> {children}</div>;
-    const Key=({children})=><span style={{display:"inline-block",background:"#FFF8E1",border:"1px solid #FFD800",borderRadius:4,padding:"1px 8px",fontSize:11,fontWeight:700,color:"#373435"}}>{children}</span>;
+    const Key=({children})=><span style={{display:"inline-block",background:"#f0f1f2",border:"1px solid #DEE2E6",borderRadius:4,padding:"1px 8px",fontSize:11,fontWeight:700,color:"#22221C"}}>{children}</span>;
 
     return(
       <div style={{padding:scr.mobile?"10px 12px":"16px 20px",maxWidth:900,margin:"0 auto"}}>
         <div style={{textAlign:"center",marginBottom:20}}>
-          <h2 style={{margin:0,fontSize:scr.mobile?20:24,fontWeight:800,color:"#373435"}}>Anleitung — RollArt 2026</h2>
+          <h2 style={{margin:0,fontSize:scr.mobile?20:24,fontWeight:800,color:"#22221C"}}>Anleitung — RollArt 2026</h2>
           <p style={{margin:"6px 0 0",fontSize:13,color:"#6b7280"}}>Alles, was du wissen musst, um das Beste aus deinem Trainings-Tool herauszuholen.</p>
         </div>
 
@@ -5274,8 +5274,8 @@
           <p style={{marginTop:4}}>Jeder Trainer kann beliebig viele Läufer-Profile anlegen — ideal um mehrere Schützlinge zu betreuen.</p>
         </Section>
 
-        <div style={{background:"#FFF8E1",border:"2px solid #D70010",borderRadius:10,padding:scr.mobile?12:20,textAlign:"center"}}>
-          <div style={{fontSize:scr.mobile?16:18,fontWeight:800,color:"#373435",marginBottom:6}}>Viel Erfolg beim Training!</div>
+        <div style={{background:"#f0f1f2",border:"2px solid #22221C",borderRadius:10,padding:scr.mobile?12:20,textAlign:"center"}}>
+          <div style={{fontSize:scr.mobile?16:18,fontWeight:800,color:"#22221C",marginBottom:6}}>Viel Erfolg beim Training!</div>
           <p style={{fontSize:12,color:"#6b7280",margin:0}}>RollArt 2026 — Dein Werkzeug für den perfekten Score. Basierend auf den offiziellen World Skate Artistic Impression Regeln 2026.</p>
         </div>
       </div>
@@ -5303,11 +5303,11 @@
          onMouseLeave={locked?undefined:e=>{e.currentTarget.style.borderColor="#e5e7eb";e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,.06)";}}>
         {locked&&<div style={{position:"absolute",top:12,right:12,background:"#f3f4f6",borderRadius:8,padding:"4px 10px",fontSize:10,fontWeight:700,color:"#6b7280",border:"1px solid #d1d5db"}}>Nicht im Plan</div>}
         <div style={{fontSize:scr.mobile?48:64,marginBottom:12,lineHeight:1,filter:locked?"grayscale(1)":"none"}}>{icon}</div>
-        <h2 style={{margin:"0 0 4px",fontSize:scr.mobile?18:22,fontWeight:800,color:locked?"#9ca3af":"#373435"}}>{title}</h2>
+        <h2 style={{margin:"0 0 4px",fontSize:scr.mobile?18:22,fontWeight:800,color:locked?"#9ca3af":"#22221C"}}>{title}</h2>
         <div style={{fontSize:12,fontWeight:600,color:locked?"#9ca3af":color,marginBottom:10}}>{subtitle}</div>
         <p style={{fontSize:13,color:"#6b7280",lineHeight:1.6,marginBottom:14}}>{desc}</p>
         <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center"}}>
-          {categories.map(c=><span key={c} style={{background:locked?"#f3f4f6":"#FFF8E1",border:locked?"1px solid #d1d5db":"1px solid #FFECB3",borderRadius:4,padding:"2px 8px",fontSize:10,fontWeight:600,color:locked?"#9ca3af":"#373435"}}>{c}</span>)}
+          {categories.map(c=><span key={c} style={{background:locked?"#f3f4f6":"#f0f1f2",border:locked?"1px solid #d1d5db":"1px solid #DEE2E6",borderRadius:4,padding:"2px 8px",fontSize:10,fontWeight:600,color:locked?"#9ca3af":"#22221C"}}>{c}</span>)}
         </div>
         {locked ? (
           <div style={{marginTop:16,padding:"10px 24px",borderRadius:8,background:"#e5e7eb",color:"#6b7280",fontWeight:700,fontSize:13,display:"inline-block"}}>
@@ -5325,28 +5325,28 @@
       <div style={{padding:scr.mobile?"16px 12px":"40px 20px",maxWidth:900,margin:"0 auto"}}>
         <div style={{textAlign:"center",marginBottom:scr.mobile?20:36}}>
           <div style={{fontSize:10,fontWeight:600,opacity:.6,letterSpacing:2,textTransform:"uppercase",marginBottom:4}}>World Skate 2026</div>
-          <h1 style={{margin:"0 0 8px",fontSize:scr.mobile?22:32,fontWeight:800,color:"#373435"}}>RollArt Dashboard</h1>
+          <h1 style={{margin:"0 0 8px",fontSize:scr.mobile?22:32,fontWeight:800,color:"#22221C"}}>RollArt Dashboard</h1>
           <p style={{fontSize:14,color:"#6b7280",margin:0}}>Wähle deine Disziplin, um loszulegen.</p>
         </div>
 
         <div style={{display:"flex",gap:scr.mobile?12:20,flexDirection:scr.mobile?"column":"row",marginBottom:24}}>
           <Kachel
-            icon={<svg viewBox="0 0 100 100" width={scr.mobile?56:72} height={scr.mobile?56:72} style={{margin:"0 auto",display:"block"}}><circle cx="50" cy="22" r="12" fill="#D70010"/><path d="M35 38 Q50 34 65 38 L62 70 Q55 85 50 92 Q45 85 38 70 Z" fill="#D70010" opacity=".85"/><path d="M38 70 L30 90 Q34 92 38 88" fill="#D70010"/><path d="M62 70 L70 90 Q66 92 62 88" fill="#D70010"/></svg>}
+            icon={<svg viewBox="0 0 100 100" width={scr.mobile?56:72} height={scr.mobile?56:72} style={{margin:"0 auto",display:"block"}}><circle cx="50" cy="22" r="12" fill="#22221C"/><path d="M35 38 Q50 34 65 38 L62 70 Q55 85 50 92 Q45 85 38 70 Z" fill="#22221C" opacity=".85"/><path d="M38 70 L30 90 Q34 92 38 88" fill="#22221C"/><path d="M62 70 L70 90 Q66 92 62 88" fill="#22221C"/></svg>}
             title="Einzellauf"
             subtitle="Free Skating Singles"
             desc="Short Program & Free Program für alle Altersklassen von Tots bis Senior."
             categories={["Tots","Minis","Espoirs","Cadets","Jeunesse","Junior","Senior"]}
-            color="#D70010"
+            color="#22221C"
             onClick={()=>onSelect("einzel")}
             locked={plan==="pairs"}
           />
           <Kachel
-            icon={<svg viewBox="0 0 120 100" width={scr.mobile?56:72} height={scr.mobile?48:60} style={{margin:"0 auto",display:"block"}}><circle cx="40" cy="22" r="10" fill="#D70010"/><path d="M28 36 Q40 32 52 36 L50 62 Q44 75 40 82 Q36 75 30 62 Z" fill="#D70010" opacity=".85"/><circle cx="80" cy="22" r="10" fill="#D70010"/><path d="M68 36 Q80 32 92 36 L90 62 Q84 75 80 82 Q76 75 70 62 Z" fill="#D70010" opacity=".85"/><path d="M52 45 L68 45" stroke="#D70010" strokeWidth="2" strokeDasharray="3,2"/></svg>}
+            icon={<svg viewBox="0 0 120 100" width={scr.mobile?56:72} height={scr.mobile?48:60} style={{margin:"0 auto",display:"block"}}><circle cx="40" cy="22" r="10" fill="#22221C"/><path d="M28 36 Q40 32 52 36 L50 62 Q44 75 40 82 Q36 75 30 62 Z" fill="#22221C" opacity=".85"/><circle cx="80" cy="22" r="10" fill="#22221C"/><path d="M68 36 Q80 32 92 36 L90 62 Q84 75 80 82 Q76 75 70 62 Z" fill="#22221C" opacity=".85"/><path d="M52 45 L68 45" stroke="#22221C" strokeWidth="2" strokeDasharray="3,2"/></svg>}
             title="Paarlauf"
             subtitle="Free Skating Pairs"
             desc="Lifts, Twists, Death Spirals, Throw Jumps — alle Pair-Elemente für Tots bis Senior."
             categories={["Pairs Tots","Pairs Minis","Pairs Espoirs","Pairs Cadets","Pairs Youth","Pairs Junior","Pairs Senior"]}
-            color="#D70010"
+            color="#22221C"
             onClick={()=>onSelect("pairs")}
             locked={plan==="einzel"}
           />
@@ -5960,9 +5960,9 @@
       const pageBreak=(need)=>{if(y+need>ph-12){doc.addPage();y=10;return true;}return false;};
 
       // Title bar
-      rectF(mx,y,cw,10,"#FFF8E1");
-      txt(skater||"—", mx+4, y+7, {bold:true, size:13, color:"#373435"});
-      txt(segDef.label, mx+cw-4, y+7, {bold:true, size:11, align:"right", color:"#373435"});
+      rectF(mx,y,cw,10,"#f0f1f2");
+      txt(skater||"—", mx+4, y+7, {bold:true, size:13, color:"#22221C"});
+      txt(segDef.label, mx+cw-4, y+7, {bold:true, size:11, align:"right", color:"#22221C"});
       y+=10;
       rectF(mx,y,cw,6,"#f9fafb");
       txt(`Kategorie: ${cat||"-"}  |  Musik: ${music||"-"}  |  Judges: ${judgeCount}  |  ${new Date().toLocaleDateString("de-DE")}`, mx+4, y+4.5, {size:7, color:"#555555"});
@@ -5985,9 +5985,9 @@
       const drawElHeader=()=>{
         let hx=mx;
         hdrs.forEach(c=>{
-          rectF(hx,y,c.w,hh,"#FFF8E1");
+          rectF(hx,y,c.w,hh,"#f0f1f2");
           const tx=c.a==="center"?hx+c.w/2:c.a==="right"?hx+c.w-2:hx+2;
-          txt(c.label,tx,y+5,{bold:true,size:8,align:c.a,color:"#373435"});
+          txt(c.label,tx,y+5,{bold:true,size:8,align:c.a,color:"#22221C"});
           hx+=c.w;
         });
         y+=hh;
@@ -6109,9 +6109,9 @@
       pageBreak(9);
       const tesH=8;
       doc.setDrawColor("#059669");doc.setLineWidth(0.6);doc.line(mx,y,mx+cw,y);doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
-      rectF(mx,y,cw-colScore,tesH,"#FFF8E1");
-      txt("Technical Element Score (TES)",mx+cw-colScore-4,y+6,{bold:true,size:10,align:"right",color:"#373435"});
-      rectF(mx+cw-colScore,y,colScore,tesH,"#FFF8E1");
+      rectF(mx,y,cw-colScore,tesH,"#f0f1f2");
+      txt("Technical Element Score (TES)",mx+cw-colScore-4,y+6,{bold:true,size:10,align:"right",color:"#22221C"});
+      rectF(mx+cw-colScore,y,colScore,tesH,"#f0f1f2");
       txt(tes.toFixed(2),mx+cw-2,y+6,{bold:true,size:13,align:"right",color:"#059669"});
       y+=tesH+6;
 
@@ -6171,8 +6171,8 @@
         rectF(sumX+sumW*0.65,y,sumW*0.35,sH);txt("+"+extraPoints.toFixed(2),sumX+sumW-4,y+5,{bold:true,size:9,align:"right",color:"#059669"});y+=sH;
       }
       const tH=9;
-      rectF(sumX,y,sumW*0.65,tH,"#FFF8E1");txt("TOTAL SCORE",sumX+4,y+6.5,{bold:true,size:10});
-      rectF(sumX+sumW*0.65,y,sumW*0.35,tH,"#FFF8E1");txt(totalScore.toFixed(2),sumX+sumW-4,y+6.5,{bold:true,size:13,align:"right",color:"#059669"});
+      rectF(sumX,y,sumW*0.65,tH,"#f0f1f2");txt("TOTAL SCORE",sumX+4,y+6.5,{bold:true,size:10});
+      rectF(sumX+sumW*0.65,y,sumW*0.35,tH,"#f0f1f2");txt(totalScore.toFixed(2),sumX+sumW-4,y+6.5,{bold:true,size:13,align:"right",color:"#059669"});
       y+=tH+8;
 
       // Footer
@@ -6311,7 +6311,7 @@
     // ============================================================
     //  RENDER
     // ============================================================
-    const hdr = { padding:"8px 4px", fontSize:10, fontWeight:700, color:"#373435", textTransform:"uppercase", letterSpacing:0.5 };
+    const hdr = { padding:"8px 4px", fontSize:10, fontWeight:700, color:"#22221C", textTransform:"uppercase", letterSpacing:0.5 };
 
     // License check — show blocked screen if expired/inactive (except admins)
     const licenseStatus = authCtx?.getLicenseStatus ? authCtx.getLicenseStatus() : { valid: true, plan: 'full' };
@@ -6322,8 +6322,8 @@
     // If no disziplin selected, show Übersichtsseite
     if(!disziplin){
       return(
-        <div style={{ background:"#f9f8f6", minHeight:"100vh" }}>
-          <div style={{ background:"linear-gradient(135deg,#373435 0%,#D70010 50%,#E22028 100%)", padding:screen.mobile?"12px 10px":"16px 20px", color:"white" }}>
+        <div style={{ background:"#f8f9fa", minHeight:"100vh" }}>
+          <div style={{ background:"#22221C", padding:screen.mobile?"12px 10px":"16px 20px", color:"white" }}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
               <div style={{display:"flex",alignItems:"center",gap:10}}>
                 <img src="DRIV-Logo.svg" alt="DRIV" style={{height:screen.mobile?32:42,filter:"brightness(0) invert(1)"}} />
@@ -6353,9 +6353,9 @@
     }
 
     return (
-      <div style={{ background:"#f9f8f6", minHeight:"100vh" }}>
+      <div style={{ background:"#f8f9fa", minHeight:"100vh" }}>
         {/* HEADER */}
-        <div style={{ background:"linear-gradient(135deg,#373435 0%,#D70010 50%,#E22028 100%)", padding:screen.mobile?"10px 10px 8px":"12px 16px 10px", color:"white" }}>
+        <div style={{ background:"#22221C", padding:screen.mobile?"10px 10px 8px":"12px 16px 10px", color:"white" }}>
           <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:6 }}>
             <div style={{minWidth:0,flex:1}}>
               <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -6421,9 +6421,9 @@
                         <div style={{position:"absolute",top:"100%",right:0,marginTop:4,background:"white",borderRadius:8,boxShadow:"0 8px 24px rgba(0,0,0,.18)",border:"1px solid #e5e7eb",minWidth:180,zIndex:100,overflow:"hidden"}}>
                           {moreTabs.map(t => (
                             <button key={t.key} onClick={() => { setPage(t.key); setShowMoreMenu(false); }} style={{
-                              display:"block",width:"100%",padding:"10px 16px",border:"none",background:page===t.key?"#FFF8E1":"white",
-                              color:page===t.key?"#D70010":"#374151",fontWeight:page===t.key?700:500,fontSize:13,cursor:"pointer",textAlign:"left",
-                              borderLeft:page===t.key?"3px solid #D70010":"3px solid transparent",
+                              display:"block",width:"100%",padding:"10px 16px",border:"none",background:page===t.key?"#f0f1f2":"white",
+                              color:page===t.key?"#22221C":"#374151",fontWeight:page===t.key?700:500,fontSize:13,cursor:"pointer",textAlign:"left",
+                              borderLeft:page===t.key?"3px solid #22221C":"3px solid transparent",
                             }}
                               onMouseEnter={e => { if (page !== t.key) e.currentTarget.style.background = "#f9fafb"; }}
                               onMouseLeave={e => { if (page !== t.key) e.currentTarget.style.background = "white"; }}
@@ -6472,7 +6472,7 @@
               <button key={seg} onClick={()=>changeSegment(seg)} style={{
                 padding:"6px 14px",borderRadius:6,border:"none",fontSize:12,fontWeight:600,cursor:"pointer",
                 background:segment===seg?"white":"rgba(255,255,255,.15)",
-                color:segment===seg?"#D70010":"white",
+                color:segment===seg?"#22221C":"white",
               }}>{SEGMENT_DEFS[seg]?.label} ({SEGMENT_DEFS[seg]?.rows})</button>
             ))}
             {!segment.startsWith("pairs_")&&<>
@@ -6481,7 +6481,7 @@
                 <button key={g.k} onClick={()=>setGeschlecht(g.k)} style={{
                   padding:"5px 10px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
                   background:geschlecht===g.k?"white":"rgba(255,255,255,.2)",
-                  color:geschlecht===g.k?"#D70010":"white",
+                  color:geschlecht===g.k?"#22221C":"white",
                 }}>{g.l}</button>
               ))}
             </>}
@@ -6490,7 +6490,7 @@
               <button key={n} onClick={()=>setJudgeCount(n)} style={{
                 padding:"5px 12px",borderRadius:5,border:"none",fontSize:12,fontWeight:700,cursor:"pointer",
                 background:judgeCount===n?"white":"rgba(255,255,255,.2)",
-                color:judgeCount===n?"#D70010":"white",
+                color:judgeCount===n?"#22221C":"white",
               }}>{n}</button>
             ))}
           </div>}
@@ -6515,10 +6515,10 @@
         {/* GLOSSAR & REGELN PAGE */}
         {page==="glossar"&&<div style={{padding:"16px 20px",maxWidth:1200,margin:"0 auto"}}>
   <div style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16,marginBottom:16}}>
-    <h3 style={{margin:"0 0 12px",fontSize:16,fontWeight:800,color:"#373435"}}>Glossar & Regeln (RollArt 2026)</h3>
+    <h3 style={{margin:"0 0 12px",fontSize:16,fontWeight:800,color:"#22221C"}}>Glossar & Regeln (RollArt 2026)</h3>
     <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,fontSize:12}}>
       <div>
-        <h4 style={{margin:"0 0 6px",fontSize:13,fontWeight:700,color:"#D70010"}}>Bewertungssystem</h4>
+        <h4 style={{margin:"0 0 6px",fontSize:13,fontWeight:700,color:"#22221C"}}>Bewertungssystem</h4>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
           <tbody>
             {[
@@ -6532,13 +6532,13 @@
               ["DG","Downgrade – Element wird herabgestuft (halber Basiswert)"],
             ].map(([k,v])=>(
               <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"4px 6px",fontWeight:700,color:"#373435",whiteSpace:"nowrap",verticalAlign:"top"}}>{k}</td>
+                <td style={{padding:"4px 6px",fontWeight:700,color:"#22221C",whiteSpace:"nowrap",verticalAlign:"top"}}>{k}</td>
                 <td style={{padding:"4px 6px",color:"#374151"}}>{v}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#D70010"}}>QOE Richtlinien</h4>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#22221C"}}>QOE Richtlinien</h4>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
           <tbody>
             {[
@@ -6556,7 +6556,7 @@
           </tbody>
         </table>
         <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Bei mehr als 3 Judges: höchste & niedrigste QOE werden gestrichen (Trimmed Mean). Bei 3 oder weniger: einfacher Durchschnitt. Ergebnis auf 2 Dezimalstellen gerundet.</p>
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#D70010"}}>Rotation (Sprünge)</h4>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#22221C"}}>Rotation (Sprünge)</h4>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
           <tbody>
             {[
@@ -6611,7 +6611,7 @@
             ))}
           </tbody>
         </table>
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#D70010"}}>Bonus-Prozente (Sprungwert-Erhöhung)</h4>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#22221C"}}>Bonus-Prozente (Sprungwert-Erhöhung)</h4>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
           <tbody>
             {[
@@ -6629,10 +6629,10 @@
           </tbody>
         </table>
         <p style={{fontSize:10,color:"#6b7280",margin:"6px 0 0"}}>Hinweis: Doppel-Axel zählt als Dreifach für Bonus. Downgraded-Sprünge erhalten keinen Bonus.</p>
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#D70010"}}>Schwierige Pirouetten-Positionen (Bonus auf Basisposition)</h4>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#22221C"}}>Schwierige Pirouetten-Positionen (Bonus auf Basisposition)</h4>
         <p style={{fontSize:10,color:"#6b7280",margin:"0 0 4px"}}>Der Prozentwert wird auf den Grundwert der Basisposition addiert.</p>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <thead><tr style={{background:"#FFF8E1",borderBottom:"2px solid #FFD800"}}><th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,width:45}}>Code</th><th style={{padding:"3px 6px",textAlign:"left",fontWeight:700}}>Position</th><th style={{padding:"3px 6px",textAlign:"right",fontWeight:700,width:50}}>Bonus</th></tr></thead>
+          <thead><tr style={{background:"#f0f1f2",borderBottom:"2px solid #DEE2E6"}}><th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,width:45}}>Code</th><th style={{padding:"3px 6px",textAlign:"left",fontWeight:700}}>Position</th><th style={{padding:"3px 6px",textAlign:"right",fontWeight:700,width:50}}>Bonus</th></tr></thead>
           <tbody>
             {[
               ["UB","Biellmann","+80%"],["UBH","Biellmann Heel","+40%"],["US","Split (Spagat)","+40%"],["UT","Torso","+50%"],
@@ -6644,17 +6644,17 @@
               ["IB","Inverted Bryant","+25%"],["SV","Standard Variation","+20%"],
             ].map(([code,n,bonus],i)=>(
               <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"2px 6px",fontWeight:700,color:"#373435"}}>{code}</td>
+                <td style={{padding:"2px 6px",fontWeight:700,color:"#22221C"}}>{code}</td>
                 <td style={{padding:"2px 6px",color:"#374151"}}>{n}</td>
                 <td style={{padding:"2px 6px",textAlign:"right",fontWeight:700,color:"#059669"}}>{bonus}</td>
               </tr>
             ))}
           </tbody>
         </table>
-        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#D70010"}}>Schwierige Pirouetten-Variationen (Bonus auf Elementwert)</h4>
+        <h4 style={{margin:"12px 0 6px",fontSize:13,fontWeight:700,color:"#22221C"}}>Schwierige Pirouetten-Variationen (Bonus auf Elementwert)</h4>
         <p style={{fontSize:10,color:"#6b7280",margin:"0 0 4px"}}>Der Prozentwert wird als zusätzlicher Bonus auf den Wert des Elements addiert.</p>
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-          <thead><tr style={{background:"#FFF8E1",borderBottom:"2px solid #FFD800"}}><th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,width:45}}>Code</th><th style={{padding:"3px 6px",textAlign:"left",fontWeight:700}}>Variation</th><th style={{padding:"3px 6px",textAlign:"right",fontWeight:700,width:50}}>Bonus</th></tr></thead>
+          <thead><tr style={{background:"#f0f1f2",borderBottom:"2px solid #DEE2E6"}}><th style={{padding:"3px 6px",textAlign:"left",fontWeight:700,width:45}}>Code</th><th style={{padding:"3px 6px",textAlign:"left",fontWeight:700}}>Variation</th><th style={{padding:"3px 6px",textAlign:"right",fontWeight:700,width:50}}>Bonus</th></tr></thead>
           <tbody>
             {[
               ["DE","Difficult Entry – Schwieriger Einstieg","+15%"],["DC","Difficult Change – Schwieriger Wechsel","+15%"],
@@ -6663,7 +6663,7 @@
               ["DF","Different Feet – Verschiedene Füße","+20%"],
             ].map(([code,n,bonus],i)=>(
               <tr key={i} style={{borderBottom:"1px solid #f3f4f6"}}>
-                <td style={{padding:"2px 6px",fontWeight:700,color:"#373435"}}>{code}</td>
+                <td style={{padding:"2px 6px",fontWeight:700,color:"#22221C"}}>{code}</td>
                 <td style={{padding:"2px 6px",color:"#374151"}}>{n}</td>
                 <td style={{padding:"2px 6px",textAlign:"right",fontWeight:700,color:"#059669"}}>{bonus}</td>
               </tr>
@@ -6700,7 +6700,7 @@
         <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
           <tbody>
             {[["CoJ","Combination Jump – Sprungkombination (bis 5 Sprünge)"],["SJu","Solo Jump – Einzelsprung"],["CSp","Combination Spin – Kombinationspirouette"],["SSp","Solo Spin – Einzelpirouette"],["FoSq","Footwork Sequence – Schrittfolge"],["ChSt","Choreo Step Sequence – Choreographische Schrittfolge"],["CLi","Combination Lift – Hebungskombination (Pairs)"],["SLi","Solo Lift – Einzelhebung (Pairs)"],["CtSp","Contact Spin – Kontaktpirouette (Pairs)"],["DS","Death Spiral – Todesspirale (Pairs)"],["Tw","Twist – Twist Lutz (Pairs)"],["Tj","Throw Jump – Wurfsprung (Pairs)"]].map(([k,v])=>(
-              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}><td style={{padding:"2px 6px",fontWeight:700,color:"#373435",width:45}}>{k}</td><td style={{padding:"2px 6px",color:"#374151"}}>{v}</td></tr>
+              <tr key={k} style={{borderBottom:"1px solid #f3f4f6"}}><td style={{padding:"2px 6px",fontWeight:700,color:"#22221C",width:45}}>{k}</td><td style={{padding:"2px 6px",color:"#374151"}}>{v}</td></tr>
             ))}
           </tbody>
         </table>
@@ -6748,13 +6748,13 @@
             return (
               <div style={{display:"flex",gap:screen.mobile?3:5,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
                 {/* I/O Group */}
-                <label style={{...btnBase,border:"1px solid #D70010",background:"#FFF8E1",color:"#D70010"}}>
+                <label style={{...btnBase,border:"1px solid #22221C",background:"#f0f1f2",color:"#22221C"}}>
                   Import (PDF/TXT)
                   <input type="file" accept=".pdf,.txt" onChange={handleUpload} style={{display:"none"}}/>
                 </label>
-                <button onClick={exportTxt} style={{...btnBase,background:"#D70010",color:"white"}}>TXT Export</button>
+                <button onClick={exportTxt} style={{...btnBase,background:"#22221C",color:"white"}}>TXT Export</button>
                 <button onClick={exportOfficialPDF} style={{...btnBase,background:"#dc2626",color:"white"}}>PDF (World Skate)</button>
-                <button onClick={exportDetailPDF} style={{...btnBase,background:"#D70010",color:"white"}}>PDF (Detail)</button>
+                <button onClick={exportDetailPDF} style={{...btnBase,background:"#22221C",color:"white"}}>PDF (Detail)</button>
                 {divider}
                 {/* Läufer Group */}
                 <button onClick={saveSkater} disabled={savingSkater} style={{...btnBase,background:"#3b82f6",color:"white",opacity:savingSkater?0.6:1}}>Speichern</button>
@@ -6764,7 +6764,7 @@
                 <button onClick={()=>{
                   setSimImport({kategorie,segment,geschlecht,skater,cat,music,judgeCount,rows:rows.map(r=>({...r})),pcs:{...pcs,skating:[...pcs.skating],transitions:[...pcs.transitions],performance:[...pcs.performance],choreography:[...pcs.choreography]},deductions,extraPoints,_ts:Date.now()});
                   setPage("training");
-                }} style={{...btnBase,background:"#D70010",color:"white"}}>
+                }} style={{...btnBase,background:"#22221C",color:"white"}}>
                   Simulator &#9654;
                 </button>
                 <button onClick={()=>{
@@ -6794,7 +6794,7 @@
                 <button onClick={addRow} style={{...btnBase,border:"1px solid #d1d5db",background:"white",color:"#374151"}}>+ Zeile</button>
                 <button onClick={removeRow} style={{...btnBase,border:"1px solid #d1d5db",background:"white",color:"#374151"}}>- Zeile</button>
                 <button onClick={clearAll} style={{...btnBase,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626"}}>Löschen</button>
-                {uploadMsg && <span style={{fontSize:11,color:"#D70010",fontWeight:500,marginLeft:4}}>{uploadMsg}</span>}
+                {uploadMsg && <span style={{fontSize:11,color:"#22221C",fontWeight:500,marginLeft:4}}>{uploadMsg}</span>}
               </div>
             );
           })()}
@@ -6810,7 +6810,7 @@
                   <div style={{display:"flex",flexDirection:"column",gap:8}}>
                     {skaters.map((sk)=>(
                       <div key={sk.id} style={{border:"1px solid #e5e7eb",borderRadius:6,padding:10,cursor:"pointer",transition:"background .15s"}}
-                        onMouseEnter={e=>{e.currentTarget.style.background="#FFF8E1";e.currentTarget.style.borderColor="#FFD800";}}
+                        onMouseEnter={e=>{e.currentTarget.style.background="#f0f1f2";e.currentTarget.style.borderColor="#DEE2E6";}}
                         onMouseLeave={e=>{e.currentTarget.style.background="";e.currentTarget.style.borderColor="#e5e7eb";}}
                         onClick={()=>loadSkaterData(sk)}>
                         <div style={{fontWeight:600,fontSize:13}}>{sk.name}</div>
@@ -6832,7 +6832,7 @@
           <div className="r-table-wrap" style={{background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",overflow:"auto",WebkitOverflowScrolling:"touch"}}>
             <table style={{width:"100%",borderCollapse:"collapse",minWidth:680}}>
               <thead>
-                <tr style={{background:"#FFF8E1",borderBottom:"2px solid #D70010"}}>
+                <tr style={{background:"#f0f1f2",borderBottom:"2px solid #22221C"}}>
                   <th style={{...hdr,textAlign:"center",width:32}}>#</th>
                   <th style={{...hdr,textAlign:"left"}}>Typ</th>
                   <th style={{...hdr,textAlign:"left"}}>Element</th>
@@ -6852,11 +6852,11 @@
                 ))}
               </tbody>
               <tfoot>
-                <tr style={{borderTop:"2px solid #D70010",background:"#FFF8E1"}}>
-                  <td colSpan={7+judgeCount} style={{padding:"12px 10px",textAlign:"right",fontWeight:700,fontSize:13,color:"#373435"}}>
+                <tr style={{borderTop:"2px solid #22221C",background:"#f0f1f2"}}>
+                  <td colSpan={7+judgeCount} style={{padding:"12px 10px",textAlign:"right",fontWeight:700,fontSize:13,color:"#22221C"}}>
                     Technical Element Score (TES)
                   </td>
-                  <td style={{padding:"12px 8px",textAlign:"right",fontWeight:800,fontSize:20,color:"#D70010"}}>
+                  <td style={{padding:"12px 8px",textAlign:"right",fontWeight:800,fontSize:20,color:"#22221C"}}>
                     {tes.toFixed(2)}
                   </td>
                 </tr>
@@ -6942,16 +6942,16 @@
       <button onClick={()=>setDeductions(0)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
     </div>
     <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-      <span style={{fontSize:screen.mobile?11:13,fontWeight:700,color:"#D70010"}}>Extra Punkte:</span>
-      <button onClick={()=>setExtraPoints(d=>Math.round((d+0.5)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #FFD800",background:"#FFF8E1",color:"#D70010",fontWeight:700,fontSize:12,cursor:"pointer"}}>+0.5</button>
-      <button onClick={()=>setExtraPoints(d=>Math.round((d+1.0)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #FFD800",background:"#FFF8E1",color:"#D70010",fontWeight:700,fontSize:12,cursor:"pointer"}}>+1.0</button>
+      <span style={{fontSize:screen.mobile?11:13,fontWeight:700,color:"#22221C"}}>Extra Punkte:</span>
+      <button onClick={()=>setExtraPoints(d=>Math.round((d+0.5)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #DEE2E6",background:"#f0f1f2",color:"#22221C",fontWeight:700,fontSize:12,cursor:"pointer"}}>+0.5</button>
+      <button onClick={()=>setExtraPoints(d=>Math.round((d+1.0)*100)/100)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #DEE2E6",background:"#f0f1f2",color:"#22221C",fontWeight:700,fontSize:12,cursor:"pointer"}}>+1.0</button>
       <input type="number" min="0" step="0.1" value={extraPoints} onChange={e=>setExtraPoints(Math.max(0,parseFloat(e.target.value)||0))}
-        style={{width:60,padding:"5px 6px",borderRadius:4,border:"2px solid #FFD800",fontSize:14,fontWeight:800,textAlign:"center",color:"#D70010"}}/>
+        style={{width:60,padding:"5px 6px",borderRadius:4,border:"2px solid #DEE2E6",fontSize:14,fontWeight:800,textAlign:"center",color:"#22221C"}}/>
       <button onClick={()=>setExtraPoints(d=>Math.max(0,Math.round((d-0.5)*100)/100))} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:700,fontSize:12,cursor:"pointer"}}>-0.5</button>
       <button onClick={()=>setExtraPoints(0)} style={{padding:"3px 8px",borderRadius:4,border:"1px solid #d1d5db",background:"#f9fafb",color:"#6b7280",fontWeight:600,fontSize:10,cursor:"pointer"}}>Reset</button>
     </div>
-    <div style={{background:"#FFF8E1",borderRadius:8,border:"2px solid #D70010",padding:"8px 16px",marginLeft:screen.mobile?0:"auto",width:screen.mobile?"100%":"auto",textAlign:"center"}}>
-      <div style={{fontSize:11,color:"#373435",fontWeight:500,lineHeight:1.8}}>
+    <div style={{background:"#f0f1f2",borderRadius:8,border:"2px solid #22221C",padding:"8px 16px",marginLeft:screen.mobile?0:"auto",width:screen.mobile?"100%":"auto",textAlign:"center"}}>
+      <div style={{fontSize:11,color:"#22221C",fontWeight:500,lineHeight:1.8}}>
         <span style={{color:"#059669",fontWeight:700}}>{tes.toFixed(2)}</span>
         <span> + </span>
         <span style={{color:"#3b82f6",fontWeight:700}}>{pcsTotal.toFixed(2)}</span>
