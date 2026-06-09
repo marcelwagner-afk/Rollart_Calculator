@@ -851,6 +851,10 @@
     ]},
   };
 
+  // World Skate official logo — white PNG on transparent background (196×72px, optimized)
+  // Source: https://sk8info.org.au/content/logo.png
+  const WS_LOGO_B64 = "data:image/png;base64,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";
+
   const CODE_LABELS = {CoJ:"Combination Jump",SJu:"Solo Jump",CSp:"Combination Spin",SSp:"Solo Spin",
     FoSq:"Footwork Sequence",ChSt:"Choreo Step Seq.",CLi:"Combination Lift",SLi:"Solo Lift",
     CtSp:"Contact Spin",DS:"Death Spiral",CS:"Camel Spiral",Tw:"Twist",Tj:"Throw Jump"};
@@ -868,14 +872,14 @@
     return(
       <div style={{marginBottom:16}}>
         {/* Section header — blue band matching sk8info original */}
-        <div style={{background:"#4472C4",padding:"8px 12px",textAlign:"center",fontWeight:800,fontSize:13,fontFamily:"Arial,sans-serif",letterSpacing:1,color:"white"}}>
+        <div style={{background:"#1565c0",padding:"8px 12px",textAlign:"center",fontWeight:800,fontSize:13,fontFamily:"Arial,sans-serif",letterSpacing:1,color:"white"}}>
           ELEMENTS — {section.label.toUpperCase()}
         </div>
         {/* Column headers: # | TIME | CODE (wide) | NOTES */}
         <table style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
           <colgroup><col style={{width:36}}/><col style={{width:70}}/><col/><col style={{width:160}}/></colgroup>
           <thead>
-            <tr style={{background:"#5B8FD4"}}>
+            <tr style={{background:"#1976d2"}}>
               <th style={{border:B,padding:"6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif",color:"white",textAlign:"center"}}>#</th>
               <th style={{border:B,padding:"6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif",color:"white",textAlign:"center"}}>TIME</th>
               <th style={{border:B,padding:"6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif",color:"white",textAlign:"center"}}>CODE</th>
@@ -914,6 +918,8 @@
     const [federation,setFederation]=useState("");
     const [choreography,setChoreography]=useState("");
     const sheet=SHEET_TYPES[sheetType];
+    const [showLoadModal,setShowLoadModal]=useState(false);
+    const [savedMsg,setSavedMsg]=useState("");
 
     // Per-section data
     const initSections=useCallback((st)=>{
@@ -923,6 +929,50 @@
 
     const changeSheet=(st)=>{setSheetType(st);setSections(initSections(st));};
     const updateSection=(sIdx,data)=>{setSections(prev=>prev.map((s,i)=>i===sIdx?data:s));};
+
+    // ---- Content Sheet Save/Load (localStorage) ----
+    const CS_STORAGE_KEY = "rollart_content_sheets";
+    const getSavedSheets = () => {
+      try { return JSON.parse(localStorage.getItem(CS_STORAGE_KEY) || "[]"); } catch { return []; }
+    };
+    const saveContentSheet = () => {
+      const label = name.trim() || "Unbenannt";
+      const catLabel = CATEGORY_DEFS[kategorie]?.label || kategorie;
+      const entry = {
+        id: Date.now(),
+        label: label + " - " + catLabel + " (" + (SHEET_TYPES[sheetType]?.short||sheetType) + ")",
+        name, kategorie, sheetType, federation, choreography, sections,
+        savedAt: new Date().toISOString(),
+      };
+      const all = getSavedSheets();
+      all.unshift(entry);
+      localStorage.setItem(CS_STORAGE_KEY, JSON.stringify(all.slice(0, 50)));
+      setSavedMsg("Gespeichert!");
+      setTimeout(() => setSavedMsg(""), 2000);
+    };
+    const loadContentSheet = (entry) => {
+      setName(entry.name || "");
+      if (entry.kategorie && CATEGORY_DEFS[entry.kategorie]) {
+        setKategorie(entry.kategorie);
+      }
+      setFederation(entry.federation || "");
+      setChoreography(entry.choreography || "");
+      if (entry.sheetType && SHEET_TYPES[entry.sheetType]) {
+        setSheetType(entry.sheetType);
+        if (entry.sections) {
+          setSections(entry.sections);
+        } else {
+          setSections(initSections(entry.sheetType));
+        }
+      }
+      setShowLoadModal(false);
+    };
+    const deleteContentSheet = (id) => {
+      const all = getSavedSheets().filter(s => s.id !== id);
+      localStorage.setItem(CS_STORAGE_KEY, JSON.stringify(all));
+      setShowLoadModal(false);
+      setTimeout(() => setShowLoadModal(true), 50);
+    };
 
     // Auto-update sheetType when kategorie changes
     const changeKategorie=(k)=>{
@@ -1036,40 +1086,25 @@
       const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/['']/g,"'").replace(/[""]/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
       const san=sanitize;
 
-      const BLUE=[68,114,196]; // #4472C4 — matches sk8info original
+      const NAVY=[21,101,192]; // Original sk8info header blue
+      const BLUE2=[25,118,210]; // Original sk8info column header blue
 
-      // Draw World Skate logo as concentric spiral arcs (white on blue)
-      const drawLogo=(lx,ly,sz)=>{
-        const drawArc=(cx,cy,r,startDeg,endDeg,col,w)=>{
-          doc.setDrawColor(...col);doc.setLineWidth(w);
-          const steps=50,sa=startDeg*Math.PI/180,ea=endDeg*Math.PI/180;
-          const pts=[];for(let i=0;i<=steps;i++){const a=sa+(ea-sa)*i/steps;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
-          for(let i=0;i<pts.length-1;i++)doc.line(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
-        };
-        const cx=lx+sz/2,cy=ly+sz/2;
-        drawArc(cx,cy,sz*0.45,-100,260,[255,255,255],0.8);
-        drawArc(cx,cy,sz*0.32,-100,250,[220,230,245],0.65);
-        drawArc(cx,cy,sz*0.20,-100,230,[200,215,240],0.5);
-        doc.setFont("helvetica","bold");doc.setFontSize(6.5);
-        doc.setTextColor(255,255,255);
-        doc.text("WORLD",lx+sz+1.5,cy-0.3);doc.text("SKATE",lx+sz+1.5,cy+2.2);
-      };
-
-      // Header band: blue rounded rect + logo + title (matching sk8info)
+      // Header band: blue rounded rect + real World Skate logo image + title
       const hdrBand=(title,yy)=>{
-        doc.setFillColor(...BLUE);
+        doc.setFillColor(...NAVY);
         doc.roundedRect(m,yy,cW,12,2,2,"F");
-        drawLogo(m+2,yy+1,10);
+        // Real World Skate logo (white PNG on transparent) — matches sk8info.org.au
+        try{const lh=9,lw=lh*2.7222;doc.addImage(WS_LOGO_B64,"PNG",m+2,yy+1.5,lw,lh);}catch(e){}
         doc.setFont("helvetica","bold");doc.setFontSize(14);
         doc.setTextColor(255,255,255);
-        doc.text(san(title),m+26,yy+8.5);
+        doc.text(san(title),m+30,yy+8.5);
         doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);doc.setLineWidth(0.3);
         return yy+15;
       };
 
       // Element section band
       const elemBand=(label,yy)=>{
-        doc.setFillColor(...BLUE);
+        doc.setFillColor(...NAVY);
         doc.roundedRect(m,yy,cW,8,1.5,1.5,"F");
         doc.setFont("helvetica","bold");doc.setFontSize(10);
         doc.setTextColor(255,255,255);
@@ -1155,7 +1190,7 @@
             ]],
             body:bodyData,
             theme:"grid",
-            headStyles:{fontSize:9,fillColor:[91,143,212],textColor:[255,255,255]},
+            headStyles:{fontSize:9,fillColor:BLUE2,textColor:[255,255,255]},
             bodyStyles:{fontSize:11,minCellHeight:12,valign:"middle"},
             alternateRowStyles:{fillColor:[248,250,252]},
             columnStyles:{
@@ -1435,33 +1470,60 @@
           </select>
         </div>
 
-        {/* Actions */}
-        <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap"}}>
+        {/* Actions — grouped */}
+        <div style={{display:"flex",gap:6,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
+          {/* Save/Load Group */}
+          <button onClick={saveContentSheet} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#3b82f6",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>Speichern</button>
+          <button onClick={()=>setShowLoadModal(true)} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#10b981",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>Laden</button>
+          {savedMsg && <span style={{fontSize:11,color:"#10b981",fontWeight:600}}>{savedMsg}</span>}
+          <div style={{width:1,height:24,background:"#e5e7eb",margin:"0 2px",flexShrink:0}} />
+          {/* Export Group */}
           <button onClick={exportPDF} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#dc2626",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>PDF exportieren</button>
           <button onClick={saveTxt} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#22221C",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>TXT exportieren</button>
           <label style={{padding:"6px 14px",borderRadius:5,border:"1px solid #22221C",background:"#f0f1f2",color:"#22221C",fontWeight:600,fontSize:11,cursor:"pointer"}}>
             Importieren (PDF/TXT)
             <input type="file" accept=".pdf,.txt" onChange={importFile} style={{display:"none"}}/>
           </label>
+          <div style={{width:1,height:24,background:"#e5e7eb",margin:"0 2px",flexShrink:0}} />
           <button onClick={handleSendToContent} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#22221C",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
-            &#9654; An Content Elements Sheet senden
+            An Calculator senden &#9654;
           </button>
-          <button onClick={()=>{setName("");setKategorie("senior");setFederation("");setChoreography("");setSections(initSections(sheetType));}} style={{padding:"6px 14px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Löschen</button>
+          <button onClick={()=>{setName("");setKategorie("senior");setFederation("");setChoreography("");setSections(initSections(sheetType));}} style={{padding:"6px 14px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Neu</button>
         </div>
+
+        {/* Load Content Sheet Modal */}
+        {showLoadModal && (()=>{
+          const saved = getSavedSheets();
+          return (
+            <div style={{position:"fixed",top:0,left:0,right:0,bottom:0,background:"rgba(0,0,0,.5)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowLoadModal(false)}>
+              <div style={{background:"white",borderRadius:12,padding:24,maxWidth:560,width:"90%",maxHeight:"70vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.3)"}} onClick={e=>e.stopPropagation()}>
+                <h3 style={{margin:"0 0 16px",fontSize:18,fontWeight:700,color:"#22221C"}}>Gespeicherte Content Sheets</h3>
+                {saved.length === 0 ? (
+                  <p style={{color:"#6C757D",fontSize:13}}>Noch keine Content Sheets gespeichert.</p>
+                ) : (
+                  <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                    {saved.map(entry => (
+                      <div key={entry.id} style={{display:"flex",alignItems:"center",gap:8,padding:"10px 14px",border:"1px solid #e5e7eb",borderRadius:8,background:"#f8f9fa"}}>
+                        <div style={{flex:1,cursor:"pointer"}} onClick={()=>loadContentSheet(entry)}>
+                          <div style={{fontWeight:600,fontSize:13,color:"#22221C"}}>{entry.label}</div>
+                          <div style={{fontSize:11,color:"#6C757D"}}>{new Date(entry.savedAt).toLocaleString("de-DE")}</div>
+                        </div>
+                        <button onClick={()=>deleteContentSheet(entry.id)} style={{padding:"4px 10px",borderRadius:4,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontSize:10,fontWeight:600,cursor:"pointer"}}>X</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <button onClick={()=>setShowLoadModal(false)} style={{marginTop:16,padding:"8px 20px",borderRadius:6,border:"1px solid #DEE2E6",background:"white",fontWeight:600,fontSize:12,cursor:"pointer"}}>Schliessen</button>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Official Sheet — matching original sk8info.org.au World Skate template */}
         <div id="official-sheet-print" className="r-table-wrap" style={{background:"white",border:"1px solid #ccc",overflow:"auto",boxShadow:"0 2px 8px rgba(0,0,0,.12)",maxWidth:820,margin:"0 auto"}}>
           {/* Header: Blue banner with World Skate logo + Title */}
-          <div style={{background:"#4472C4",borderRadius:"8px 8px 0 0",padding:"10px 20px",display:"flex",alignItems:"center",gap:12}}>
-            <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-              <path d="M50 8 A42 42 0 1 1 12 72" fill="none" stroke="white" strokeWidth="6" strokeLinecap="round"/>
-              <path d="M50 20 A30 30 0 1 1 22 63" fill="none" stroke="rgba(255,255,255,.7)" strokeWidth="5" strokeLinecap="round"/>
-              <path d="M50 32 A18 18 0 1 1 34 55" fill="none" stroke="rgba(255,255,255,.45)" strokeWidth="4" strokeLinecap="round"/>
-            </svg>
-            <div style={{lineHeight:1.1}}>
-              <div style={{color:"white",fontSize:11,fontWeight:700,fontFamily:"Arial,sans-serif",letterSpacing:1}}>WORLD</div>
-              <div style={{color:"white",fontSize:11,fontWeight:700,fontFamily:"Arial,sans-serif",letterSpacing:1}}>SKATE</div>
-            </div>
+          <div style={{background:"#1565c0",borderRadius:"8px 8px 0 0",padding:"10px 20px",display:"flex",alignItems:"center",gap:12}}>
+            <img src={WS_LOGO_B64} alt="World Skate" style={{height:36,width:"auto",objectFit:"contain"}} />
             <h2 style={{margin:0,fontSize:20,fontWeight:900,fontFamily:"Arial,sans-serif",color:"white",flex:1,letterSpacing:0.5}}>
               {sheet.title}
             </h2>
@@ -5821,42 +5883,27 @@
       const {jsPDF} = window.jspdf;
       const doc = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
       const W=210, m=10, cW=W-m*2;
-      const BLUE=[68,114,196]; // #4472C4 — matches sk8info original
+      const NAVY=[21,101,192]; // Original sk8info header blue
+      const BLUE2=[25,118,210]; // Original sk8info column header blue
       const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/['']/g,"'").replace(/[""]/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
       const san=sanitize;
 
-      // Draw World Skate logo as concentric spiral arcs (white on blue)
-      const drawLogo=(lx,ly,sz)=>{
-        const drawArc=(cx,cy,r,startDeg,endDeg,col,w)=>{
-          doc.setDrawColor(...col);doc.setLineWidth(w);
-          const steps=50,sa=startDeg*Math.PI/180,ea=endDeg*Math.PI/180;
-          const pts=[];for(let i=0;i<=steps;i++){const a=sa+(ea-sa)*i/steps;pts.push([cx+r*Math.cos(a),cy+r*Math.sin(a)]);}
-          for(let i=0;i<pts.length-1;i++)doc.line(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1]);
-        };
-        const cx=lx+sz/2,cy=ly+sz/2;
-        drawArc(cx,cy,sz*0.45,-100,260,[255,255,255],0.8);
-        drawArc(cx,cy,sz*0.32,-100,250,[220,230,245],0.65);
-        drawArc(cx,cy,sz*0.20,-100,230,[200,215,240],0.5);
-        doc.setFont("helvetica","bold");doc.setFontSize(6.5);
-        doc.setTextColor(255,255,255);
-        doc.text("WORLD",lx+sz+1.5,cy-0.3);doc.text("SKATE",lx+sz+1.5,cy+2.2);
-      };
-
-      // Header band: blue rounded rect + logo + title (matching sk8info)
+      // Header band: blue rounded rect + real World Skate logo image + title
       const hdrBand=(title,y)=>{
-        doc.setFillColor(...BLUE);
+        doc.setFillColor(...NAVY);
         doc.roundedRect(m,y,cW,12,2,2,"F");
-        drawLogo(m+2,y+1,10);
+        // Real World Skate logo (white PNG on transparent) — matches sk8info.org.au
+        try{const lh=9,lw=lh*2.7222;doc.addImage(WS_LOGO_B64,"PNG",m+2,y+1.5,lw,lh);}catch(e){}
         doc.setFont("helvetica","bold");doc.setFontSize(14);
         doc.setTextColor(255,255,255);
-        doc.text(san(title),m+26,y+8.5);
+        doc.text(san(title),m+30,y+8.5);
         doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);doc.setLineWidth(0.3);
         return y+15;
       };
 
       // Element section band
       const elemBand=(label,y)=>{
-        doc.setFillColor(...BLUE);
+        doc.setFillColor(...NAVY);
         doc.roundedRect(m,y,cW,8,1.5,1.5,"F");
         doc.setFont("helvetica","bold");doc.setFontSize(10);
         doc.setTextColor(255,255,255);
@@ -5949,7 +5996,7 @@
         ]],
         body:mappedRows,
         theme:"grid",
-        headStyles:{fontSize:9,fillColor:[91,143,212],textColor:[255,255,255]},
+        headStyles:{fontSize:9,fillColor:BLUE2,textColor:[255,255,255]},
         bodyStyles:{fontSize:11,minCellHeight:12,valign:"middle"},
         alternateRowStyles:{fillColor:[248,250,252]},
         columnStyles:{
@@ -6419,9 +6466,9 @@
                   {key:"tagebuch",label:"Tagebuch"},
                   {key:"kalender",label:"Kalender"},
                   {key:"wettbewerbe",label:"Wettbewerbe"},
+                  {key:"official",label:"Content Sheets"},
                 ];
                 const moreTabs = [
-                  {key:"official",label:"Official Sheet"},
                   {key:"glossar",label:"Glossar & Regeln"},
                   {key:"anleitung",label:"Anleitung"},
                 ];
