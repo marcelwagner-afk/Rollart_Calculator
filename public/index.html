@@ -2586,8 +2586,12 @@
       if(importData.kategorie)setKategorie(importData.kategorie);
       setSegment(importData.segment);
       if(importData.geschlecht)setGeschlecht(importData.geschlecht);
-      setSkater(importData.skater||"");
-      setCat(importData.cat||"");
+      // Clean name from any "CATEGORY:" suffix
+      let simName = (importData.skater||"");
+      const simCatM = simName.match(/\s+CATEGORY:\s+(.+)$/i);
+      simName = simName.replace(/^:\s*/, "").replace(/\s+CATEGORY:\s+.+$/i, "").trim();
+      setSkater(simName);
+      setCat(importData.cat || (simCatM ? simCatM[1].trim() : ""));
       setMusic(importData.music||"");
       setJudgeCount(importData.judgeCount||3);
       // Convert rows: add bonuses:[] field
@@ -5440,6 +5444,16 @@
       return () => document.removeEventListener("mousedown", close);
     }, [showMoreMenu]);
 
+    // Auto-clean skater name: strip ": " prefix and "CATEGORY: xxx" suffix from any source
+    useEffect(() => {
+      if (skater && (/^:\s/.test(skater) || /\s+CATEGORY:/i.test(skater))) {
+        const catM = skater.match(/\s+CATEGORY:\s+(.+)$/i);
+        const clean = skater.replace(/^:\s*/, "").replace(/\s+CATEGORY:\s+.+$/i, "").trim();
+        setSkater(clean);
+        if (catM && !cat) setCat(catM[1].trim());
+      }
+    }, [skater]);
+
     const isPairs = segment.startsWith("pairs_");
     const segDef = SEGMENT_DEFS[segment];
     const types = isPairs ? ELEMENT_TYPES_PAIRS : ELEMENT_TYPES_FREE;
@@ -6239,7 +6253,9 @@
         return;
       }
       setSavingSkater(true);
-      const payload = { name: skater, kategorie, geschlecht, disziplin: disziplin||"einzel", verein: cat || "", music, segment, rows: rows.map(r=>({...r, bonuses:r.bonuses||[]})), pcs, deductions, extraPoints, judgeCount, officialSheet: null };
+      // Clean name before saving
+      const saveName = skater.replace(/^:\s*/, "").replace(/\s+CATEGORY:\s+.+$/i, "").trim();
+      const payload = { name: saveName, kategorie, geschlecht, disziplin: disziplin||"einzel", verein: cat || "", music, segment, rows: rows.map(r=>({...r, bonuses:r.bonuses||[]})), pcs, deductions, extraPoints, judgeCount, officialSheet: null };
       try {
         const token = localStorage.getItem('rollart_token');
         const res = await fetch('/api/skaters', {
