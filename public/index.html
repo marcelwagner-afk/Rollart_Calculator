@@ -1954,7 +1954,7 @@
           if(elDef){
             const fullBase=getBase(elDef,false,"normal");
             const loss=Math.round((fullBase-el.rawBase)*100)/100;
-            tips.push({priority:1,msg:`Element ${i+1}: Unterrotiert (${r.rotation==="lt"?"<":"<<"}) \u2014 ${loss.toFixed(2)} Punkte Verlust`,points:loss});
+            tips.push({priority:1,msg:`Element ${i+1}: Unterrotiert (${r.rotation==="lt"?"<":r.rotation==="ltlt"?"<<":"?"}) \u2014 ${loss.toFixed(2)} Punkte Verlust`,points:loss});
           }
         }
       });
@@ -2689,7 +2689,7 @@
               <table style={{width:"100%",borderCollapse:"collapse",minWidth:420}}>
                 <thead>
                   <tr style={{background:"#e5e7eb"}}>
-                    <th colSpan={3+judgeCount} style={{padding:"5px 8px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:"center",borderBottom:"1px solid #9ca3af"}}>
+                    <th colSpan={4+judgeCount} style={{padding:"5px 8px",fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:"center",borderBottom:"1px solid #9ca3af"}}>
                       Program Components
                     </th>
                   </tr>
@@ -2713,11 +2713,13 @@
                         <td style={{padding:"4px 2px",fontSize:10,textAlign:"center",color:"#6b7280",fontWeight:600,borderRight:"1px solid #e5e7eb"}}>{pcsFactor.toFixed(1)}</td>
                         {Array.from({length:judgeCount}).map((_,ji)=>{
                           const v=pcs[comp.key][ji];
-                          const upd=(nv)=>{const c=Math.max(0,Math.min(10,Math.round(nv*4)/4));const np={...pcs};np[comp.key]=[...np[comp.key]];np[comp.key][ji]=c;setPcs(np);};
+                          const setV=(raw)=>{const np={...pcs};np[comp.key]=[...np[comp.key]];np[comp.key][ji]=raw;setPcs(np);};
+                          const clampV=()=>{const c=Math.max(0,Math.min(10,Math.round(v*4)/4));if(c!==v)setV(c);};
                           return(
                             <td key={ji} style={{padding:"3px 1px",textAlign:"center",borderRight:"1px solid #e5e7eb"}}>
-                              <input type="number" min="0" max="10" step="0.25" value={v.toFixed(2)}
-                                onChange={e=>upd(parseFloat(e.target.value)||0)}
+                              <input type="number" min="0" max="10" step="0.25" value={v}
+                                onChange={e=>setV(parseFloat(e.target.value)||0)}
+                                onBlur={clampV}
                                 style={{width:42,height:22,border:"1px solid #9ca3af",borderRadius:2,fontSize:11,fontWeight:700,textAlign:"center",padding:0,color:"#111827",background:"#fafafa",
                                   MozAppearance:"textfield",WebkitAppearance:"none"}}/>
                             </td>
@@ -3637,7 +3639,6 @@
       // putting them on SEPARATE lines. This typically affects rank 1 (first page
       // of each section has different vertical offset). So we need 3 patterns:
       // Pattern A: rank+name+score all on one line (works for most ranks)
-      // Pattern A: rank+name+score all on one line
       // Pattern B: name+score on one line, rank on adjacent line (rank 1 fix)
       // Pattern C: fallback via isSkaterName
       // Pattern D: standalone rank number near skater name (widened search)
@@ -5885,7 +5886,7 @@
       txt(segDef.label, mx+cw-4, y+7, {bold:true, size:11, align:"right", color:"#065f46"});
       y+=10;
       rectF(mx,y,cw,6,"#f9fafb");
-      txt(`Kategorie: ${cat||"—"}  │  Musik: ${music||"—"}  │  Judges: ${judgeCount}  │  ${new Date().toLocaleDateString("de-DE")}`, mx+4, y+4.5, {size:7, color:"#555555"});
+      txt(`Kategorie: ${cat||"-"}  |  Musik: ${music||"-"}  |  Judges: ${judgeCount}  |  ${new Date().toLocaleDateString("de-DE")}`, mx+4, y+4.5, {size:7, color:"#555555"});
       y+=8;
 
       // Column widths — dynamic for judge count
@@ -5901,17 +5902,20 @@
       for(let i=0;i<judgeCount;i++) hdrs.push({w:colJ,label:"J"+(i+1),a:"center"});
       hdrs.push({w:colQoe,label:"QOE",a:"right"},{w:colNvDg,label:"NV/DG",a:"center"},{w:colScore,label:"SCORE",a:"right"});
 
-      let cx=mx;
-      hdrs.forEach(c=>{
-        rectF(cx,y,c.w,hh,"#f0fdf4");
-        const tx=c.a==="center"?cx+c.w/2:c.a==="right"?cx+c.w-2:cx+2;
-        txt(c.label,tx,y+5,{bold:true,size:8,align:c.a,color:"#065f46"});
-        cx+=c.w;
-      });
-      y+=hh;
-      // Bottom border of header
-      doc.setDrawColor("#059669");doc.setLineWidth(0.6);doc.line(mx,y,mx+cw,y);
-      doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
+      // Reusable: draw element table header
+      const drawElHeader=()=>{
+        let hx=mx;
+        hdrs.forEach(c=>{
+          rectF(hx,y,c.w,hh,"#f0fdf4");
+          const tx=c.a==="center"?hx+c.w/2:c.a==="right"?hx+c.w-2:hx+2;
+          txt(c.label,tx,y+5,{bold:true,size:8,align:c.a,color:"#065f46"});
+          hx+=c.w;
+        });
+        y+=hh;
+        doc.setDrawColor("#059669");doc.setLineWidth(0.6);doc.line(mx,y,mx+cw,y);
+        doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
+      };
+      drawElHeader();
 
       // Element rows
       rows.forEach((r,i)=>{
@@ -5919,7 +5923,8 @@
         if(!td) return;
 
         const rh=7;
-        pageBreak(rh + (td.isCombo?(r.comboEls||[]).filter(s=>s.code).length*5.5:0));
+        const comboExtra = td.isCombo?(r.comboEls||[]).filter(s=>s.code).length*5.5:0;
+        if(pageBreak(rh + comboExtra + hh)) drawElHeader();
 
         cx=mx;
         const bg = i%2===0?"#ffffff":"#f9fafb";
@@ -5948,7 +5953,7 @@
         // ROT.
         rectF(cx,y,colRot,rh,bg);
         if(!td.isCombo && r.rotation && r.rotation!=="normal"){
-          const rl=r.rotation==="lt"?"<":"<<";
+          const rl=r.rotation==="lt"?"<":r.rotation==="ltlt"?"<<":"?";
           txt(rl,cx+colRot/2,y+5,{size:9,align:"center",bold:true,color:"#dc2626"});
         } else if(!td.isCombo){
           txt("N",cx+colRot/2,y+5,{size:7,align:"center",color:"#9ca3af"});
@@ -5964,7 +5969,7 @@
             const g=(r.judgeGoe||[])[ji]||0;
             txt(g>0?"+"+g:String(g),cx+colJ/2,y+5,{size:8,align:"center",color:g>0?"#059669":g<0?"#dc2626":"#6b7280"});
           } else {
-            txt("↕",cx+colJ/2,y+5,{size:7,align:"center",color:"#9ca3af"});
+            txt("-",cx+colJ/2,y+5,{size:7,align:"center",color:"#9ca3af"});
           }
           cx+=colJ;
         }
@@ -6092,8 +6097,8 @@
       y+=tH+8;
 
       // Footer
-      doc.setFontSize(6);doc.setTextColor("#9ca3af");
-      doc.text("Generated by RollArt 2026 — Artistic Roller Skating Dashboard — Detail Export",pw/2,Math.min(y,ph-5),{align:"center"});
+      doc.setFont("helvetica","normal");doc.setFontSize(6);doc.setTextColor("#9ca3af");
+      doc.text("Generated by RollArt 2026 - Artistic Roller Skating Dashboard - Detail Export",pw/2,Math.min(y,ph-5),{align:"center"});
 
       const fn=`${(skater||"detail").replace(/\s+/g,"_")}_${segDef.label.replace(/\s+/g,"_")}_Detail.pdf`;
       doc.save(fn);
@@ -6110,20 +6115,26 @@
     const lsDelete = (id) => { const all=lsGetAll(); delete all[String(id)]; localStorage.setItem(LS_SKATERS_KEY,JSON.stringify(all)); };
 
     // Skater save/load functions
-    const loadSkaters = async () => {
+    const loadSkaters = async (signal) => {
       let serverSkaters = [];
       try {
         const token = localStorage.getItem('rollart_token');
-        const res = await fetch('/api/skaters', { headers: { 'Authorization': `Bearer ${token}` } });
+        const opts = { headers: { 'Authorization': `Bearer ${token}` } };
+        if (signal) opts.signal = signal;
+        const res = await fetch('/api/skaters', opts);
         if (res.ok) {
           const data = await res.json();
           serverSkaters = data.skaters || [];
         }
-      } catch (err) { console.error('Error loading skaters:', err); }
+      } catch (err) { if (err.name !== 'AbortError') console.error('Error loading skaters:', err); }
       // Merge with localStorage — add any local-only skaters (saved when server was down)
       const localAll = lsGetAll();
       const serverIds = new Set(serverSkaters.map(s=>String(s.id)));
-      const localOnly = Object.values(localAll).filter(ls => !serverIds.has(String(ls.id)));
+      const serverNames = new Set(serverSkaters.map(s=>(s.name||"").trim().toLowerCase()));
+      // Only add local entries that don't exist on server (by id OR by name)
+      const localOnly = Object.values(localAll).filter(ls =>
+        !serverIds.has(String(ls.id)) && !serverNames.has((ls.name||"").trim().toLowerCase())
+      );
       const merged = [...serverSkaters, ...localOnly];
       setSkaters(merged);
     };
@@ -6134,9 +6145,9 @@
         return;
       }
       setSavingSkater(true);
+      const payload = { name: skater, kategorie, geschlecht, disziplin: disziplin||"einzel", verein: cat || "", music, segment, rows: rows.map(r=>({...r, bonuses:r.bonuses||[]})), pcs, deductions, extraPoints, judgeCount, officialSheet: null };
       try {
         const token = localStorage.getItem('rollart_token');
-        const payload = { name: skater, kategorie, geschlecht, disziplin: disziplin||"einzel", verein: cat || "", music, segment, rows: rows.map(r=>({...r, bonuses:r.bonuses||[]})), pcs, deductions, extraPoints, judgeCount, officialSheet: null };
         const res = await fetch('/api/skaters', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -6147,22 +6158,26 @@
           // Save full data to localStorage as backup (server may not persist rows/pcs)
           const skaterId = result.id || result.skater?.id || Date.now();
           lsSave(skaterId, {...payload, id:skaterId, updatedAt:new Date().toISOString()});
+          // Clean up any local_* entries for same skater name
+          const localAll = lsGetAll();
+          Object.keys(localAll).forEach(k => {
+            if (k.startsWith('local_') && (localAll[k].name||"").trim().toLowerCase() === (skater||"").trim().toLowerCase()) lsDelete(k);
+          });
           setUploadMsg(`"${skater}" gespeichert`);
-          loadSkaters();
+          await loadSkaters();
         } else {
           // Server failed — save locally anyway so data isn't lost
           const localId = 'local_'+Date.now();
           lsSave(localId, {...payload, id:localId, updatedAt:new Date().toISOString()});
           setUploadMsg('Server-Fehler, lokal gespeichert');
-          loadSkaters();
+          await loadSkaters();
         }
       } catch (err) {
         // Network error — save locally
         const localId = 'local_'+Date.now();
-        const payload = { name: skater, kategorie, geschlecht, disziplin: disziplin||"einzel", verein: cat || "", music, segment, rows: rows.map(r=>({...r, bonuses:r.bonuses||[]})), pcs, deductions, extraPoints, judgeCount, officialSheet: null };
         lsSave(localId, {...payload, id:localId, updatedAt:new Date().toISOString()});
         setUploadMsg('Offline gespeichert (lokal)');
-        loadSkaters();
+        await loadSkaters();
       }
       setSavingSkater(false);
     };
@@ -6175,9 +6190,9 @@
         // If server returned empty rows but localStorage has data, use localStorage
         if ((!sk.rows || sk.rows.length===0) && local.rows && local.rows.length>0) merged.rows = local.rows;
         if ((!sk.pcs || Object.keys(sk.pcs).length===0) && local.pcs && Object.keys(local.pcs).length>0) merged.pcs = local.pcs;
-        if (!sk.deductions && local.deductions) merged.deductions = local.deductions;
-        if (!sk.extraPoints && local.extraPoints) merged.extraPoints = local.extraPoints;
-        if (!sk.judgeCount && local.judgeCount) merged.judgeCount = local.judgeCount;
+        if (sk.deductions == null && local.deductions != null) merged.deductions = local.deductions;
+        if (sk.extraPoints == null && local.extraPoints != null) merged.extraPoints = local.extraPoints;
+        if (sk.judgeCount == null && local.judgeCount != null) merged.judgeCount = local.judgeCount;
         if (!sk.music && local.music) merged.music = local.music;
         if (!sk.verein && local.verein) merged.verein = local.verein;
       }
@@ -6196,16 +6211,23 @@
       const neededRows = SEGMENT_DEFS[merged.segment || "senior_fp"]?.rows || 16;
       while (loadedRows.length < neededRows) loadedRows.push(emptyRow());
       setRows(loadedRows);
-      setPcs(merged.pcs || emptyPcs());
-      setDeductions(merged.deductions || 0);
-      setExtraPoints(merged.extraPoints || 0);
-      if (merged.judgeCount) setJudgeCount(merged.judgeCount);
+      // Sanitize PCS arrays — ensure each has exactly 5 entries
+      const rawPcs = merged.pcs || emptyPcs();
+      const sanPcs = {};
+      for (const key of ['skating','transitions','performance','choreography']) {
+        const arr = rawPcs[key] || [];
+        sanPcs[key] = Array.from({length:5}, (_,i) => typeof arr[i]==='number' ? arr[i] : 0);
+      }
+      setPcs(sanPcs);
+      setDeductions(merged.deductions ?? 0);
+      setExtraPoints(merged.extraPoints ?? 0);
+      setJudgeCount(merged.judgeCount || 3);
       setShowSkaterModal(false);
       setUploadMsg(`"${merged.name}" geladen`);
     };
 
     // Load skaters on mount
-    useEffect(() => { loadSkaters(); }, []);
+    useEffect(() => { const ac = new AbortController(); loadSkaters(ac.signal); return () => ac.abort(); }, []);
 
     // ============================================================
     //  RENDER
@@ -6762,7 +6784,7 @@
             <table style={{width:"100%",borderCollapse:"collapse",minWidth:480}}>
               <thead>
                 <tr style={{background:"#e5e7eb"}}>
-                  <th colSpan={3+judgeCount} style={{padding:"6px 10px",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:"center",borderBottom:"1px solid #9ca3af"}}>
+                  <th colSpan={4+judgeCount} style={{padding:"6px 10px",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.5px",textAlign:"center",borderBottom:"1px solid #9ca3af"}}>
                     Program Components
                   </th>
                 </tr>
@@ -6786,14 +6808,18 @@
                       <td style={{padding:"5px 4px",fontSize:11,textAlign:"center",color:"#6b7280",fontWeight:600,borderRight:"1px solid #e5e7eb"}}>{pcsFactor.toFixed(1)}</td>
                       {Array.from({length:judgeCount}).map((_,ji)=>{
                         const val = pcs[comp.key][ji];
-                        const updatePcsVal = (newVal) => {
-                          const clamped = Math.max(0, Math.min(10, Math.round(newVal * 4) / 4));
-                          const np={...pcs}; np[comp.key]=[...np[comp.key]]; np[comp.key][ji]=clamped; setPcs(np);
+                        const setPcsVal = (raw) => {
+                          const np={...pcs}; np[comp.key]=[...np[comp.key]]; np[comp.key][ji]=raw; setPcs(np);
+                        };
+                        const clampPcs = () => {
+                          const clamped = Math.max(0, Math.min(10, Math.round(val * 4) / 4));
+                          if (clamped !== val) setPcsVal(clamped);
                         };
                         return (
                           <td key={ji} style={{padding:"3px 2px",textAlign:"center",borderRight:"1px solid #e5e7eb"}}>
-                            <input type="number" min="0" max="10" step="0.25" value={val.toFixed(2)}
-                              onChange={e => updatePcsVal(parseFloat(e.target.value)||0)}
+                            <input type="number" min="0" max="10" step="0.25" value={val}
+                              onChange={e => setPcsVal(parseFloat(e.target.value)||0)}
+                              onBlur={clampPcs}
                               style={{width:46,height:24,border:"1px solid #9ca3af",borderRadius:2,fontSize:12,fontWeight:700,textAlign:"center",padding:0,color:"#111827",background:"#fafafa",
                                 MozAppearance:"textfield",WebkitAppearance:"none"}}/>
                           </td>
