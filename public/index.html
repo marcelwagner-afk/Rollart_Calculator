@@ -867,6 +867,128 @@
     img.src = 'logo.png';
   })();
 
+  // ============================================================
+  //  SHARED World Skate PDF Utility — exact sk8info.org.au logic
+  //  Used by both Content Sheets tab and Calculator exports
+  // ============================================================
+  const buildWorldSkatePDF = (opts) => {
+    // opts: { title, name, category, fedLabel, clubName, music, sections:[{label,music,elements:[{time,code,performed,notes}]}] }
+    // sections: array of {label:"SHORT PROGRAM"|"FREE PROGRAM", music:"...", elements:[...]}
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4",compress:true});
+    const W=210,ph=297;
+    const isMulti=opts.sections.length>1;
+    const m=isMulti?6:10;
+    const cW=W-m*2;
+    const san=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
+
+    const NAVY=[21,101,192];
+    const BLUE2=[25,118,210];
+
+    // hdrBand — exact sk8info
+    const hdrBand=(txt,y)=>{
+      doc.setFillColor(...NAVY);
+      doc.roundedRect(m,y,cW,11,2,2,"F");
+      let tx=m+4;
+      if(wsLogoData){try{const lh=9,lw=lh*wsLogoAspect;doc.addImage(wsLogoData,wsLogoType,m+2,y+1,lw,lh);tx=m+lw+4;}catch(e){}}
+      doc.setFont("helvetica","bold");doc.setFontSize(13);
+      doc.setTextColor(255,255,255);
+      doc.text(san(txt),tx,y+7.5);
+      doc.setTextColor(0,0,0);
+      return y+13;
+    };
+
+    // bandRow — exact sk8info SP+FP separator
+    const bandRow=(txt,y)=>{
+      doc.setFillColor(...BLUE2);
+      doc.rect(m,y,cW,7,"F");
+      doc.setFont("helvetica","bold");doc.setFontSize(10);
+      doc.setTextColor(255,255,255);
+      doc.text(san(txt),W/2,y+5,{align:"center"});
+      doc.setTextColor(0,0,0);
+      return y+9;
+    };
+
+    // elemTable — exact sk8info autoTable
+    const elemTable=(startY,elems,minH)=>{
+      const bodyData=elems.map((el,i)=>[
+        String(i+1),el.time||"",el.code||"",el.performed||"",el.notes||""
+      ]);
+      doc.autoTable({
+        startY,margin:{left:m,right:m},tableWidth:cW,
+        head:[[
+          {content:"#",styles:{halign:"center",fontStyle:"bold",fillColor:BLUE2,textColor:255}},
+          {content:"Time",styles:{fontStyle:"bold",fillColor:BLUE2,textColor:255}},
+          {content:"Code",styles:{fontStyle:"bold",fillColor:BLUE2,textColor:255}},
+          {content:"(Tech Panel)",styles:{fontStyle:"bold",fillColor:BLUE2,textColor:255}},
+          {content:"Notes",styles:{fontStyle:"bold",fillColor:BLUE2,textColor:255}},
+        ]],
+        body:bodyData,theme:"grid",
+        headStyles:{fontSize:9},
+        bodyStyles:{fontSize:12,minCellHeight:minH,valign:"middle"},
+        alternateRowStyles:{fillColor:[248,250,252]},
+        columnStyles:{0:{cellWidth:12,halign:"center"},1:{cellWidth:22},2:{cellWidth:24},4:{cellWidth:52}},
+      });
+      return doc.lastAutoTable.finalY+5;
+    };
+
+    let y=isMulti?6:10;
+    y=hdrBand(san(opts.title),y);
+
+    // Info: NAME + CATEGORY
+    doc.setFont("helvetica","bold");doc.setFontSize(9);
+    doc.text("NAME:",m,y+4);
+    doc.setFont("helvetica","normal");doc.text(san(opts.name||""),m+13,y+4);
+    doc.setDrawColor(180);doc.line(m+13,y+4.5,m+90,y+4.5);
+    doc.setFont("helvetica","bold");doc.text("CATEGORY:",m+95,y+4);
+    doc.setFont("helvetica","normal");doc.text(san(opts.category||""),m+118,y+4);
+    doc.line(m+118,y+4.5,W-m,y+4.5);
+    doc.setDrawColor(0);
+    y+=8;
+
+    // Info: REPRESENTING/FEDERATION/CLUB
+    doc.setFont("helvetica","bold");doc.setFontSize(9);
+    doc.text(san((opts.fedLabel||"REPRESENTING").toUpperCase())+":",m,y+4);
+    doc.setFont("helvetica","normal");doc.text(san(opts.clubName||""),m+26,y+4);
+    doc.setDrawColor(180);doc.line(m+26,y+4.5,m+100,y+4.5);
+    doc.setDrawColor(0);
+    y+=isMulti?10:8;
+
+    if(isMulti){
+      // SP+FP: bandRow separators + per-section MUSIC
+      opts.sections.forEach((sec)=>{
+        y=bandRow(sec.label,y);
+        doc.setFont("helvetica","bold");doc.setFontSize(9);
+        doc.text("MUSIC:",m,y+4);
+        doc.setFont("helvetica","normal");doc.text(san(sec.music||""),m+16,y+4);
+        doc.setDrawColor(180);doc.line(m+16,y+4.5,W-m,y+4.5);
+        doc.setDrawColor(0);
+        y+=8;
+        y=elemTable(y,sec.elements||[],12);
+      });
+    } else {
+      // Single section: MUSIC + elemTable directly
+      const sec=opts.sections[0];
+      doc.setFont("helvetica","bold");doc.setFontSize(9);
+      doc.text("MUSIC:",m,y+4);
+      doc.setFont("helvetica","normal");doc.text(san(sec.music||opts.music||""),m+16,y+4);
+      doc.setDrawColor(180);doc.line(m+16,y+4.5,W-m,y+4.5);
+      doc.setDrawColor(0);
+      y+=8;
+      elemTable(y,sec.elements||[],22);
+    }
+
+    // Footer on all pages
+    const totalPages=doc.internal.getNumberOfPages();
+    for(let p=1;p<=totalPages;p++){
+      doc.setPage(p);
+      doc.setFontSize(7);doc.setTextColor(150,150,150);doc.setFont("helvetica","normal");
+      doc.text("Generated by RollArt 2026 - World Skate Official Format",W/2,ph-8,{align:"center"});
+    }
+
+    return doc;
+  };
+
   const CODE_LABELS = {CoJ:"Combination Jump",SJu:"Solo Jump",CSp:"Combination Spin",SSp:"Solo Spin",
     FoSq:"Footwork Sequence",ChSt:"Choreo Step Seq.",CLi:"Combination Lift",SLi:"Solo Lift",
     CtSp:"Contact Spin",DS:"Death Spiral",CS:"Camel Spiral",Tw:"Twist",Tj:"Throw Jump"};
@@ -932,6 +1054,7 @@
     const [name,setName]=useState("");
     const [kategorie,setKategorie]=useState("senior");
     const [federation,setFederation]=useState("");
+    const [clubName,setClubName]=useState("");
     const [choreography,setChoreography]=useState("");
     const sheet=SHEET_TYPES[sheetType];
     const [showLoadModal,setShowLoadModal]=useState(false);
@@ -957,7 +1080,7 @@
       const entry = {
         id: Date.now(),
         label: label + " - " + catLabel + " (" + (SHEET_TYPES[sheetType]?.short||sheetType) + ")",
-        name, kategorie, sheetType, federation, choreography, sections,
+        name, kategorie, sheetType, federation, clubName, choreography, sections,
         savedAt: new Date().toISOString(),
       };
       const all = getSavedSheets();
@@ -972,6 +1095,7 @@
         setKategorie(entry.kategorie);
       }
       setFederation(entry.federation || "");
+      setClubName(entry.clubName || "");
       setChoreography(entry.choreography || "");
       if (entry.sheetType && SHEET_TYPES[entry.sheetType]) {
         setSheetType(entry.sheetType);
@@ -1092,142 +1216,30 @@
       setSections(newSections);
     },[importFromContent,initSections]);
 
-    // jsPDF-based PDF generation — exact copy of sk8info.org.au logic
-    // FP-only: freeProgramOnlyContent.html pattern (margin 10, minCellHeight 22, 1 page)
-    // SP+FP: shortandfreeProgramContent.html pattern (margin 6, minCellHeight 12, 1 page, bandRow separators)
+    // PDF export — uses shared buildWorldSkatePDF utility (exact sk8info.org.au logic)
     const exportPDF=()=>{
-      const {jsPDF}=window.jspdf;
-      const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4",compress:true});
-      const W=210,ph=297;
-      const isMulti=sheet.sections.length>1;
-      const m=isMulti?6:10; // sk8info: SP+FP uses 6mm margin, FP-only uses 10mm
-      const cW=W-m*2;
-      const san=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/['']/g,"'").replace(/[""]/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
-
-      const NAVY=[21,101,192];
-      const BLUE2=[25,118,210];
-
-      // hdrBand — exact sk8info: roundedRect(m,y,cW,11,2,2,'F'), logo, text after logo
-      const hdrBand=(txt,y)=>{
-        doc.setFillColor(...NAVY);
-        doc.roundedRect(m,y,cW,11,2,2,"F");
-        let tx=m+4;
-        if(wsLogoData){try{const lh=9,lw=lh*wsLogoAspect;doc.addImage(wsLogoData,wsLogoType,m+2,y+1,lw,lh);tx=m+lw+4;}catch(e){}}
-        doc.setFont("helvetica","bold");doc.setFontSize(13);
-        doc.setTextColor(255,255,255);
-        doc.text(san(txt),tx,y+7.5);
-        doc.setTextColor(0,0,0);
-        return y+13;
-      };
-
-      // bandRow — exact sk8info SP+FP: BLUE2 rect, centered text, smaller than hdrBand
-      const bandRow=(txt,y)=>{
-        doc.setFillColor(...BLUE2);
-        doc.rect(m,y,cW,7,"F");
-        doc.setFont("helvetica","bold");doc.setFontSize(10);
-        doc.setTextColor(255,255,255);
-        doc.text(san(txt),W/2,y+5,{align:"center"});
-        doc.setTextColor(0,0,0);
-        return y+9;
-      };
-
-      // elemTable — exact sk8info: 5 columns, BLUE2 headers
-      const elemTable=(startY,elems,minH)=>{
-        const bodyData=elems.map((el,i)=>[
-          String(i+1),el.time||"",el.code||"",el.performed||"",el.notes||""
-        ]);
-        doc.autoTable({
-          startY,margin:{left:m,right:m},tableWidth:cW,
-          head:[[
-            {content:"#",styles:{halign:"center",fontStyle:"bold",fillColor:BLUE2,textColor:255}},
-            {content:"Time",styles:{fontStyle:"bold",fillColor:BLUE2,textColor:255}},
-            {content:"Code",styles:{fontStyle:"bold",fillColor:BLUE2,textColor:255}},
-            {content:"(Tech Panel)",styles:{fontStyle:"bold",fillColor:BLUE2,textColor:255}},
-            {content:"Notes",styles:{fontStyle:"bold",fillColor:BLUE2,textColor:255}},
-          ]],
-          body:bodyData,theme:"grid",
-          headStyles:{fontSize:9},
-          bodyStyles:{fontSize:12,minCellHeight:minH,valign:"middle"},
-          alternateRowStyles:{fillColor:[248,250,252]},
-          columnStyles:{0:{cellWidth:12,halign:"center"},1:{cellWidth:22},2:{cellWidth:24},4:{cellWidth:52}},
-        });
-        return doc.lastAutoTable.finalY+5;
-      };
-
       const catLabel=CATEGORY_DEFS[kategorie]?.label||kategorie;
       const fedType=(federation&&federation!=="Representing")?federation:"REPRESENTING";
-      let y=isMulti?6:10;
-
-      // Header band
-      y=hdrBand(sheet.title.toUpperCase(),y);
-
-      // Info: NAME + CATEGORY
-      doc.setFont("helvetica","bold");doc.setFontSize(9);
-      doc.text("NAME:",m,y+4);
-      doc.setFont("helvetica","normal");doc.text(san(name||""),m+13,y+4);
-      doc.setDrawColor(180);doc.line(m+13,y+4.5,m+90,y+4.5);
-      doc.setFont("helvetica","bold");doc.text("CATEGORY:",m+95,y+4);
-      doc.setFont("helvetica","normal");doc.text(san(catLabel),m+118,y+4);
-      doc.line(m+118,y+4.5,W-m,y+4.5);
-      doc.setDrawColor(0);
-      y+=8;
-
-      // Info: REPRESENTING
-      doc.setFont("helvetica","bold");doc.setFontSize(9);
-      doc.text(san(fedType.toUpperCase())+":",m,y+4);
-      doc.setFont("helvetica","normal");doc.text(san(""),m+26,y+4);
-      doc.setDrawColor(180);doc.line(m+26,y+4.5,m+100,y+4.5);
-      doc.setDrawColor(0);
-      y+=isMulti?10:8;
-
-      if(isMulti){
-        // === SP+FP pattern (shortandfreeProgramContent.html) ===
-        // Each section gets: bandRow + MUSIC + elemTable — all on ONE page
-        sheet.sections.forEach((sec,si)=>{
-          const d=sections[si];
-          const secLabel=sec.label.toUpperCase().includes("SHORT")?"SHORT PROGRAM":"FREE PROGRAM";
-          y=bandRow(secLabel,y);
-
-          // MUSIC for this section
-          doc.setFont("helvetica","bold");doc.setFontSize(9);
-          doc.text("MUSIC:",m,y+4);
-          doc.setFont("helvetica","normal");doc.text(san(d?.music||choreography||""),m+16,y+4);
-          doc.setDrawColor(180);doc.line(m+16,y+4.5,W-m,y+4.5);
-          doc.setDrawColor(0);
-          y+=8;
-
-          y=elemTable(y,d?.elements||[],12); // minCellHeight 12 for SP+FP
-        });
-      } else {
-        // === FP-only pattern (freeProgramOnlyContent.html) ===
-        // MUSIC + elemTable directly
-        const d=sections[0];
-        doc.setFont("helvetica","bold");doc.setFontSize(9);
-        doc.text("MUSIC:",m,y+4);
-        doc.setFont("helvetica","normal");doc.text(san(d?.music||choreography||""),m+16,y+4);
-        doc.setDrawColor(180);doc.line(m+16,y+4.5,W-m,y+4.5);
-        doc.setDrawColor(0);
-        y+=8;
-
-        elemTable(y,d?.elements||[],22); // minCellHeight 22 for single-section
-      }
-
-      // Footer
-      const totalPages=doc.internal.getNumberOfPages();
-      for(let p=1;p<=totalPages;p++){
-        doc.setPage(p);
-        doc.setFontSize(7);doc.setTextColor(150,150,150);doc.setFont("helvetica","normal");
-        doc.text("Generated by RollArt 2026 — World Skate Official Format",W/2,ph-8,{align:"center"});
-      }
-
-      // Auto-download
-      const fn=`${(name||"content").replace(/\s+/g,"_")}_${sheetType}_content.pdf`;
-      doc.save(fn);
+      const pdfSections=sheet.sections.map((sec,si)=>{
+        const d=sections[si];
+        const secLabel=sec.label.toUpperCase().includes("SHORT")?"SHORT PROGRAM":"FREE PROGRAM";
+        return {label:secLabel,music:d?.music||choreography||"",elements:d?.elements||[]};
+      });
+      const doc=buildWorldSkatePDF({
+        title:sheet.title.toUpperCase(),
+        name:name||"",
+        category:catLabel,
+        fedLabel:fedType,
+        clubName:clubName||"",
+        music:choreography||"",
+        sections:pdfSections,
+      });
+      doc.save(`${(name||"content").replace(/\s+/g,"_")}_${sheetType}_content.pdf`);
     };
 
     // Save as TXT
     const saveTxt=()=>{
-      const lines=[sheet.title,"",`Name: ${name}`,`Category: ${CATEGORY_DEFS[kategorie]?.label||kategorie}`,`Federation: ${federation}`,`Choreography: ${choreography}`,""];
+      const lines=[sheet.title,"",`Name: ${name}`,`Category: ${CATEGORY_DEFS[kategorie]?.label||kategorie}`,`Federation: ${federation}`,`Club: ${clubName}`,`Choreography: ${choreography}`,""];
       sheet.sections.forEach((sec,si)=>{
         const d=sections[si];
         lines.push(`=== ${sec.label} ===`);
@@ -1253,6 +1265,7 @@
           if(found)setKategorie(found[0]); else setKategorie(catVal);
         }
         const fd=text.match(/Federation:\s*(.+)/);if(fd)setFederation(fd[1].trim());
+        const cn=text.match(/Club:\s*(.+)/);if(cn)setClubName(cn[1].trim());
         const ch=text.match(/Choreography:\s*(.+)/);if(ch)setChoreography(ch[1].trim());
         // Parse sections
         const secBlocks=text.split(/===\s*(.+?)\s*===/);
@@ -1479,7 +1492,7 @@
           {savedMsg && <span style={{fontSize:11,color:"#10b981",fontWeight:600}}>{savedMsg}</span>}
           <div style={{width:1,height:24,background:"#e5e7eb",margin:"0 2px",flexShrink:0}} />
           {/* Export Group */}
-          <button onClick={exportPDF} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#dc2626",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>PDF exportieren</button>
+          <button onClick={()=>{if(!name.trim()){alert("Bitte Competitors Name eingeben!");return;}exportPDF();}} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#dc2626",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>PDF exportieren</button>
           <button onClick={saveTxt} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#22221C",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>TXT exportieren</button>
           <label style={{padding:"6px 14px",borderRadius:5,border:"1px solid #22221C",background:"#f0f1f2",color:"#22221C",fontWeight:600,fontSize:11,cursor:"pointer"}}>
             Importieren (PDF/TXT)
@@ -1489,7 +1502,7 @@
           <button onClick={handleSendToContent} style={{padding:"6px 14px",borderRadius:5,border:"none",background:"#22221C",color:"white",fontWeight:600,fontSize:11,cursor:"pointer"}}>
             An Calculator senden &#9654;
           </button>
-          <button onClick={()=>{setName("");setKategorie("senior");setFederation("");setChoreography("");setSections(initSections(sheetType));}} style={{padding:"6px 14px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Neu</button>
+          <button onClick={()=>{setName("");setKategorie("senior");setFederation("");setClubName("");setChoreography("");setSections(initSections(sheetType));}} style={{padding:"6px 14px",borderRadius:5,border:"1px solid #fca5a5",background:"#fef2f2",color:"#dc2626",fontWeight:600,fontSize:11,cursor:"pointer"}}>Neu</button>
         </div>
 
         {/* Load Content Sheet Modal */}
@@ -1560,7 +1573,7 @@
               </div>
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:"#455a64",marginBottom:3,textTransform:"uppercase"}}>Federation / Club</div>
-                <input value={""} readOnly placeholder="Federation or club..."
+                <input value={clubName} onChange={e=>setClubName(e.target.value)} placeholder="Federation or club..."
                   style={{width:"100%",padding:"7px 10px",border:"1px solid #b0bec5",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"#f8fafc",outline:"none",boxSizing:"border-box"}}/>
               </div>
             </div>
@@ -5880,43 +5893,17 @@
 
     // ============================================================
     //  OFFICIAL WORLD SKATE CONTENT SHEET — PDF EXPORT
-    //  Matches original sk8info.org.au format exactly:
-    //  - Navy blue rounded header band with logo + title
-    //  - Info section as text with underlines (not table cells)
-    //  - Navy section band "ELEMENTS — PROGRAM"
-    //  - jspdf-autotable grid with exact column widths
+    //  Uses shared buildWorldSkatePDF utility (exact sk8info.org.au logic)
     // ============================================================
     const exportOfficialPDF = () => {
-      const {jsPDF} = window.jspdf;
-      const doc = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
-      const W=210, m=10, cW=W-m*2;
-      const NAVY=[21,101,192]; // Original sk8info header blue
-      const BLUE2=[25,118,210]; // Original sk8info column header blue
-      const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/['']/g,"'").replace(/[""]/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
-      const san=sanitize;
-
-      // hdrBand — exact copy of sk8info generatePDF.hdrBand
-      const hdrBand=(title,y)=>{
-        doc.setFillColor(...NAVY);
-        doc.roundedRect(m,y,cW,11,2,2,"F");
-        let tx=m+4;
-        if(wsLogoData){try{const lh=9,lw=lh*wsLogoAspect;doc.addImage(wsLogoData,wsLogoType,m+2,y+1,lw,lh);tx=m+lw+4;}catch(e){}}
-        doc.setFont("helvetica","bold");doc.setFontSize(13);
-        doc.setTextColor(255,255,255);
-        doc.text(san(title),tx,y+7.5);
-        doc.setTextColor(0,0,0);
-        return y+13;
-      };
-
-      // Determine segment info
       const isSP = segment.endsWith("_sp");
       const titleText = isPairs
         ? (isSP ? "PAIRS SHORT PROGRAM CONTENT SHEET 2026" : "PAIRS FREE PROGRAM CONTENT SHEET 2026")
         : (isSP ? "SHORT PROGRAM CONTENT SHEET 2026" : "FREE PROGRAM CONTENT SHEET 2026");
       const stdRowCount = isSP ? (isPairs ? 8 : 7) : (isPairs ? 13 : 9);
 
-      // Map element rows + pad to standard count — 5 columns: # | Time | Code | (Tech Panel) | Notes
-      const mappedRows = rows.map((r,i) => {
+      // Map calculator element rows to content sheet format
+      const mappedElements = rows.map((r,i) => {
         const typeDef = types.find(t=>t.code===r.typeCode);
         let code="",notes="";
         if(typeDef){
@@ -5930,77 +5917,25 @@
             code=el?el.code:r.elCode||r.typeCode;notes=el?el.name:"";
           }
         }
-        return [String(i+1),"",code,"",notes];
+        return {time:"",code,performed:"",notes};
       });
-      while(mappedRows.length<stdRowCount) mappedRows.push([String(mappedRows.length+1),"","","",""]);
+      // Pad to standard row count
+      while(mappedElements.length<stdRowCount) mappedElements.push({time:"",code:"",performed:"",notes:""});
 
-      // === PAGE DRAWING — exact sk8info logic ===
-      let y=10;
-      y=hdrBand(titleText,y);
-
-      // Info section — text + underlines (exact sk8info format)
       const catLabel = CATEGORY_DEFS[kategorie]?.label || kategorie;
-      let pdfName = (skater||"").replace(/^:\s*/, "").replace(/\s+CATEGORY:\s+.+$/i, "").trim();
+      const pdfName = (skater||"").replace(/^:\s*/, "").replace(/\s+CATEGORY:\s+.+$/i, "").trim();
+      const fedLabel = (cat&&cat!=="Representing")?cat.toUpperCase():"REPRESENTING";
 
-      // Row 1: NAME: _______ | CATEGORY: _______
-      doc.setFont("helvetica","bold");doc.setFontSize(9);
-      doc.text("NAME:",m,y+4);
-      doc.setFont("helvetica","normal");doc.text(san(pdfName),m+13,y+4);
-      doc.setDrawColor(180);doc.line(m+13,y+4.5,m+90,y+4.5);
-      doc.setFont("helvetica","bold");doc.text("CATEGORY:",m+95,y+4);
-      doc.setFont("helvetica","normal");doc.text(san(catLabel),m+118,y+4);
-      doc.setDrawColor(180);doc.line(m+118,y+4.5,W-m,y+4.5);
-      doc.setDrawColor(0);
-      y+=8;
-
-      // Row 2: REPRESENTING: _______
-      doc.setFont("helvetica","bold");doc.setFontSize(9);
-      doc.text("REPRESENTING:",m,y+4);
-      doc.setFont("helvetica","normal");doc.text(san(cat||""),m+26,y+4);
-      doc.setDrawColor(180);doc.line(m+26,y+4.5,m+100,y+4.5);
-      doc.setDrawColor(0);
-      y+=8;
-
-      // Row 3: MUSIC: _______
-      doc.setFont("helvetica","bold");doc.setFontSize(9);
-      doc.text("MUSIC:",m,y+4);
-      doc.setFont("helvetica","normal");doc.text(san(music||""),m+16,y+4);
-      doc.setDrawColor(180);doc.line(m+16,y+4.5,W-m,y+4.5);
-      doc.setDrawColor(0);
-      y+=8;
-
-      // === Element table — NO section band, directly autoTable (exact sk8info pattern) ===
-      doc.autoTable({
-        startY:y,
-        margin:{left:m,right:m},
-        tableWidth:cW,
-        head:[[
-          {content:"#",styles:{halign:"center",fontStyle:"bold",fillColor:BLUE2,textColor:255}},
-          {content:"Time",styles:{fontStyle:"bold",fillColor:BLUE2,textColor:255}},
-          {content:"Code",styles:{fontStyle:"bold",fillColor:BLUE2,textColor:255}},
-          {content:"(Tech Panel)",styles:{fontStyle:"bold",fillColor:BLUE2,textColor:255}},
-          {content:"Notes",styles:{fontStyle:"bold",fillColor:BLUE2,textColor:255}},
-        ]],
-        body:mappedRows,
-        theme:"grid",
-        headStyles:{fontSize:9},
-        bodyStyles:{fontSize:12,minCellHeight:22,valign:"middle"},
-        alternateRowStyles:{fillColor:[248,250,252]},
-        columnStyles:{
-          0:{cellWidth:12,halign:"center"},
-          1:{cellWidth:22},
-          2:{cellWidth:24},
-          4:{cellWidth:52},
-        },
+      const doc = buildWorldSkatePDF({
+        title: titleText,
+        name: pdfName,
+        category: catLabel,
+        fedLabel: fedLabel,
+        clubName: "",
+        music: music||"",
+        sections: [{label: isSP?"SHORT PROGRAM":"FREE PROGRAM", music: music||"", elements: mappedElements}],
       });
-
-      // Footer
-      doc.setFontSize(7);doc.setTextColor(150,150,150);doc.setFont("helvetica","normal");
-      doc.text("Generated by RollArt 2026 - World Skate Official Format",W/2,287,{align:"center"});
-
-      // Save
-      const fn=`${(pdfName||"content_sheet").replace(/\s+/g,"_")}_${segDef.label.replace(/\s+/g,"_")}_WorldSkate.pdf`;
-      doc.save(fn);
+      doc.save(`${(pdfName||"content_sheet").replace(/\s+/g,"_")}_${segDef.label.replace(/\s+/g,"_")}_WorldSkate.pdf`);
     };
 
     // ============================================================
@@ -6824,8 +6759,8 @@
                   <input type="file" accept=".pdf,.txt" onChange={handleUpload} style={{display:"none"}}/>
                 </label>
                 <button onClick={exportTxt} style={{...btnBase,background:"#22221C",color:"white"}}>TXT Export</button>
-                <button onClick={exportOfficialPDF} style={{...btnBase,background:"#dc2626",color:"white"}}>PDF (World Skate)</button>
-                <button onClick={exportDetailPDF} style={{...btnBase,background:"#22221C",color:"white"}}>PDF (Detail)</button>
+                <button onClick={()=>{if(!skater.trim()){alert("Bitte Läufer-Name eingeben!");return;}exportOfficialPDF();}} style={{...btnBase,background:"#dc2626",color:"white"}}>PDF (World Skate)</button>
+                <button onClick={()=>{if(!skater.trim()){alert("Bitte Läufer-Name eingeben!");return;}exportDetailPDF();}} style={{...btnBase,background:"#22221C",color:"white"}}>PDF (Detail)</button>
                 {divider}
                 {/* Läufer Group */}
                 <button onClick={saveSkater} disabled={savingSkater} style={{...btnBase,background:"#3b82f6",color:"white",opacity:savingSkater?0.6:1}}>Speichern</button>
