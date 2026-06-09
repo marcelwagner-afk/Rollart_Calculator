@@ -1037,11 +1037,11 @@
     // Uses jspdf-autotable, navy blue header bands, text+underline info section
     const exportPDF=()=>{
       const {jsPDF}=window.jspdf;
-      const doc=new jsPDF({orientation:”portrait”,unit:”mm”,format:”a4”});
+      const doc=new jsPDF({orientation:"portrait",unit:"mm",format:"a4"});
       const W=210,ph=297,m=10,cW=W-m*2;
       const NAVY=[21,101,192];
       let y=0;
-      const sanitize=(s)=>String(s).replace(/—/g,’-’).replace(/–/g,’-’).replace(/[‘’]/g,”’”).replace(/[“”]/g,’”’).replace(/…/g,’...’).replace(/•/g,’*’).replace(/[^\x20-\x7E\xA0-\xFF]/g,’?’);
+      const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/['']/g,"'").replace(/[""]/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
       const san=sanitize;
 
       // Draw World Skate logo as spiral arcs (vector)
@@ -1056,19 +1056,19 @@
         drawArc(cx,cy,r,-90,250,[255,255,255],0.9);
         drawArc(cx,cy,r*0.72,-90,240,[200,210,230],0.7);
         drawArc(cx,cy,r*0.45,-90,220,[180,220,140],0.6);
-        doc.setFont(“helvetica”,”bold”);doc.setFontSize(7);
+        doc.setFont("helvetica","bold");doc.setFontSize(7);
         doc.setTextColor(255,255,255);
-        doc.text(“WORLD”,lx+sz+2,cy-0.5);doc.text(“SKATE”,lx+sz+2,cy+2.5);
+        doc.text("WORLD",lx+sz+2,cy-0.5);doc.text("SKATE",lx+sz+2,cy+2.5);
       };
 
       // Header band: navy rounded rect + logo + title
       const hdrBand=(title,yy)=>{
         doc.setFillColor(...NAVY);
-        doc.roundedRect(m,yy,cW,11,2,2,”F”);
+        doc.roundedRect(m,yy,cW,11,2,2,"F");
         drawLogo(m+2,yy+1,9);
-        doc.setFont(“helvetica”,”bold”);doc.setFontSize(13);
+        doc.setFont("helvetica","bold");doc.setFontSize(13);
         doc.setTextColor(255,255,255);
-        doc.text(san(title),W/2,yy+7.5,{align:”center”});
+        doc.text(san(title),W/2,yy+7.5,{align:"center"});
         doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);doc.setLineWidth(0.3);
         return yy+13;
       };
@@ -1076,10 +1076,10 @@
       // Element section band
       const elemBand=(label,yy)=>{
         doc.setFillColor(...NAVY);
-        doc.roundedRect(m,yy,cW,9,1.5,1.5,”F”);
-        doc.setFont(“helvetica”,”bold”);doc.setFontSize(10);
+        doc.roundedRect(m,yy,cW,9,1.5,1.5,"F");
+        doc.setFont("helvetica","bold");doc.setFontSize(10);
         doc.setTextColor(255,255,255);
-        doc.text(san(label),W/2,yy+6.2,{align:”center”});
+        doc.text(san(label),W/2,yy+6.2,{align:"center"});
         doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);
         return yy+11;
       };
@@ -1097,33 +1097,33 @@
         const catLabel=CATEGORY_DEFS[kategorie]?.label||kategorie;
         const firstData=sections[startSecIdx];
         const firstSec=sheet.sections[startSecIdx];
-        const secIsSP=firstSec?.label?.toUpperCase().includes(“SHORT”);
+        const secIsSP=firstSec?.label?.toUpperCase().includes("SHORT");
 
         // Row 1: NAME + CATEGORY
-        doc.setFont(“helvetica”,”bold”);doc.setFontSize(9);doc.setTextColor(0,0,0);
-        doc.text(“NAME:”,m,y+4);
-        doc.setFont(“helvetica”,”normal”);doc.text(san(name||””),m+15,y+4);
+        doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(0,0,0);
+        doc.text("NAME:",m,y+4);
+        doc.setFont("helvetica","normal");doc.text(san(name||""),m+15,y+4);
         doc.setDrawColor(180,180,180);doc.setLineWidth(0.2);
         doc.line(m+13,y+4.5,m+90,y+4.5);
-        doc.setFont(“helvetica”,”bold”);doc.text(“CATEGORY:”,m+95,y+4);
-        doc.setFont(“helvetica”,”normal”);doc.text(san(catLabel),m+120,y+4);
+        doc.setFont("helvetica","bold");doc.text("CATEGORY:",m+95,y+4);
+        doc.setFont("helvetica","normal");doc.text(san(catLabel),m+120,y+4);
         doc.line(m+118,y+4.5,W-m,y+4.5);
         y+=8;
 
         // Row 2: REPRESENTING + FEDERATION
-        doc.setFont(“helvetica”,”bold”);doc.text(“REPRESENTING:”,m,y+4);
-        doc.setFont(“helvetica”,”normal”);doc.text(san(federation||””),m+28,y+4);
+        doc.setFont("helvetica","bold");doc.text("REPRESENTING:",m,y+4);
+        doc.setFont("helvetica","normal");doc.text(san(federation||""),m+28,y+4);
         doc.line(m+26,y+4.5,m+100,y+4.5);
-        doc.setFont(“helvetica”,”bold”);doc.text(“FEDERATION / CLUB:”,m+105,y+4);
-        doc.setFont(“helvetica”,”normal”);doc.text(“”,m+145,y+4);
+        doc.setFont("helvetica","bold");doc.text("FEDERATION / CLUB:",m+105,y+4);
+        doc.setFont("helvetica","normal");doc.text("",m+145,y+4);
         doc.line(m+143,y+4.5,W-m,y+4.5);
         y+=8;
 
         // Row 3: MUSIC
-        const musicLabel=secIsSP?”Short - Choreography / Music:”:”Free - Choreography / Music:”;
-        doc.setFont(“helvetica”,”bold”);doc.text(san(musicLabel),m,y+4);
+        const musicLabel=secIsSP?"Short - Choreography / Music:":"Free - Choreography / Music:";
+        doc.setFont("helvetica","bold");doc.text(san(musicLabel),m,y+4);
         const mLabelW=doc.getTextWidth(san(musicLabel));
-        doc.setFont(“helvetica”,”normal”);doc.text(san(firstData?.music||choreography||””),m+mLabelW+3,y+4);
+        doc.setFont("helvetica","normal");doc.text(san(firstData?.music||choreography||""),m+mLabelW+3,y+4);
         doc.line(m+mLabelW+1,y+4.5,W-m,y+4.5);
         y+=8;
 
@@ -1134,21 +1134,21 @@
           if(!sec)continue;
 
           // Section element band
-          const elSecIsPairs=sec.label.toUpperCase().includes(“PAIR”);
-          const elSecIsSP=sec.label.toUpperCase().includes(“SHORT”);
+          const elSecIsPairs=sec.label.toUpperCase().includes("PAIR");
+          const elSecIsSP=sec.label.toUpperCase().includes("SHORT");
           const bandLabel=elSecIsPairs
-            ?(elSecIsSP?”ELEMENTS — PAIRS SHORT PROGRAM”:”ELEMENTS — PAIRS FREE PROGRAM”)
-            :(elSecIsSP?”ELEMENTS — SHORT PROGRAM”:”ELEMENTS — FREE PROGRAM”);
+            ?(elSecIsSP?"ELEMENTS — PAIRS SHORT PROGRAM":"ELEMENTS — PAIRS FREE PROGRAM")
+            :(elSecIsSP?"ELEMENTS — SHORT PROGRAM":"ELEMENTS — FREE PROGRAM");
           y=elemBand(bandLabel,y);
 
           // Build table body from section elements
           const elems=d?.elements||[];
           const bodyData=elems.map((el,i)=>[
             String(i+1),
-            el.time||””,
-            el.code||””,
-            “”,
-            el.notes||””
+            el.time||"",
+            el.code||"",
+            "",
+            el.notes||""
           ]);
 
           // autoTable for element grid
@@ -1157,19 +1157,19 @@
             margin:{left:m,right:m},
             tableWidth:cW,
             head:[[
-              {content:”#”,styles:{halign:”center”,fontStyle:”bold”}},
-              {content:”Time”,styles:{fontStyle:”bold”}},
-              {content:”Code”,styles:{fontStyle:”bold”}},
-              {content:”(Tech Panel)”,styles:{fontStyle:”bold”}},
-              {content:”Notes”,styles:{fontStyle:”bold”}},
+              {content:"#",styles:{halign:"center",fontStyle:"bold"}},
+              {content:"Time",styles:{fontStyle:"bold"}},
+              {content:"Code",styles:{fontStyle:"bold"}},
+              {content:"(Tech Panel)",styles:{fontStyle:"bold"}},
+              {content:"Notes",styles:{fontStyle:"bold"}},
             ]],
             body:bodyData,
-            theme:”grid”,
+            theme:"grid",
             headStyles:{fontSize:9,fillColor:NAVY,textColor:[255,255,255]},
-            bodyStyles:{fontSize:12,minCellHeight:25,valign:”middle”},
+            bodyStyles:{fontSize:12,minCellHeight:25,valign:"middle"},
             alternateRowStyles:{fillColor:[248,250,252]},
             columnStyles:{
-              0:{cellWidth:12,halign:”center”},
+              0:{cellWidth:12,halign:"center"},
               1:{cellWidth:22},
               2:{cellWidth:24},
               4:{cellWidth:52},
@@ -1191,12 +1191,12 @@
       const totalPages=doc.internal.getNumberOfPages();
       for(let p=1;p<=totalPages;p++){
         doc.setPage(p);
-        doc.setFontSize(7);doc.setTextColor(150,150,150);doc.setFont(“helvetica”,”normal”);
-        doc.text(“Generated by RollArt 2026 - World Skate Official Format”,W/2,ph-8,{align:”center”});
+        doc.setFontSize(7);doc.setTextColor(150,150,150);doc.setFont("helvetica","normal");
+        doc.text("Generated by RollArt 2026 - World Skate Official Format",W/2,ph-8,{align:"center"});
       }
 
       // Auto-download
-      const fn=`${(name||”content”).replace(/\s+/g,”_”)}_${sheetType}_content.pdf`;
+      const fn=`${(name||"content").replace(/\s+/g,"_")}_${sheetType}_content.pdf`;
       doc.save(fn);
     };
 
@@ -5784,15 +5784,15 @@
     //  Matches original sk8info.org.au format exactly:
     //  - Navy blue rounded header band with logo + title
     //  - Info section as text with underlines (not table cells)
-    //  - Navy section band “ELEMENTS — PROGRAM”
+    //  - Navy section band "ELEMENTS — PROGRAM"
     //  - jspdf-autotable grid with exact column widths
     // ============================================================
     const exportOfficialPDF = () => {
       const {jsPDF} = window.jspdf;
-      const doc = new jsPDF({orientation:”portrait”, unit:”mm”, format:”a4”});
+      const doc = new jsPDF({orientation:"portrait", unit:"mm", format:"a4"});
       const W=210, m=10, cW=W-m*2;
       const NAVY=[21,101,192];
-      const sanitize=(s)=>String(s).replace(/—/g,’-’).replace(/–/g,’-’).replace(/[‘’]/g,”’”).replace(/[“”]/g,’”’).replace(/…/g,’...’).replace(/•/g,’*’).replace(/[^\x20-\x7E\xA0-\xFF]/g,’?’);
+      const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/['']/g,"'").replace(/[""]/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
 
       // Draw World Skate logo as spiral arcs (vector, no external image)
       const drawLogo=(lx,ly,sz)=>{
@@ -5806,19 +5806,19 @@
         drawArc(cx,cy,r,-90,250,[255,255,255],0.9);
         drawArc(cx,cy,r*0.72,-90,240,[200,210,230],0.7);
         drawArc(cx,cy,r*0.45,-90,220,[180,220,140],0.6);
-        doc.setFont(“helvetica”,”bold”);doc.setFontSize(7);
+        doc.setFont("helvetica","bold");doc.setFontSize(7);
         doc.setTextColor(255,255,255);
-        doc.text(“WORLD”,lx+sz+2,cy-0.5);doc.text(“SKATE”,lx+sz+2,cy+2.5);
+        doc.text("WORLD",lx+sz+2,cy-0.5);doc.text("SKATE",lx+sz+2,cy+2.5);
       };
 
       // === Header band: navy rounded rect + logo + title ===
       const hdrBand=(title,y)=>{
         doc.setFillColor(...NAVY);
-        doc.roundedRect(m,y,cW,11,2,2,”F”);
+        doc.roundedRect(m,y,cW,11,2,2,"F");
         drawLogo(m+2,y+1,9);
-        doc.setFont(“helvetica”,”bold”);doc.setFontSize(13);
+        doc.setFont("helvetica","bold");doc.setFontSize(13);
         doc.setTextColor(255,255,255);
-        doc.text(sanitize(title),W/2,y+7.5,{align:”center”});
+        doc.text(sanitize(title),W/2,y+7.5,{align:"center"});
         doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);doc.setLineWidth(0.3);
         return y+13;
       };
@@ -5826,42 +5826,42 @@
       // === Element section band ===
       const elemBand=(label,y)=>{
         doc.setFillColor(...NAVY);
-        doc.roundedRect(m,y,cW,9,1.5,1.5,”F”);
-        doc.setFont(“helvetica”,”bold”);doc.setFontSize(10);
+        doc.roundedRect(m,y,cW,9,1.5,1.5,"F");
+        doc.setFont("helvetica","bold");doc.setFontSize(10);
         doc.setTextColor(255,255,255);
-        doc.text(sanitize(label),W/2,y+6.2,{align:”center”});
+        doc.text(sanitize(label),W/2,y+6.2,{align:"center"});
         doc.setTextColor(0,0,0);doc.setDrawColor(0,0,0);
         return y+11;
       };
 
       // Determine segment info
-      const isSP = segment.endsWith(“_sp”);
+      const isSP = segment.endsWith("_sp");
       const titleText = isPairs
-        ? (isSP ? “PAIRS SHORT PROGRAM CONTENT SHEET 2026” : “PAIRS FREE PROGRAM CONTENT SHEET 2026”)
-        : (isSP ? “SHORT PROGRAM CONTENT SHEET 2026” : “FREE PROGRAM CONTENT SHEET 2026”);
+        ? (isSP ? "PAIRS SHORT PROGRAM CONTENT SHEET 2026" : "PAIRS FREE PROGRAM CONTENT SHEET 2026")
+        : (isSP ? "SHORT PROGRAM CONTENT SHEET 2026" : "FREE PROGRAM CONTENT SHEET 2026");
       const elemLabel = isPairs
-        ? (isSP ? “ELEMENTS — PAIRS SHORT PROGRAM” : “ELEMENTS — PAIRS FREE PROGRAM”)
-        : (isSP ? “ELEMENTS — SHORT PROGRAM” : “ELEMENTS — FREE PROGRAM”);
+        ? (isSP ? "ELEMENTS — PAIRS SHORT PROGRAM" : "ELEMENTS — PAIRS FREE PROGRAM")
+        : (isSP ? "ELEMENTS — SHORT PROGRAM" : "ELEMENTS — FREE PROGRAM");
       const stdRowCount = isSP ? (isPairs ? 8 : 7) : (isPairs ? 13 : 9);
 
       // Map element rows + pad to standard count
       const mappedRows = rows.map((r,i) => {
         const typeDef = types.find(t=>t.code===r.typeCode);
-        let code=””,notes=””;
+        let code="",notes="";
         if(typeDef){
           if(typeDef.isCombo){
             code=typeDef.code;
             notes=(r.comboEls||[]).filter(sub=>sub.code).map(sub=>{
               const el=typeDef.data.find(e=>e.code===sub.code);return el?el.code:sub.code;
-            }).join(“ + “);
+            }).join(" + ");
           } else {
             const el=typeDef.data.find(e=>e.code===r.elCode);
-            code=el?el.code:r.elCode||r.typeCode;notes=el?el.name:””;
+            code=el?el.code:r.elCode||r.typeCode;notes=el?el.name:"";
           }
         }
-        return [String(i+1),””,code,””,notes];
+        return [String(i+1),"",code,"",notes];
       });
-      while(mappedRows.length<stdRowCount) mappedRows.push([String(mappedRows.length+1),””,””,””,””]);
+      while(mappedRows.length<stdRowCount) mappedRows.push([String(mappedRows.length+1),"","","",""]);
 
       // === PAGE DRAWING ===
       let y=10;
@@ -5873,32 +5873,32 @@
       const san=sanitize;
 
       // Row 1: NAME + CATEGORY (side by side)
-      doc.setFont(“helvetica”,”bold”);doc.setFontSize(9);doc.setTextColor(0,0,0);
-      doc.text(“NAME:”,m,y+4);
-      doc.setFont(“helvetica”,”normal”);doc.text(san(skater||””),m+15,y+4);
+      doc.setFont("helvetica","bold");doc.setFontSize(9);doc.setTextColor(0,0,0);
+      doc.text("NAME:",m,y+4);
+      doc.setFont("helvetica","normal");doc.text(san(skater||""),m+15,y+4);
       doc.setDrawColor(180,180,180);doc.setLineWidth(0.2);
       doc.line(m+13,y+4.5,m+90,y+4.5);
-      doc.setFont(“helvetica”,”bold”);doc.text(“CATEGORY:”,m+95,y+4);
-      doc.setFont(“helvetica”,”normal”);doc.text(san(catLabel),m+120,y+4);
+      doc.setFont("helvetica","bold");doc.text("CATEGORY:",m+95,y+4);
+      doc.setFont("helvetica","normal");doc.text(san(catLabel),m+120,y+4);
       doc.line(m+118,y+4.5,W-m,y+4.5);
       y+=8;
 
       // Row 2: REPRESENTING + FEDERATION/CLUB (side by side)
-      doc.setFont(“helvetica”,”bold”);doc.text(“REPRESENTING:”,m,y+4);
-      doc.setFont(“helvetica”,”normal”);doc.text(san(cat||””),m+28,y+4);
+      doc.setFont("helvetica","bold");doc.text("REPRESENTING:",m,y+4);
+      doc.setFont("helvetica","normal");doc.text(san(cat||""),m+28,y+4);
       doc.line(m+26,y+4.5,m+100,y+4.5);
-      doc.setFont(“helvetica”,”bold”);doc.text(“FEDERATION / CLUB:”,m+105,y+4);
-      doc.setFont(“helvetica”,”normal”);doc.text(“”,m+145,y+4);
+      doc.setFont("helvetica","bold");doc.text("FEDERATION / CLUB:",m+105,y+4);
+      doc.setFont("helvetica","normal");doc.text("",m+145,y+4);
       doc.line(m+143,y+4.5,W-m,y+4.5);
       y+=8;
 
       // Row 3: MUSIC (full width)
       const musicLabel = isPairs
-        ? (isSP ? “Short Program - Choreography / Music:” : “Free Program - Choreography / Music:”)
-        : (isSP ? “Short - Choreography / Music:” : “Free - Choreography / Music:”);
-      doc.setFont(“helvetica”,”bold”);doc.text(san(musicLabel),m,y+4);
+        ? (isSP ? "Short Program - Choreography / Music:" : "Free Program - Choreography / Music:")
+        : (isSP ? "Short - Choreography / Music:" : "Free - Choreography / Music:");
+      doc.setFont("helvetica","bold");doc.text(san(musicLabel),m,y+4);
       const mLabelW=doc.getTextWidth(san(musicLabel));
-      doc.setFont(“helvetica”,”normal”);doc.text(san(music||””),m+mLabelW+3,y+4);
+      doc.setFont("helvetica","normal");doc.text(san(music||""),m+mLabelW+3,y+4);
       doc.line(m+mLabelW+1,y+4.5,W-m,y+4.5);
       y+=8;
 
@@ -5911,19 +5911,19 @@
         margin:{left:m,right:m},
         tableWidth:cW,
         head:[[
-          {content:”#”,styles:{halign:”center”,fontStyle:”bold”}},
-          {content:”Time”,styles:{fontStyle:”bold”}},
-          {content:”Code”,styles:{fontStyle:”bold”}},
-          {content:”(Tech Panel)”,styles:{fontStyle:”bold”}},
-          {content:”Notes”,styles:{fontStyle:”bold”}},
+          {content:"#",styles:{halign:"center",fontStyle:"bold"}},
+          {content:"Time",styles:{fontStyle:"bold"}},
+          {content:"Code",styles:{fontStyle:"bold"}},
+          {content:"(Tech Panel)",styles:{fontStyle:"bold"}},
+          {content:"Notes",styles:{fontStyle:"bold"}},
         ]],
         body:mappedRows,
-        theme:”grid”,
+        theme:"grid",
         headStyles:{fontSize:9,fillColor:[21,101,192],textColor:[255,255,255]},
-        bodyStyles:{fontSize:12,minCellHeight:25,valign:”middle”},
+        bodyStyles:{fontSize:12,minCellHeight:25,valign:"middle"},
         alternateRowStyles:{fillColor:[248,250,252]},
         columnStyles:{
-          0:{cellWidth:12,halign:”center”},
+          0:{cellWidth:12,halign:"center"},
           1:{cellWidth:22},
           2:{cellWidth:24},
           4:{cellWidth:52},
@@ -5931,11 +5931,11 @@
       });
 
       // Footer
-      doc.setFontSize(7);doc.setTextColor(150,150,150);doc.setFont(“helvetica”,”normal”);
-      doc.text(“Generated by RollArt 2026 - World Skate Official Format”,W/2,287,{align:”center”});
+      doc.setFontSize(7);doc.setTextColor(150,150,150);doc.setFont("helvetica","normal");
+      doc.text("Generated by RollArt 2026 - World Skate Official Format",W/2,287,{align:"center"});
 
       // Save
-      const fn=`${(skater||”content_sheet”).replace(/\s+/g,”_”)}_${segDef.label.replace(/\s+/g,”_”)}_WorldSkate.pdf`;
+      const fn=`${(skater||"content_sheet").replace(/\s+/g,"_")}_${segDef.label.replace(/\s+/g,"_")}_WorldSkate.pdf`;
       doc.save(fn);
     };
 
@@ -5949,7 +5949,7 @@
       let y=10, cx;
 
       // Helpers
-      const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/‘|’/g,"'").replace(/“|”/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
+      const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/'|'/g,"'").replace(/"|"/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
       const setLine=()=>{doc.setDrawColor(0,0,0);doc.setLineWidth(lw);};
       const rectF=(x,yy,w,h,fill)=>{if(fill){doc.setFillColor(fill);doc.rect(x,yy,w,h,"F");}setLine();doc.rect(x,yy,w,h);};
       const txt=(str,x,yy,opts={})=>{
