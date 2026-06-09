@@ -866,24 +866,24 @@
 
     return(
       <div style={{marginBottom:16}}>
-        {/* Gray section bar */}
+        {/* Section header — matches original World Skate format */}
         <div style={{background:"#e8e8e8",border:B,padding:"8px 12px",textAlign:"center",fontWeight:800,fontSize:14,fontFamily:"Arial,sans-serif",letterSpacing:1}}>
-          ELEMENTS {section.label.toUpperCase()}
+          ELEMENTS — {section.label.toUpperCase()}
         </div>
-        {/* Sub-headers: DECLARED | ELEMENT PERFORMED */}
+        {/* Sub-headers: DECLARED | ELEMENTS PERFORMED */}
         <table style={{width:"100%",borderCollapse:"collapse",tableLayout:"fixed"}}>
           <colgroup><col style={{width:36}}/><col style={{width:65}}/><col style={{width:65}}/><col/><col style={{width:110}}/></colgroup>
           <thead>
             <tr>
               <th colSpan={3} style={{border:B,background:"#f5f5f5",padding:"4px",fontSize:11,fontWeight:700,textAlign:"center",fontFamily:"Arial,sans-serif"}}>DECLARED</th>
-              <th style={{border:B,background:"#f5f5f5",padding:"4px",fontSize:11,fontWeight:700,textAlign:"center",fontFamily:"Arial,sans-serif"}}>ELEMENT PERFORMED</th>
+              <th style={{border:B,background:"#f5f5f5",padding:"4px",fontSize:11,fontWeight:700,textAlign:"center",fontFamily:"Arial,sans-serif"}}>ELEMENTS PERFORMED</th>
               <th style={{border:B,background:"#f5f5f5",padding:"4px",fontSize:11,fontWeight:700,textAlign:"center",fontFamily:"Arial,sans-serif"}}></th>
             </tr>
             <tr>
               <th style={{border:B,padding:"4px 6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif"}}>#</th>
               <th style={{border:B,padding:"4px 6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif"}}>Time</th>
               <th style={{border:B,padding:"4px 6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif"}}>Code</th>
-              <th style={{border:B,padding:"4px 6px",fontSize:11,fontFamily:"Arial,sans-serif",color:"#666"}}>(Filled by Tech Panel)</th>
+              <th style={{border:B,padding:"4px 6px",fontSize:11,fontFamily:"Arial,sans-serif",color:"#666"}}>(Tech Panel)</th>
               <th style={{border:B,padding:"4px 6px",fontSize:12,fontWeight:700,fontFamily:"Arial,sans-serif"}}>Notes</th>
             </tr>
           </thead>
@@ -1043,13 +1043,13 @@
       let y=0;
 
       // Helpers
-      const sanitize=(s)=>String(s).replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
+      const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/‘|’/g,"'").replace(/“|”/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
       const setLine=()=>{doc.setDrawColor(0,0,0);doc.setLineWidth(lw);};
       const rect=(x,yy,w,h,opts={})=>{
         if(opts.fill){doc.setFillColor(opts.fill);doc.rect(x,yy,w,h,"F");}
         setLine();doc.rect(x,yy,w,h);
       };
-      const rectNoBorder=(x,yy,w,h,fill)=>{doc.setFillColor(fill);doc.rect(x,yy,w,h,"F");};
+
       const txt=(str,x,yy,opts={})=>{
         doc.setFont("helvetica",opts.bold?"bold":"normal");
         doc.setFontSize(opts.size||10);
@@ -1086,28 +1086,37 @@
 
         // Title — big bold, centered in the right portion
         const titleX=mx+50+(cw-50)/2;
-        const titleText=sheet.title.replace(" 2026","").toUpperCase();
-        txt(titleText,titleX,y+2,{bold:true,size:20,align:"center"});
-        y+=14;
+        const titleText=sheet.title.toUpperCase();
+        const titleSize=titleText.length>36?13:15;
+        txt(titleText,titleX,y+4,{bold:true,size:titleSize,align:"center"});
+        y+=16;
 
         // === INFO TABLE: 4 rows — label | value ===
+        // Determine section-specific choreography label (matches original World Skate format)
+        const firstSec=sheet.sections[startSecIdx];
+        const firstData=sections[startSecIdx];
+        const secIsSP=firstSec?.label?.toUpperCase().includes("SHORT");
+        const secIsPairs=firstSec?.label?.toUpperCase().includes("PAIR");
+        const choreoLabel=secIsPairs
+          ?(secIsSP?"CHOREOGRAPHY — SHORT PROGRAM":"CHOREOGRAPHY — FREE PROGRAM")
+          :(secIsSP?"CHOREOGRAPHY — SHORT":"CHOREOGRAPHY — FREE");
         const labelW=55;
         const valW=cw-labelW;
         const infoH=8;
         const infoRows=[
           {label:"COMPETITORS NAME",val:name},
           {label:"CATEGORY",val:CATEGORY_DEFS[kategorie]?.label||kategorie},
-          {label:"Representing",val:federation},
-          {label:"CHOREOGRAPHY",val:choreography},
+          {label:"REPRESENTING",val:federation},
+          {label:choreoLabel,val:firstData?.music||choreography||""},
         ];
         infoRows.forEach(inf=>{
           rect(mx,y,labelW,infoH);
           rect(mx+labelW,y,valW,infoH);
-          txt(inf.label,mx+3,y+5.5,{bold:true,size:10});
-          txt(inf.val||"",mx+labelW+3,y+5.5,{size:11});
+          txt(inf.label,mx+3,y+5.5,{bold:true,size:9});
+          txt(inf.val||"",mx+labelW+3,y+5.5,{size:10});
           y+=infoH;
         });
-        y+=4;
+        y+=2;
 
         // === SECTIONS ===
         for(let si=startSecIdx;si<=endSecIdx;si++){
@@ -1115,43 +1124,42 @@
           const d=sections[si];
           if(!sec)continue;
 
-          // Estimate height needed for this section
+          // Estimate height needed for this section (subH + colHdrH + rows + spacing)
           const rh=sec.rows<=9?16:12; // tall rows for <=9 elements, shorter for 12+
-          const estH=10+8+8+sec.rows*rh+6;
+          const estH=7+7+sec.rows*rh+6;
           if(y+estH>ph-15){doc.addPage();y=14;}
 
-          // Gray section bar: "ELEMENTS FREE PROGRAM"
-          const barH=9;
-          rectNoBorder(mx,y,cw,barH,"#e0e0e0");
-          setLine();doc.rect(mx,y,cw,barH);
-          txt("ELEMENTS "+sec.label.toUpperCase(),mx+cw/2,y+6.2,{bold:true,size:11,align:"center"});
-          y+=barH;
+          // Determine "ELEMENTS PERFORMED" label per section (matches original World Skate)
+          const elSecIsPairs=sec.label.toUpperCase().includes("PAIR");
+          const elSecIsSP=sec.label.toUpperCase().includes("SHORT");
+          const secPerfLabel=elSecIsPairs
+            ?(elSecIsSP?"SHORT PROGRAM ELEMENTS PERFORMED":"FREE PROGRAM ELEMENTS PERFORMED")
+            :"ELEMENTS PERFORMED";
 
-          // Sub-header row: DECLARED | ELEMENT PERFORMED
-          // Column widths: # | Time | Code | (Filled by Tech Panel) | Notes
+          // Sub-header row: DECLARED | ELEMENTS PERFORMED
           const colNum=15, colTime=22, colCode=22, colNotes=35;
           const colPerformed=cw-colNum-colTime-colCode-colNotes;
           const declW=colNum+colTime+colCode;
           const subH=7;
 
           // DECLARED header (spans 3 cols)
-          rect(mx,y,declW,subH);
+          rect(mx,y,declW,subH,{fill:"#f5f5f5"});
           txt("DECLARED",mx+declW/2,y+5,{bold:true,size:9,align:"center"});
-          // ELEMENT PERFORMED header (big middle)
-          rect(mx+declW,y,colPerformed,subH);
-          txt("ELEMENT PERFORMED",mx+declW+colPerformed/2,y+5,{bold:true,size:9,align:"center"});
+          // ELEMENTS PERFORMED header
+          rect(mx+declW,y,colPerformed,subH,{fill:"#f5f5f5"});
+          txt(secPerfLabel,mx+declW+colPerformed/2,y+5,{bold:true,size:9,align:"center"});
           // Notes header (empty in sub-header row)
-          rect(mx+declW+colPerformed,y,colNotes,subH);
+          rect(mx+declW+colPerformed,y,colNotes,subH,{fill:"#f5f5f5"});
           y+=subH;
 
-          // Column header row: # | Time | Code | (Filled by Tech Panel) | Notes
+          // Column header row: # | Time | Code | (Tech Panel) | Notes
           const colHdrH=7;
           let cx=mx;
           const cols=[
             {w:colNum,label:"#",bold:true},
             {w:colTime,label:"Time",bold:true},
             {w:colCode,label:"Code",bold:true},
-            {w:colPerformed,label:"(Filled by Tech Panel)",bold:false,size:9,color:"#444444"},
+            {w:colPerformed,label:"(Tech Panel)",bold:false,size:9,color:"#444444"},
             {w:colNotes,label:"Notes",bold:true},
           ];
           cols.forEach(c=>{
@@ -1186,7 +1194,7 @@
             cx+=colPerformed;
             // Notes column
             rect(cx,y,colNotes,rh);
-            if(el.notes){const n=el.notes.length>25?el.notes.substring(0,24)+"…":el.notes;txt(n,cx+3,y+rh/2+2,{size:9});}
+            if(el.notes){const n=el.notes.length>25?el.notes.substring(0,24)+"..":el.notes;txt(n,cx+3,y+rh/2+2,{size:9});}
             cx+=colNotes;
 
             y+=rh;
@@ -1199,10 +1207,27 @@
       if(sheet.sections.length===1){
         drawPage(0,0,false);
       } else {
-        // For combined sheets: try to fit first section, then second on new page if needed
+        // For combined sheets: first section on page 1, second on page 2
         drawPage(0,0,false);
-        // Second section on new page
         drawPage(1,sheet.sections.length-1,true);
+      }
+
+      // Signature line on last page
+      y+=10;
+      if(y+20>ph){doc.addPage();y=20;}
+      const sigW=(cw-20)/2;
+      doc.setDrawColor("#999999");doc.setLineWidth(0.2);
+      doc.line(mx,y,mx+sigW,y);
+      doc.line(mx+sigW+20,y,mx+cw,y);
+      txt("Coach Signature",mx+sigW/2,y+4,{size:7,align:"center",color:"#999999"});
+      txt("Date",mx+sigW+20+(cw-sigW-20)/2,y+4,{size:7,align:"center",color:"#999999"});
+      doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
+
+      // Footer on all pages
+      const totalPages=doc.internal.getNumberOfPages();
+      for(let p=1;p<=totalPages;p++){
+        doc.setPage(p);
+        txt("Generated by RollArt 2026 - World Skate Official Format",pw/2,ph-8,{size:7,align:"center",color:"#9ca3af"});
       }
 
       // Auto-download
@@ -5679,13 +5704,13 @@
       let y=0;
 
       // Helpers
-      const sanitize=(s)=>String(s).replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
+      const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/‘|’/g,"'").replace(/“|”/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
       const setLine=()=>{doc.setDrawColor(0,0,0);doc.setLineWidth(lw);};
       const rect=(x,yy,w,h,opts={})=>{
         if(opts.fill){doc.setFillColor(opts.fill);doc.rect(x,yy,w,h,"F");}
         setLine();doc.rect(x,yy,w,h);
       };
-      const rectNoBorder=(x,yy,w,h,fill)=>{doc.setFillColor(fill);doc.rect(x,yy,w,h,"F");};
+
       const txt=(str,x,yy,opts={})=>{
         doc.setFont("helvetica",opts.bold?"bold":"normal");
         doc.setFontSize(opts.size||10);
@@ -5713,91 +5738,106 @@
         doc.setDrawColor(0,0,0);doc.setLineWidth(lw);doc.setTextColor(0,0,0);
       };
 
-      // Determine title
+      // Determine segment type
       const isSP = segment.endsWith("_sp");
+
+      // Title — match original World Skate Content Sheet exactly
       const titleText = isPairs
-        ? (isSP ? "PAIRS SHORT PROGRAM CONTENT SHEET" : "PAIRS FREE PROGRAM CONTENT SHEET")
-        : (isSP ? "SHORT PROGRAM CONTENT SHEET" : "FREE PROGRAM CONTENT SHEET");
+        ? (isSP ? "PAIRS SHORT PROGRAM CONTENT SHEET 2026" : "PAIRS FREE PROGRAM CONTENT SHEET 2026")
+        : (isSP ? "SHORT PROGRAM CONTENT SHEET 2026" : "FREE PROGRAM CONTENT SHEET 2026");
+
+      // Choreography label — match original (Singles: "— SHORT/FREE", Pairs: "— SHORT/FREE PROGRAM")
+      const choreoLabel = isPairs
+        ? (isSP ? "CHOREOGRAPHY — SHORT PROGRAM" : "CHOREOGRAPHY — FREE PROGRAM")
+        : (isSP ? "CHOREOGRAPHY — SHORT" : "CHOREOGRAPHY — FREE");
+
+      // "ELEMENTS PERFORMED" label — Singles: just "ELEMENTS PERFORMED", Pairs: prefix with program
+      const perfLabel = isPairs
+        ? (isSP ? "SHORT PROGRAM ELEMENTS PERFORMED" : "FREE PROGRAM ELEMENTS PERFORMED")
+        : "ELEMENTS PERFORMED";
+
+      // Standard element counts per World Skate 2026 rules
+      const stdRowCount = isSP ? (isPairs ? 8 : 7) : (isPairs ? 13 : 9);
 
       // Map element rows to official format
-      const officialRows = rows.map((r,i) => {
-        const {typeDef, mainEl} = computeRow(r, types, judgeCount);
-        let code = r.typeCode || "";
+      const mappedRows = rows.map((r,i) => {
+        const typeDef = types.find(t=>t.code===r.typeCode);
+        let code = "";
         let notes = "";
         if (typeDef) {
           if (typeDef.isCombo) {
+            code = typeDef.code;
             const parts = (r.comboEls||[]).filter(sub=>sub.code).map(sub=>{
               const el = typeDef.data.find(e=>e.code===sub.code);
               return el ? el.code : sub.code;
             });
             notes = parts.join(" + ");
-          } else if (mainEl) {
-            notes = mainEl.code + " " + mainEl.name;
+          } else {
+            const el = typeDef.data.find(e=>e.code===r.elCode);
+            code = el ? el.code : r.elCode || r.typeCode;
+            notes = el ? el.name : "";
           }
         }
         return {num:i+1, time:"", code, notes};
       });
+      // Pad to standard row count (empty rows for unfilled element slots)
+      const officialRows = [];
+      for (let i = 0; i < Math.max(mappedRows.length, stdRowCount); i++) {
+        officialRows.push(i < mappedRows.length ? mappedRows[i] : {num:i+1, time:"", code:"", notes:""});
+      }
 
       // === PAGE DRAWING ===
-      y = 14;
+      y = 12;
 
-      // Header: Logo + Title
+      // Header: World Skate logo (top-left) + title (center-right)
       const logoX=mx+8, logoY=y+5, logoR=6;
       drawLogo(logoX,logoY,logoR);
       const titleX = mx+50+(cw-50)/2;
-      txt(titleText, titleX, y+2, {bold:true, size:20, align:"center"});
-      y += 14;
+      // Dynamic title size — shorter titles get larger font
+      const titleSize = titleText.length > 36 ? 13 : 15;
+      txt(titleText, titleX, y+4, {bold:true, size:titleSize, align:"center"});
+      y += 16;
 
-      // Info Table: 4 rows
+      // Info table: 4 rows — label | value (all one unified visual block)
       const labelW=55, valW=cw-labelW, infoH=8;
       const catLabel = CATEGORY_DEFS[kategorie]?.label || kategorie;
-      const infoRows=[
+      const infoData=[
         {label:"COMPETITORS NAME", val:skater||""},
         {label:"CATEGORY", val:catLabel},
-        {label:"Representing", val:cat||""},
-        {label:"CHOREOGRAPHY", val:music||""},
+        {label:"REPRESENTING", val:cat||""},
+        {label:choreoLabel, val:music||""},
       ];
-      infoRows.forEach(inf=>{
+      infoData.forEach(inf=>{
         rect(mx,y,labelW,infoH);
         rect(mx+labelW,y,valW,infoH);
-        txt(inf.label,mx+3,y+5.5,{bold:true,size:10});
-        txt(inf.val,mx+labelW+3,y+5.5,{size:11});
+        txt(inf.label,mx+3,y+5.5,{bold:true,size:9});
+        txt(inf.val,mx+labelW+3,y+5.5,{size:10});
         y+=infoH;
       });
-      y+=4;
+      y+=2;
 
-      // Section header bar — match OfficialSheets SHEET_TYPES label format exactly
-      let secLabel = isSP ? "SHORT PROGRAM" : "FREE PROGRAM";
-      if (isPairs) secLabel += " (Pairs)";
-      else if (!isSP) secLabel += ` (${officialRows.length} Elements)`;
-      const barH=9;
-      rectNoBorder(mx,y,cw,barH,"#e0e0e0");
-      setLine();doc.rect(mx,y,cw,barH);
-      txt("ELEMENTS "+secLabel,mx+cw/2,y+6.2,{bold:true,size:11,align:"center"});
-      y+=barH;
-
-      // Column headers
+      // Column widths for element table
       const colNum=15, colTime=22, colCode=22, colNotes=35;
       const colPerformed=cw-colNum-colTime-colCode-colNotes;
       const declW=colNum+colTime+colCode;
       const subH=7;
 
-      // DECLARED / ELEMENT PERFORMED sub-header
-      rect(mx,y,declW,subH);
+      // Sub-header: DECLARED | [program] ELEMENTS PERFORMED
+      rect(mx,y,declW,subH,{fill:"#f5f5f5"});
       txt("DECLARED",mx+declW/2,y+5,{bold:true,size:9,align:"center"});
-      rect(mx+declW,y,colPerformed,subH);
-      txt("ELEMENT PERFORMED",mx+declW+colPerformed/2,y+5,{bold:true,size:9,align:"center"});
-      rect(mx+declW+colPerformed,y,colNotes,subH);
+      rect(mx+declW,y,colPerformed,subH,{fill:"#f5f5f5"});
+      txt(perfLabel,mx+declW+colPerformed/2,y+5,{bold:true,size:9,align:"center"});
+      rect(mx+declW+colPerformed,y,colNotes,subH,{fill:"#f5f5f5"});
       y+=subH;
 
-      // Column sub-headers: # | Time | Code | (Filled by Tech Panel) | Notes
+      // Column headers: # | Time | Code | (Tech Panel) | Notes
       const colHdrH=7;
       let cx=mx;
       const cols=[
         {w:colNum,label:"#",bold:true},
         {w:colTime,label:"Time",bold:true},
         {w:colCode,label:"Code",bold:true},
-        {w:colPerformed,label:"(Filled by Tech Panel)",bold:false,size:9,color:"#444444"},
+        {w:colPerformed,label:"(Tech Panel)",bold:false,size:9,color:"#444444"},
         {w:colNotes,label:"Notes",bold:true},
       ];
       cols.forEach(c=>{
@@ -5807,10 +5847,10 @@
       });
       y+=colHdrH;
 
-      // Element rows
+      // Element rows — tall rows for <=9 elements, shorter for 10+
       const rh = officialRows.length <= 9 ? 16 : 12;
       officialRows.forEach(el=>{
-        if(y+rh>ph-12){doc.addPage();y=14;}
+        if(y+rh>ph-20){doc.addPage();y=14;}
         cx=mx;
         // #
         rect(cx,y,colNum,rh);
@@ -5818,66 +5858,35 @@
         cx+=colNum;
         // Time
         rect(cx,y,colTime,rh);
-        txt(el.time||"_:__",cx+colTime/2,y+rh/2+2,{bold:true,size:11,align:"center"});
+        txt(el.time||"_:__",cx+colTime/2,y+rh/2+2,{size:11,align:"center"});
         cx+=colTime;
-        // Code
+        // Code (declared element code)
         rect(cx,y,colCode,rh);
-        txt(el.code||"----",cx+4,y+rh/2+2,{bold:true,size:11});
+        if(el.code) txt(el.code,cx+4,y+rh/2+2,{bold:true,size:11});
         cx+=colCode;
-        // (Filled by Tech Panel)
+        // (Tech Panel) — empty column for tech panel to fill during competition
         rect(cx,y,colPerformed,rh);
         cx+=colPerformed;
         // Notes
         rect(cx,y,colNotes,rh);
-        if(el.notes){const n=el.notes.length>25?el.notes.substring(0,24)+"…":el.notes;txt(n,cx+3,y+rh/2+2,{size:9});}
+        if(el.notes){const n=el.notes.length>28?el.notes.substring(0,27)+"..":el.notes;txt(n,cx+3,y+rh/2+2,{size:8});}
         cx+=colNotes;
         y+=rh;
       });
-      y+=6;
 
-      // Score summary at bottom
-      if(y+30>ph-12){doc.addPage();y=14;}
-      const summaryW = cw/2;
-      const summaryX = mx + cw - summaryW;
-      const sH = 7;
-      // TES
-      rect(summaryX,y,summaryW*0.65,sH);
-      txt("Technical Element Score (TES)",summaryX+4,y+5,{bold:true,size:9});
-      rect(summaryX+summaryW*0.65,y,summaryW*0.35,sH);
-      txt(tes.toFixed(2),summaryX+summaryW-4,y+5,{bold:true,size:11,align:"right"});
-      y+=sH;
-      // PCS
-      rect(summaryX,y,summaryW*0.65,sH);
-      txt("Program Component Score (PCS)",summaryX+4,y+5,{bold:true,size:9});
-      rect(summaryX+summaryW*0.65,y,summaryW*0.35,sH);
-      txt(pcsTotal.toFixed(2),summaryX+summaryW-4,y+5,{bold:true,size:11,align:"right",color:"#1e40af"});
-      y+=sH;
-      // Deductions
-      if(deductions > 0){
-        rect(summaryX,y,summaryW*0.65,sH);
-        txt("Deductions (PE)",summaryX+4,y+5,{bold:true,size:9});
-        rect(summaryX+summaryW*0.65,y,summaryW*0.35,sH);
-        txt("-"+deductions.toFixed(2),summaryX+summaryW-4,y+5,{bold:true,size:11,align:"right",color:"#dc2626"});
-        y+=sH;
-      }
-      // Extra
-      if(extraPoints > 0){
-        rect(summaryX,y,summaryW*0.65,sH);
-        txt("Extra Points",summaryX+4,y+5,{bold:true,size:9});
-        rect(summaryX+summaryW*0.65,y,summaryW*0.35,sH);
-        txt("+"+extraPoints.toFixed(2),summaryX+summaryW-4,y+5,{bold:true,size:11,align:"right",color:"#059669"});
-        y+=sH;
-      }
-      // Total Score
-      rectNoBorder(summaryX,y,summaryW,sH+2,"#f0fdf4");
-      setLine();doc.rect(summaryX,y,summaryW,sH+2);
-      txt("TOTAL SCORE",summaryX+4,y+6,{bold:true,size:11});
-      txt(totalScore.toFixed(2),summaryX+summaryW-4,y+6,{bold:true,size:14,align:"right",color:"#059669"});
+      // Signature line
+      y+=10;
+      if(y+20>ph){doc.addPage();y=20;}
+      const sigW=(cw-20)/2;
+      doc.setDrawColor("#999999");doc.setLineWidth(0.2);
+      doc.line(mx,y,mx+sigW,y);
+      doc.line(mx+sigW+20,y,mx+cw,y);
+      txt("Coach Signature",mx+sigW/2,y+4,{size:7,align:"center",color:"#999999"});
+      txt("Date",mx+sigW+20+(cw-sigW-20)/2,y+4,{size:7,align:"center",color:"#999999"});
+      doc.setDrawColor(0,0,0);doc.setLineWidth(lw);
 
       // Footer
-      y+=sH+10;
-      doc.setFontSize(7);doc.setTextColor("#9ca3af");
-      doc.text("Generated by RollArt 2026 — Artistic Roller Skating Dashboard — World Skate Official Format",pw/2,y,{align:"center"});
+      txt("Generated by RollArt 2026 - World Skate Official Format",pw/2,ph-8,{size:7,align:"center",color:"#9ca3af"});
 
       // Save
       const fn=`${(skater||"content_sheet").replace(/\s+/g,"_")}_${segDef.label.replace(/\s+/g,"_")}_WorldSkate.pdf`;
@@ -5894,7 +5903,7 @@
       let y=10, cx;
 
       // Helpers
-      const sanitize=(s)=>String(s).replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
+      const sanitize=(s)=>String(s).replace(/—/g,'-').replace(/–/g,'-').replace(/‘|’/g,"'").replace(/“|”/g,'"').replace(/…/g,'...').replace(/•/g,'*').replace(/[^\x20-\x7E\xA0-\xFF]/g,'?');
       const setLine=()=>{doc.setDrawColor(0,0,0);doc.setLineWidth(lw);};
       const rectF=(x,yy,w,h,fill)=>{if(fill){doc.setFillColor(fill);doc.rect(x,yy,w,h,"F");}setLine();doc.rect(x,yy,w,h);};
       const txt=(str,x,yy,opts={})=>{
