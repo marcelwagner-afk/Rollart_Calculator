@@ -3637,8 +3637,10 @@
       // putting them on SEPARATE lines. This typically affects rank 1 (first page
       // of each section has different vertical offset). So we need 3 patterns:
       // Pattern A: rank+name+score all on one line (works for most ranks)
+      // Pattern A: rank+name+score all on one line
       // Pattern B: name+score on one line, rank on adjacent line (rank 1 fix)
       // Pattern C: fallback via isSkaterName
+      // Pattern D: standalone rank number near skater name (widened search)
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         // Pattern A: line with "score" keyword + rank at start
@@ -3646,19 +3648,11 @@
         if (mScore && parseInt(mScore[1]) <= 50) {
           rank = parseInt(mScore[1]);
           let rawName = mScore[2].trim();
-          // The regex already captures name BEFORE the optional nation group,
-          // so only remove trailing pair separator dash (not nation code —
-          // removing 2-3 uppercase letters here would break names like "LO RE")
           rawName = rawName.replace(/-\s*$/, "").trim();
-          // Check next line for second partner name (Pairs) or remaining name
           if (i + 1 < lines.length) {
             const nextLine = lines[i+1].trim();
-            // Next line might start with rest of name + scores: "ANGELICA RONDELLI 32.68 ..."
-            // or just scores: "23.69 25.44 0.00 49.13"
-            // or partial name: "DAVOLI 22.46 25.90 ..."
             const nameFromNext = nextLine.replace(/\s*[-+]?\d+\.\d+.*/,"").replace(/-\s*$/,"").trim();
             if (nameFromNext && /^[A-ZÄÖÜÉÈÀÁÂ\s]+$/.test(nameFromNext) && nameFromNext.length >= 3) {
-              // If name already has " - " (pair separator), append as continuation
               rawName += (rawName.includes(" - ") ? " " : " - ") + nameFromNext;
             }
           }
@@ -3666,18 +3660,15 @@
           break;
         }
         // Pattern B: name+score line WITHOUT rank digit at start (rank on adjacent line)
-        // Happens when pdfjs puts rank number on a separate Y-coordinate line
-        // e.g. line i: "GIACOMO SERAFINI - ITA score score (factored) Deductions score"
-        //      line i+1: "1"   (standalone rank)
-        if (i < 12 && /^[A-ZÄÖÜÉÈÀÁÂ]/.test(line)) {
-          const scorePosLC = line.toLowerCase().indexOf(" score ");
+        // Widened: search first 20 lines, search ±6 lines for standalone rank
+        if (i < 20 && /^[A-ZÄÖÜÉÈÀÁÂ]/.test(line)) {
+          const scorePosLC = line.toLowerCase().indexOf(" score");
           if (scorePosLC > 0) {
             let rawName = line.substring(0, scorePosLC).trim();
-            // Remove trailing nation code
             rawName = rawName.replace(/\s+[A-Z]{2,3}$/, "").replace(/-\s*$/, "").trim();
             if (rawName.length >= 3) {
-              // Search nearby lines for standalone rank number
-              for (let j = Math.max(0, i - 3); j < Math.min(lines.length, i + 3); j++) {
+              // Search nearby lines for standalone rank number (widened to ±6)
+              for (let j = Math.max(0, i - 6); j < Math.min(lines.length, i + 6); j++) {
                 if (j === i) continue;
                 const rm = lines[j].match(/^(\d{1,2})$/);
                 if (rm && parseInt(rm[1]) > 0 && parseInt(rm[1]) <= 50) {
@@ -3686,15 +3677,14 @@
                 }
               }
               if (rank > 0) {
-                // Check subsequent lines for partner name (skip standalone rank lines)
-                for (let k = i + 1; k <= i + 3 && k < lines.length; k++) {
-                  if (/^\d{1,2}$/.test(lines[k])) continue; // skip rank line
+                for (let k = i + 1; k <= i + 4 && k < lines.length; k++) {
+                  if (/^\d{1,2}$/.test(lines[k])) continue;
                   const nextLine = lines[k].trim();
                   const nameFromNext = nextLine.replace(/\s*[-+]?\d+\.\d+.*/,"").replace(/-\s*$/,"").trim();
                   if (nameFromNext && /^[A-ZÄÖÜÉÈÀÁÂ\s]+$/.test(nameFromNext) && nameFromNext.length >= 3) {
                     rawName += (rawName.includes(" - ") ? " " : " - ") + nameFromNext;
                   }
-                  break; // only one partner line
+                  break;
                 }
                 name = rawName;
                 break;
@@ -3703,15 +3693,20 @@
           }
         }
         // Pattern C: Fallback — standalone skater name near top
-        if (i > 0 && i < 8 && isSkaterName(line)) {
+        if (i > 0 && i < 15 && isSkaterName(line)) {
           let pairName = line.trim().replace(/-\s*$/, "").trim();
           if (i + 1 < lines.length && isSkaterName(lines[i+1])) {
             pairName += " - " + lines[i+1].trim().replace(/-\s*$/, "").trim();
           }
-          // Look for rank in nearby lines
-          for (let j = Math.max(0, i - 2); j < Math.min(lines.length, i + 5); j++) {
+          for (let j = Math.max(0, i - 4); j < Math.min(lines.length, i + 6); j++) {
             const rm = lines[j].match(/^(\d+)\s+score\b/i);
             if (rm) { rank = parseInt(rm[1]); break; }
+          }
+          if (!rank) {
+            for (let j = Math.max(0, i - 6); j < Math.min(lines.length, i + 6); j++) {
+              const rm = lines[j].match(/^(\d{1,2})$/);
+              if (rm && parseInt(rm[1]) > 0 && parseInt(rm[1]) <= 50) { rank = parseInt(rm[1]); break; }
+            }
           }
           if (!rank) {
             for (const sl of lines) {
@@ -3721,6 +3716,13 @@
           }
           name = pairName;
           break;
+        }
+      }
+      // Pattern D: If name found but no rank, search ALL lines for standalone rank number
+      if (name && !rank) {
+        for (let j = 0; j < Math.min(lines.length, 25); j++) {
+          const rm = lines[j].match(/^(\d{1,2})$/);
+          if (rm && parseInt(rm[1]) > 0 && parseInt(rm[1]) <= 50) { rank = parseInt(rm[1]); break; }
         }
       }
 
@@ -4158,22 +4160,28 @@
 
         // Parse each JUDGES DETAILS page
         const skaters = [];
+        let pageOrder = 0;
         for (let idx = 0; idx < pageTexts.length; idx++) {
           const text = pageTexts[idx];
-          if (!text.includes("JUDGES DETAILS PER SKATER") || !text.includes("Rank") || !text.includes("Segment")) continue;
+          // Relaxed filter: case-insensitive check for JUDGES DETAILS
+          const textUpper = text.toUpperCase();
+          if (!textUpper.includes("JUDGES DETAILS") || (!textUpper.includes("RANK") && !textUpper.includes("SEGMENT"))) continue;
           // Must have summary scores line
           const hasScores = text.split("\n").some(l => {
             const nums = l.match(/-?\d+\.\d+/g);
             return nums && nums.length >= 3 && l.replace(/-?\d+\.\d+/g, "").replace(/\s+/g, "").length < 3;
           });
           if (!hasScores) continue;
+          pageOrder++;
 
           const parsed = parseJudgesDetailsPage(text);
-          if (parsed.name && parsed.rank > 0) {
+          // Accept skaters even with rank=0 — we'll fix rank via page order below
+          if (parsed.name) {
             skaters.push({
               name: parsed.name, club: clubs[parsed.name] || "",
-              kategorie, segment, place: parsed.rank,
+              kategorie, segment, place: parsed.rank || 0,
               total: parsed.total, tes: parsed.tes, pcs: parsed.pcs, deductions: parsed.ded,
+              _pageOrder: pageOrder,
               elements: parsed.elements.map(el => ({
                 typeCode: el.typeCode, elCode: el.elCode, type: el.type,
                 base: el.totalBase,
@@ -4186,6 +4194,23 @@
             });
           }
         }
+        // Fix missing ranks: assign rank from page order (JUDGES pages appear in rank order)
+        const usedRanks = new Set(skaters.filter(s=>s.place>0).map(s=>s.place));
+        skaters.forEach(s => {
+          if (s.place === 0) {
+            // Try page order first
+            if (!usedRanks.has(s._pageOrder)) {
+              s.place = s._pageOrder;
+              usedRanks.add(s._pageOrder);
+            } else {
+              // Find first unused rank
+              for (let r = 1; r <= skaters.length + 1; r++) {
+                if (!usedRanks.has(r)) { s.place = r; usedRanks.add(r); break; }
+              }
+            }
+          }
+          delete s._pageOrder;
+        });
         skaters.sort((a, b) => a.place - b.place);
         return { name: compName, category: categoryText, skaters };
       } catch (err) {
@@ -6074,16 +6099,33 @@
       doc.save(fn);
     };
 
+    // ============================================================
+    //  LOCAL STORAGE BACKUP — reliable persistence for sheet data
+    //  Server may not persist rows/pcs, so we keep a local copy.
+    // ============================================================
+    const LS_SKATERS_KEY = 'rollart_skaters_data';
+    const lsGetAll = () => { try { return JSON.parse(localStorage.getItem(LS_SKATERS_KEY)||'{}'); } catch { return {}; } };
+    const lsSave = (id, data) => { const all=lsGetAll(); all[String(id)]=data; try{localStorage.setItem(LS_SKATERS_KEY,JSON.stringify(all));}catch(e){console.warn('localStorage full',e);} };
+    const lsGet = (id) => lsGetAll()[String(id)] || null;
+    const lsDelete = (id) => { const all=lsGetAll(); delete all[String(id)]; localStorage.setItem(LS_SKATERS_KEY,JSON.stringify(all)); };
+
     // Skater save/load functions
     const loadSkaters = async () => {
+      let serverSkaters = [];
       try {
         const token = localStorage.getItem('rollart_token');
         const res = await fetch('/api/skaters', { headers: { 'Authorization': `Bearer ${token}` } });
         if (res.ok) {
           const data = await res.json();
-          setSkaters(data.skaters || []);
+          serverSkaters = data.skaters || [];
         }
       } catch (err) { console.error('Error loading skaters:', err); }
+      // Merge with localStorage — add any local-only skaters (saved when server was down)
+      const localAll = lsGetAll();
+      const serverIds = new Set(serverSkaters.map(s=>String(s.id)));
+      const localOnly = Object.values(localAll).filter(ls => !serverIds.has(String(ls.id)));
+      const merged = [...serverSkaters, ...localOnly];
+      setSkaters(merged);
     };
 
     const saveSkater = async () => {
@@ -6101,39 +6143,65 @@
           body: JSON.stringify(payload)
         });
         if (res.ok) {
+          const result = await res.json().catch(()=>({}));
+          // Save full data to localStorage as backup (server may not persist rows/pcs)
+          const skaterId = result.id || result.skater?.id || Date.now();
+          lsSave(skaterId, {...payload, id:skaterId, updatedAt:new Date().toISOString()});
           setUploadMsg(`"${skater}" gespeichert`);
           loadSkaters();
         } else {
-          setUploadMsg('Fehler beim Speichern');
+          // Server failed — save locally anyway so data isn't lost
+          const localId = 'local_'+Date.now();
+          lsSave(localId, {...payload, id:localId, updatedAt:new Date().toISOString()});
+          setUploadMsg('Server-Fehler, lokal gespeichert');
+          loadSkaters();
         }
       } catch (err) {
-        setUploadMsg('Fehler: ' + err.message);
+        // Network error — save locally
+        const localId = 'local_'+Date.now();
+        const payload = { name: skater, kategorie, geschlecht, disziplin: disziplin||"einzel", verein: cat || "", music, segment, rows: rows.map(r=>({...r, bonuses:r.bonuses||[]})), pcs, deductions, extraPoints, judgeCount, officialSheet: null };
+        lsSave(localId, {...payload, id:localId, updatedAt:new Date().toISOString()});
+        setUploadMsg('Offline gespeichert (lokal)');
+        loadSkaters();
       }
       setSavingSkater(false);
     };
 
     const loadSkaterData = (sk) => {
-      setSkater(sk.name || "");
-      setCat(sk.verein || sk.kategorie || "");
-      setMusic(sk.music || "");
-      setKategorie(sk.kategorie || "senior");
-      setSegment(sk.segment || "senior_fp");
-      if(sk.geschlecht)setGeschlecht(sk.geschlecht);
+      // Merge with localStorage backup — prefer local data for rows/pcs if server has empty data
+      const local = lsGet(sk.id);
+      const merged = {...sk};
+      if (local) {
+        // If server returned empty rows but localStorage has data, use localStorage
+        if ((!sk.rows || sk.rows.length===0) && local.rows && local.rows.length>0) merged.rows = local.rows;
+        if ((!sk.pcs || Object.keys(sk.pcs).length===0) && local.pcs && Object.keys(local.pcs).length>0) merged.pcs = local.pcs;
+        if (!sk.deductions && local.deductions) merged.deductions = local.deductions;
+        if (!sk.extraPoints && local.extraPoints) merged.extraPoints = local.extraPoints;
+        if (!sk.judgeCount && local.judgeCount) merged.judgeCount = local.judgeCount;
+        if (!sk.music && local.music) merged.music = local.music;
+        if (!sk.verein && local.verein) merged.verein = local.verein;
+      }
+      setSkater(merged.name || "");
+      setCat(merged.verein || merged.kategorie || "");
+      setMusic(merged.music || "");
+      setKategorie(merged.kategorie || "senior");
+      setSegment(merged.segment || "senior_fp");
+      if(merged.geschlecht)setGeschlecht(merged.geschlecht);
       // Auto-detect disziplin from skater data
-      if(sk.disziplin)setDisziplin(sk.disziplin);
-      else if((sk.segment||"").startsWith("pairs_"))setDisziplin("pairs");
+      if(merged.disziplin)setDisziplin(merged.disziplin);
+      else if((merged.segment||"").startsWith("pairs_"))setDisziplin("pairs");
       else setDisziplin("einzel");
       // Rows mit bonuses-Feld sicherstellen
-      const loadedRows = (sk.rows || []).map(r => ({...r, bonuses: r.bonuses || [], comboEls: r.comboEls || []}));
-      const neededRows = SEGMENT_DEFS[sk.segment || "senior_fp"]?.rows || 16;
+      const loadedRows = (merged.rows || []).map(r => ({...r, bonuses: r.bonuses || [], comboEls: r.comboEls || [], _id: r._id || Math.random().toString(36).slice(2)}));
+      const neededRows = SEGMENT_DEFS[merged.segment || "senior_fp"]?.rows || 16;
       while (loadedRows.length < neededRows) loadedRows.push(emptyRow());
       setRows(loadedRows);
-      setPcs(sk.pcs || emptyPcs());
-      setDeductions(sk.deductions || 0);
-      setExtraPoints(sk.extraPoints || 0);
-      if (sk.judgeCount) setJudgeCount(sk.judgeCount);
+      setPcs(merged.pcs || emptyPcs());
+      setDeductions(merged.deductions || 0);
+      setExtraPoints(merged.extraPoints || 0);
+      if (merged.judgeCount) setJudgeCount(merged.judgeCount);
       setShowSkaterModal(false);
-      setUploadMsg(`"${sk.name}" geladen`);
+      setUploadMsg(`"${merged.name}" geladen`);
     };
 
     // Load skaters on mount
