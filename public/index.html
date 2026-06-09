@@ -1549,8 +1549,8 @@
             <div style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:12,marginBottom:10}}>
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:"#455a64",marginBottom:3,textTransform:"uppercase"}}>Competitors Name</div>
-                <input value={name} onChange={e=>setName(e.target.value)} placeholder="Enter name..."
-                  style={{width:"100%",padding:"7px 10px",border:"1px solid #b0bec5",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"#f8fafc",outline:"none",boxSizing:"border-box"}}/>
+                <input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="Enter name..."
+                  style={{width:"100%",padding:"7px 10px",border:"1px solid #b0bec5",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"white",boxSizing:"border-box",cursor:"text"}}/>
               </div>
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:"#455a64",marginBottom:3,textTransform:"uppercase"}}>Category</div>
@@ -1563,7 +1563,7 @@
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:"#455a64",marginBottom:3,textTransform:"uppercase"}}>Representing</div>
                 <select value={federation||"Representing"} onChange={e=>setFederation(e.target.value)}
-                  style={{width:"100%",padding:"7px 10px",border:"1px solid #b0bec5",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"#f8fafc",outline:"none",boxSizing:"border-box",cursor:"pointer"}}>
+                  style={{width:"100%",padding:"7px 10px",border:"1px solid #b0bec5",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"white",boxSizing:"border-box",cursor:"pointer"}}>
                   <option value="Representing">Representing</option>
                   <option value="Federation">Federation</option>
                   <option value="Region">Region</option>
@@ -1573,8 +1573,8 @@
               </div>
               <div>
                 <div style={{fontSize:11,fontWeight:700,color:"#455a64",marginBottom:3,textTransform:"uppercase"}}>Federation / Club</div>
-                <input value={clubName} onChange={e=>setClubName(e.target.value)} placeholder="Federation or club..."
-                  style={{width:"100%",padding:"7px 10px",border:"1px solid #b0bec5",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"#f8fafc",outline:"none",boxSizing:"border-box"}}/>
+                <input type="text" value={clubName} onChange={e=>setClubName(e.target.value)} placeholder="Federation or club..."
+                  style={{width:"100%",padding:"7px 10px",border:"1px solid #b0bec5",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"white",boxSizing:"border-box",cursor:"text"}}/>
               </div>
             </div>
             {/* Row 3: Choreography / Music — full width */}
@@ -1582,8 +1582,8 @@
               <div style={{fontSize:11,fontWeight:700,color:"#455a64",marginBottom:3}}>
                 {sheet.sections[0]?.label?.toUpperCase().includes("SHORT")?"Short":"Free"} — Choreography / Music
               </div>
-              <input value={choreography} onChange={e=>setChoreography(e.target.value)} placeholder="Music title..."
-                style={{width:"100%",padding:"7px 10px",border:"1px solid #b0bec5",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"#f8fafc",outline:"none",boxSizing:"border-box"}}/>
+              <input type="text" value={choreography} onChange={e=>setChoreography(e.target.value)} placeholder="Music title..."
+                style={{width:"100%",padding:"7px 10px",border:"1px solid #b0bec5",borderRadius:4,fontSize:14,fontFamily:"Arial,sans-serif",background:"white",boxSizing:"border-box",cursor:"text"}}/>
             </div>
           </div>
 
