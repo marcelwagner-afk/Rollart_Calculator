@@ -711,6 +711,12 @@
     if(isSpin)applicableBonuses=[...SPIN_POS_BONUSES,...SPIN_VAR_BONUSES];
     const hasApplicable=applicableBonuses.length>0;
 
+    // For non-combo: rotation display (moved up so bonusExpanded can reference hasElements)
+    const el = !isCombo && typeDef ? typeDef.data.find(e=>e.code===row.elCode) : null;
+    const showRotation = !isCombo && typeDef?.hasRotation && el && (el.lt!==undefined && el.lt>0);
+    const hasElements = isCombo ? (row.comboEls||[]).some(s=>s.code) : !!el;
+    const hasScore = isCombo ? !!typeDef : !!el;
+
     // Spins: auto-show bonus row when element is selected (positions are essential)
     const bonusExpanded=isSpin?(hasElements&&!row.nv):showBonus;
 
@@ -720,8 +726,8 @@
     const hasHalfBonus=bonuses.includes("halfProg");
     // Detect double-double combo
     const hasDDCombo=isCombo&&(row.comboEls||[]).filter(s=>{
-      const el=typeDef?.data?.find(e=>e.code===s.code);
-      return el&&/^2/.test(el.code);
+      const elc=typeDef?.data?.find(e=>e.code===s.code);
+      return elc&&/^2/.test(elc.code);
     }).length>=2;
     const hasDDBonus=bonuses.includes("dd");
 
@@ -734,12 +740,6 @@
         nb.push(bid);onChange({...row,bonuses:nb});
       }
     };
-
-    // For non-combo: rotation display
-    const el = !isCombo && typeDef ? typeDef.data.find(e=>e.code===row.elCode) : null;
-    const showRotation = !isCombo && typeDef?.hasRotation && el && (el.lt!==undefined && el.lt>0);
-    const hasElements = isCombo ? (row.comboEls||[]).some(s=>s.code) : !!el;
-    const hasScore = isCombo ? !!typeDef : !!el;
 
     // Add/update combo sub-elements
     const updateSub = (i, sub) => {
@@ -3393,6 +3393,162 @@
   }
 
   // ============================================================
+  //  WERTETABELLE PAGE
+  // ============================================================
+  function WertetabellePage() {
+    const [wTab,setWTab]=React.useState("einzel");
+    const [search,setSearch]=React.useState("");
+    const [openCat,setOpenCat]=React.useState(null);
+
+    const cardS={background:"white",borderRadius:10,boxShadow:"0 1px 3px rgba(0,0,0,.1)",border:"1px solid #e5e7eb",padding:16,marginBottom:16};
+    const thS={padding:"6px 10px",textAlign:"left",fontSize:11,fontWeight:700,color:"#666",borderBottom:"2px solid #e5e7eb",whiteSpace:"nowrap"};
+    const tdS={padding:"5px 10px",fontSize:12,borderBottom:"1px solid #f3f4f6"};
+    const tdN={...tdS,fontVariantNumeric:"tabular-nums",textAlign:"right"};
+    const pillAct={padding:"6px 16px",borderRadius:20,fontSize:13,fontWeight:700,cursor:"pointer",border:"none",transition:"all .2s"};
+
+    const fmtV=v=>v===0?"–":v===undefined?"–":v.toFixed(2);
+    const q=search.trim().toLowerCase();
+
+    const sharedCats=[
+      {key:"jumps",label:"Sprünge (Solo)",data:JUMPS,cols:["base","lt","ltlt","combo","comboLt","comboLtLt"],heads:["Base","LT","LTLT","Combo","Combo LT","Combo LTLT"]},
+      {key:"solo_spins",label:"Solo Spins (SSp)",data:SOLO_SPINS,cols:["base"],heads:["Base"]},
+      {key:"combo_spins",label:"Combo Spins (CSp)",data:COMBO_SPINS,cols:["base"],heads:["Base"]},
+      {key:"steps",label:"Schrittfolgen (FoSq)",data:STEP_SEQUENCES,cols:["base"],heads:["Base"]},
+      {key:"choreo",label:"Choreographische Schritte (ChSt)",data:wTab==="einzel"?CHOREO_STEPS_FREE:CHOREO_STEPS_PAIRS,cols:["base"],heads:["Base"]},
+    ];
+    const pairsCats=[
+      {key:"lifts",label:"Hebungen (CLi / SLi)",data:ALL_LIFTS,cols:["base"],heads:["Base"]},
+      {key:"throws",label:"Wurfsprünge (Tj)",data:THROW_JUMPS,cols:["base","lt","ltlt"],heads:["Base","LT","LTLT"]},
+      {key:"contact",label:"Kontaktpirouetten (CtSp)",data:CONTACT_SPINS,cols:["base"],heads:["Base"]},
+      {key:"death",label:"Todesspirale (DS)",data:DEATH_SPIRALS,cols:["base"],heads:["Base"]},
+      {key:"camel",label:"Kamelspirale (CS)",data:CAMEL_SPIRALS,cols:["base"],heads:["Base"]},
+      {key:"twist",label:"Twist (Tw)",data:TWIST_LUTZ,cols:["base"],heads:["Base"]},
+    ];
+    const bonusCats=[
+      {key:"b_jump",label:"Sprung-Boni",data:JUMP_BONUSES},
+      {key:"b_combo",label:"Kombinations-Boni",data:COMBO_JUMP_BONUSES},
+      {key:"b_spinpos",label:"Pirouetten-Positionen",data:SPIN_POS_BONUSES},
+      {key:"b_spinvar",label:"Pirouetten-Variationen",data:SPIN_VAR_BONUSES},
+    ];
+    const cats=wTab==="einzel"?sharedCats:sharedCats.concat(pairsCats);
+
+    const renderTable=(cat)=>{
+      const filtered=q?cat.data.filter(e=>(e.name+e.code).toLowerCase().includes(q)):cat.data;
+      if(filtered.length===0) return <div style={{padding:8,fontSize:12,color:"#999"}}>Keine Treffer</div>;
+      return (
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr>
+              <th style={thS}>Name</th>
+              <th style={{...thS,width:60}}>Code</th>
+              {cat.heads.map((h,i)=><th key={i} style={{...thS,textAlign:"right",width:80}}>{h}</th>)}
+              <th style={{...thS,textAlign:"right"}}>GOE +3</th>
+              <th style={{...thS,textAlign:"right"}}>GOE +2</th>
+              <th style={{...thS,textAlign:"right"}}>GOE +1</th>
+              <th style={{...thS,textAlign:"right"}}>GOE -1</th>
+              <th style={{...thS,textAlign:"right"}}>GOE -2</th>
+              <th style={{...thS,textAlign:"right"}}>GOE -3</th>
+            </tr></thead>
+            <tbody>{filtered.map((el,i)=>(
+              <tr key={i} style={{background:i%2===0?"#fafafa":"white"}}>
+                <td style={{...tdS,fontWeight:600}}>{el.name}</td>
+                <td style={{...tdS,fontFamily:"monospace",color:"#E10716"}}>{el.code}</td>
+                {cat.cols.map((c,ci)=><td key={ci} style={tdN}>{fmtV(el[c])}</td>)}
+                <td style={{...tdN,color:"#16a34a"}}>{fmtV(el.goe?.["3"])}</td>
+                <td style={{...tdN,color:"#22c55e"}}>{fmtV(el.goe?.["2"])}</td>
+                <td style={{...tdN,color:"#65a30d"}}>{fmtV(el.goe?.["1"])}</td>
+                <td style={{...tdN,color:"#f59e0b"}}>{fmtV(el.goe?.m1)}</td>
+                <td style={{...tdN,color:"#ef4444"}}>{fmtV(el.goe?.m2)}</td>
+                <td style={{...tdN,color:"#dc2626"}}>{fmtV(el.goe?.m3)}</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      );
+    };
+
+    const renderBonusTable=(bcat)=>{
+      return (
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <thead><tr>
+              <th style={thS}>Bezeichnung</th>
+              <th style={{...thS,width:80}}>ID</th>
+              <th style={{...thS,textAlign:"right",width:100}}>Bonus</th>
+            </tr></thead>
+            <tbody>{bcat.data.map((b,i)=>(
+              <tr key={i} style={{background:i%2===0?"#fafafa":"white"}}>
+                <td style={{...tdS,fontWeight:600}}>{b.label}</td>
+                <td style={{...tdS,fontFamily:"monospace",color:"#E10716"}}>{b.id}</td>
+                <td style={{...tdN,color:b.pct>=0?"#16a34a":"#ef4444",fontWeight:700}}>
+                  {b.pct>=0?"+":""}{(b.pct*100).toFixed(0)}%
+                  {b.isOverride?" (Override)":""}
+                </td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+      );
+    };
+
+    return (
+      <div style={{padding:"16px 20px",maxWidth:1400,margin:"0 auto"}}>
+        {/* Header */}
+        <div style={{...cardS,display:"flex",flexWrap:"wrap",alignItems:"center",gap:12}}>
+          <h3 style={{margin:0,fontSize:18,fontWeight:800,color:"#22221C",flex:"1 1 auto"}}>
+            Wertetabelle – World Skate 2026
+          </h3>
+          <div style={{display:"flex",gap:4,background:"#f3f4f6",borderRadius:20,padding:3}}>
+            {[{k:"einzel",l:"Einzel"},{k:"paarlauf",l:"Paarlauf"}].map(t=>(
+              <button key={t.k} onClick={()=>{setWTab(t.k);setOpenCat(null);}}
+                style={{...pillAct,
+                  background:wTab===t.k?"#E10716":"transparent",
+                  color:wTab===t.k?"white":"#22221C",
+                }}>{t.l}</button>
+            ))}
+          </div>
+          <input type="text" value={search} onChange={e=>setSearch(e.target.value)}
+            placeholder="Suche nach Name oder Code…"
+            style={{padding:"7px 14px",borderRadius:8,border:"1px solid #d1d5db",fontSize:13,width:220,background:"white"}}/>
+        </div>
+
+        {/* Element-Kategorien */}
+        {cats.map(cat=>{
+          const isOpen=openCat===cat.key||openCat===null;
+          const matchCount=q?cat.data.filter(e=>(e.name+e.code).toLowerCase().includes(q)).length:cat.data.length;
+          if(q&&matchCount===0) return null;
+          return (
+            <div key={cat.key} style={cardS}>
+              <div onClick={()=>setOpenCat(openCat===cat.key?null:cat.key)}
+                style={{display:"flex",alignItems:"center",cursor:"pointer",gap:8}}>
+                <span style={{fontSize:14,transform:isOpen?"rotate(90deg)":"rotate(0deg)",transition:"transform .2s"}}>▶</span>
+                <h4 style={{margin:0,fontSize:14,fontWeight:700,color:"#22221C",flex:1}}>{cat.label}</h4>
+                <span style={{fontSize:11,color:"#999",background:"#f3f4f6",padding:"2px 8px",borderRadius:10}}>
+                  {matchCount} Element{matchCount!==1?"e":""}
+                </span>
+              </div>
+              {isOpen&&<div style={{marginTop:12}}>{renderTable(cat)}</div>}
+            </div>
+          );
+        })}
+
+        {/* Bonus-Referenz */}
+        <div style={{...cardS,borderTop:"3px solid #E10716"}}>
+          <h4 style={{margin:"0 0 12px",fontSize:15,fontWeight:800,color:"#22221C"}}>Bonus-Referenz</h4>
+          <div className="r-grid1-mobile" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+            {bonusCats.map(bc=>(
+              <div key={bc.key}>
+                <h5 style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:"#555"}}>{bc.label}</h5>
+                {renderBonusTable(bc)}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============================================================
   //  PROFILE SCREEN
   // ============================================================
   function ProfileScreen({ onClose }) {
@@ -4915,10 +5071,11 @@
 
     useEffect(()=>{
       const ctrl=new AbortController();
+      const safeJson=r=>{if(!r.ok)return {};return r.json().catch(()=>({}));};
       Promise.all([
-        fetch('/api/score-history',{headers,signal:ctrl.signal}).then(r=>r.json()),
-        fetch('/api/training',{headers,signal:ctrl.signal}).then(r=>r.json()),
-        fetch('/api/skaters',{headers,signal:ctrl.signal}).then(r=>r.json()),
+        fetch('/api/score-history',{headers,signal:ctrl.signal}).then(safeJson),
+        fetch('/api/training',{headers,signal:ctrl.signal}).then(safeJson),
+        fetch('/api/skaters',{headers,signal:ctrl.signal}).then(safeJson),
       ]).then(([sh,tl,sk])=>{
         setScoreHistory(sh.history||[]);
         setTrainingLogs(tl.logs||[]);
@@ -5172,9 +5329,10 @@
       if(abortRef.current)abortRef.current.abort();
       const ctrl=new AbortController();
       abortRef.current=ctrl;
+      const safeJson=r=>{if(!r.ok)return {};return r.json().catch(()=>({}));};
       Promise.all([
-        fetch('/api/training',{headers,signal:ctrl.signal}).then(r=>r.json()),
-        fetch('/api/skaters',{headers,signal:ctrl.signal}).then(r=>r.json()),
+        fetch('/api/training',{headers,signal:ctrl.signal}).then(safeJson),
+        fetch('/api/skaters',{headers,signal:ctrl.signal}).then(safeJson),
       ]).then(([tl,sk])=>{
         setLogs(tl.logs||[]);
         setSkaters(sk.skaters||[]);
@@ -5188,17 +5346,17 @@
         const method=entry.id?'PUT':'POST';
         const url=entry.id?`/api/training/${entry.id}`:'/api/training';
         const resp=await fetch(url,{method,headers,body:JSON.stringify(entry)});
-        if(!resp.ok)throw new Error();
+        if(!resp.ok){const t=await resp.text().catch(()=>'');throw new Error(t||`HTTP ${resp.status}`);}
         setShowForm(false);setEditing(null);load();
-      }catch(e){alert('Fehler beim Speichern des Eintrags.');}
+      }catch(e){alert('Fehler beim Speichern des Eintrags: '+(e.message||'Unbekannter Fehler'));}
     };
     const remove=async(id)=>{
       if(!confirm('Eintrag löschen?'))return;
       try{
         const resp=await fetch(`/api/training/${id}`,{method:'DELETE',headers});
-        if(!resp.ok)throw new Error();
+        if(!resp.ok){const t=await resp.text().catch(()=>'');throw new Error(t||`HTTP ${resp.status}`);}
         load();
-      }catch(e){alert('Fehler beim Löschen des Eintrags.');}
+      }catch(e){alert('Fehler beim Löschen des Eintrags: '+(e.message||'Unbekannter Fehler'));}
     };
 
     if(loading)return <div style={{padding:40,textAlign:"center",color:"#6b7280"}}>Lade Tagebuch...</div>;
@@ -5296,7 +5454,8 @@
       if(abortRef.current)abortRef.current.abort();
       const ctrl=new AbortController();
       abortRef.current=ctrl;
-      fetch('/api/competitions',{headers,signal:ctrl.signal}).then(r=>r.json()).then(d=>{
+      const safeJson=r=>{if(!r.ok)return {};return r.json().catch(()=>({}));};
+      fetch('/api/competitions',{headers,signal:ctrl.signal}).then(safeJson).then(d=>{
         setCompetitions(d.competitions||[]);setLoading(false);
       }).catch(e=>{if(e.name!=='AbortError')setLoading(false);});
     };
@@ -5307,33 +5466,33 @@
         const method=entry.id?'PUT':'POST';
         const url=entry.id?`/api/competitions/${entry.id}`:'/api/competitions';
         const resp=await fetch(url,{method,headers,body:JSON.stringify(entry)});
-        if(!resp.ok)throw new Error();
+        if(!resp.ok){const t=await resp.text().catch(()=>'');throw new Error(t||`HTTP ${resp.status}`);}
         setShowForm(false);setEditing(null);load();
-      }catch(e){alert('Fehler beim Speichern des Wettkampfs.');}
+      }catch(e){alert('Fehler beim Speichern des Wettkampfs: '+(e.message||'Unbekannter Fehler'));}
     };
     const remove=async(id)=>{
       if(!confirm('Wettkampf löschen?'))return;
       try{
         const resp=await fetch(`/api/competitions/${id}`,{method:'DELETE',headers});
-        if(!resp.ok)throw new Error();
+        if(!resp.ok){const t=await resp.text().catch(()=>'');throw new Error(t||`HTTP ${resp.status}`);}
         load();
-      }catch(e){alert('Fehler beim Löschen des Wettkampfs.');}
+      }catch(e){alert('Fehler beim Löschen des Wettkampfs: '+(e.message||'Unbekannter Fehler'));}
     };
     const toggleCheck=async(comp,idx)=>{
       try{
         const cl=[...comp.checklist];cl[idx]={...cl[idx],done:!cl[idx].done};
         const resp=await fetch(`/api/competitions/${comp.id}`,{method:'PUT',headers,body:JSON.stringify({checklist:cl})});
-        if(!resp.ok)throw new Error();
+        if(!resp.ok){const t=await resp.text().catch(()=>'');throw new Error(t||`HTTP ${resp.status}`);}
         load();
-      }catch(e){alert('Fehler beim Aktualisieren der Checkliste.');}
+      }catch(e){alert('Fehler beim Aktualisieren der Checkliste: '+(e.message||'Unbekannter Fehler'));}
     };
     const addCheckItem=async(comp,item)=>{
       try{
         const cl=[...comp.checklist,{item,done:false}];
         const resp=await fetch(`/api/competitions/${comp.id}`,{method:'PUT',headers,body:JSON.stringify({checklist:cl})});
-        if(!resp.ok)throw new Error();
+        if(!resp.ok){const t=await resp.text().catch(()=>'');throw new Error(t||`HTTP ${resp.status}`);}
         load();
-      }catch(e){alert('Fehler beim Hinzufügen des Checklist-Eintrags.');}
+      }catch(e){alert('Fehler beim Hinzufügen des Checklist-Eintrags: '+(e.message||'Unbekannter Fehler'));}
     };
 
     const daysUntil=(dateStr)=>{
@@ -5813,12 +5972,20 @@
     const removeRow = () => rows.length>1 && setRows(prev=>prev.slice(0,-1));
     const clearAll = () => { setRows(Array.from({length:segDef.rows}, emptyRow)); setPcs(emptyPcs()); setDeductions(0); setExtraPoints(0); };
 
-    // Compute TES using computeRow (handles combos)
-    const tes = useMemo(() => {
-      return rows.reduce((sum,row) => {
-        const { score } = computeRow(row, types, judgeCount);
-        return sum + score;
-      }, 0);
+    // Compute TES using computeRow + bonus adjustments (must match ElementRow display)
+    const {tes,calcBonusTotal} = useMemo(() => {
+      let tes=0,calcBonusTotal=0;
+      rows.forEach(row => {
+        const { base, goeVal, score } = computeRow(row, types, judgeCount);
+        const bonuses=row.bonuses||[];
+        let bonusPct=0,hasOverride=false,overrideFactor=1;
+        bonuses.forEach(bid=>{const b=ALL_BONUSES.find(x=>x.id===bid);if(!b)return;if(b.isOverride){hasOverride=true;overrideFactor=1+b.pct;}else bonusPct+=b.pct;});
+        const adjBase=row.nv?0:row.dg?base:hasOverride?Math.round(base*overrideFactor*100)/100:bonusPct!==0?Math.round(base*(1+bonusPct)*100)/100:base;
+        const adjScore=row.nv?0:Math.round((adjBase+goeVal)*100)/100;
+        calcBonusTotal+=Math.round((adjBase-base)*100)/100;
+        tes+=adjScore;
+      });
+      return {tes:Math.round(tes*100)/100,calcBonusTotal:Math.round(calcBonusTotal*100)/100};
     }, [rows, types, judgeCount]);
 
     const filled = rows.filter(r => {
@@ -6128,6 +6295,13 @@
         const {base,goeVal,score,typeDef:td} = computeRow(r, types, judgeCount);
         if(!td) return;
 
+        // Apply bonus adjustments (must match ElementRow display)
+        const rBonuses=r.bonuses||[];
+        let rBonusPct=0,rHasOverride=false,rOverrideFactor=1;
+        rBonuses.forEach(bid=>{const b=ALL_BONUSES.find(x=>x.id===bid);if(!b)return;if(b.isOverride){rHasOverride=true;rOverrideFactor=1+b.pct;}else rBonusPct+=b.pct;});
+        const adjBase=r.nv?0:r.dg?base:rHasOverride?Math.round(base*rOverrideFactor*100)/100:rBonusPct!==0?Math.round(base*(1+rBonusPct)*100)/100:base;
+        const adjScore=r.nv?0:Math.round((adjBase+goeVal)*100)/100;
+
         const rh=7;
         const comboExtra = td.isCombo?(r.comboEls||[]).filter(s=>s.code).length*5.5:0;
         if(pageBreak(rh + comboExtra + hh)) drawElHeader();
@@ -6165,9 +6339,9 @@
           txt("N",cx+colRot/2,y+5,{size:7,align:"center",color:"#9ca3af"});
         }
         cx+=colRot;
-        // BASE
+        // BASE (with bonus)
         rectF(cx,y,colBase,rh,bg);
-        txt(base.toFixed(2),cx+colBase-2,y+5,{size:9,bold:true,align:"right"});cx+=colBase;
+        txt(adjBase.toFixed(2),cx+colBase-2,y+5,{size:9,bold:true,align:"right",color:adjBase!==base?"#7c3aed":"#000000"});cx+=colBase;
         // J1-Jn
         for(let ji=0;ji<judgeCount;ji++){
           rectF(cx,y,colJ,rh,bg);
@@ -6189,7 +6363,7 @@
         cx+=colNvDg;
         // SCORE
         rectF(cx,y,colScore,rh,bg);
-        txt(score.toFixed(2),cx+colScore-2,y+5,{size:10,bold:true,align:"right",color:"#059669"});
+        txt(adjScore.toFixed(2),cx+colScore-2,y+5,{size:10,bold:true,align:"right",color:adjBase!==base?"#7c3aed":"#059669"});
         y+=rh;
 
         // Combo sub-elements
@@ -6520,6 +6694,7 @@
                   {key:"official",label:"Content Sheets"},
                 ];
                 const moreTabs = [
+                  {key:"werte",label:"Wertetabelle"},
                   {key:"glossar",label:"Glossar & Regeln"},
                   {key:"anleitung",label:"Anleitung"},
                 ];
@@ -6645,6 +6820,9 @@
 
         {/* PROFILE PAGE */}
         {page==="profile"&&<ProfileScreen onClose={()=>setPage("content")}/>}
+
+        {/* WERTETABELLE PAGE */}
+        {page==="werte"&&<WertetabellePage/>}
 
         {/* GLOSSAR & REGELN PAGE */}
         {page==="glossar"&&<div style={{padding:"16px 20px",maxWidth:1200,margin:"0 auto"}}>
