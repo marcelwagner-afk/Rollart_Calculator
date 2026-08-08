@@ -346,6 +346,149 @@
   ];
 
   // ============================================================
+  //  2027 SEASON DATA
+  // ============================================================
+  const _zg={3:0,2:0,1:0,m1:0,m2:0,m3:0};
+
+  const JUMPS_2027 = [
+    {name:"No Jump",code:"NJ",base:0,lt:0,ltlt:0,goe:_zg,combo:0,comboLt:0,comboLtLt:0},
+    ...JUMPS.filter(j=>!["2Th","3Th","4Th"].includes(j.code))
+  ];
+
+  const SOLO_SPINS_2027 = [
+    {name:"No Spin",code:"NS",base:0,goe:_zg},
+    ...SOLO_SPINS.filter(s=>["U","S","CBD","CFD","Br","HBD","HFD","In"].includes(s.code))
+  ];
+
+  // 2027: no separate combo spin category — use same basic spins
+  const COMBO_SPINS_2027 = SOLO_SPINS_2027;
+
+  const STEP_SEQUENCES_2027 = [
+    {name:"No Step Seq",code:"NSt",base:0,goe:_zg},
+    ...STEP_SEQUENCES
+  ];
+
+  const CHOREO_STEPS_FREE_2027 = [
+    {name:"No Choreo",code:"NChSt",base:0,goe:_zg},
+    ...CHOREO_STEPS_FREE
+  ];
+  const CHOREO_STEPS_PAIRS_2027 = [
+    {name:"No Choreo",code:"NChSt",base:0,goe:_zg},
+    ...CHOREO_STEPS_PAIRS
+  ];
+
+  // Lifts 2027 — identical to 2026
+  const ALL_LIFTS_2027 = ALL_LIFTS;
+
+  const THROW_JUMPS_2027 = [
+    {name:"No Throw Jump",code:"NTJ",base:0,lt:0,ltlt:0,goe:_zg},
+    ...THROW_JUMPS
+  ];
+
+  const CONTACT_SPINS_2027 = [
+    {name:"No Contact Spin",code:"NCS",base:0,goe:_zg},
+    {name:"NL Upr Back-Out",code:"NLUbo",base:0,goe:_zg},
+    ...CONTACT_SPINS.slice(0,1), // UBO
+    {name:"NL Catch at Waist",code:"NLCw",base:0,goe:_zg},
+    ...CONTACT_SPINS.slice(1,2), // CW
+    {name:"NL Sit Back In",code:"NLSbi",base:0,goe:_zg},
+    ...CONTACT_SPINS.slice(2,3), // SBI
+    {name:"NL Sit Back Out",code:"NLSbo",base:0,goe:_zg},
+    ...CONTACT_SPINS.slice(3,4), // SBO
+    {name:"NL Sit Hazel Camel",code:"NLShC",base:0,goe:_zg},
+    ...CONTACT_SPINS.slice(4,5), // SHC
+    {name:"NL Sit Hazel",code:"NLSh",base:0,goe:_zg},
+    ...CONTACT_SPINS.slice(5,6), // SH
+    {name:"NL Camel Kilian",code:"NLCk",base:0,goe:_zg},
+    ...CONTACT_SPINS.slice(6,7), // CK
+    {name:"NL Camel Tango",code:"NLCt",base:0,goe:_zg},
+    ...CONTACT_SPINS.slice(7,8), // CT
+    {name:"NL Impossible Sit",code:"NLSim",base:0,goe:_zg},
+    ...CONTACT_SPINS.slice(8,9), // SIMP
+    {name:"NL Reverse Lay Over",code:"NLRlo",base:0,goe:_zg},
+    ...CONTACT_SPINS.slice(9,10), // RLO
+    {name:"NL Impossible",code:"NLImp",base:0,goe:_zg},
+    ...CONTACT_SPINS.slice(10,11), // CIMP
+    {name:"NL Lay Over Camel",code:"NLLoc",base:0,goe:_zg},
+    ...CONTACT_SPINS.slice(11), // LOC
+  ];
+
+  const DEATH_SPIRALS_2027 = [
+    {name:"No Death Spiral",code:"NDS",base:0,goe:_zg},
+    ...DEATH_SPIRALS
+  ];
+
+  const CAMEL_SPIRALS_2027 = CAMEL_SPIRALS;
+
+  // Twist Lutz 2027: lt/ltlt columns added
+  const TWIST_LUTZ_2027 = [
+    {name:"No Twist",code:"NT",base:0,lt:0,ltlt:0,goe:_zg},
+    // 1 Twist
+    {name:"NL 1 Twist",code:"NL1Tw",base:0,lt:0,ltlt:0,goe:_zg},
+    {name:"1 Twist B",code:"1TwB",base:1.4,lt:0.98,ltlt:0.56,goe:{3:0.4,2:0.2,1:0.1,m1:-0.1,m2:-0.2,m3:-0.4}},
+    {name:"1 Twist 1",code:"1Tw1",base:1.7,lt:1.19,ltlt:0.68,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    {name:"1 Twist 2",code:"1Tw2",base:2.1,lt:1.47,ltlt:0.84,goe:{3:0.6,2:0.4,1:0.2,m1:-0.2,m2:-0.4,m3:-0.6}},
+    {name:"1 Twist 3",code:"1Tw3",base:2.6,lt:1.82,ltlt:1.04,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    {name:"1 Twist 4",code:"1Tw4",base:3.1,lt:2.17,ltlt:1.24,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    // 2 Twist
+    {name:"NL 2 Twist",code:"NL2Tw",base:0,lt:0,ltlt:0,goe:_zg},
+    {name:"2 Twist B",code:"2TwB",base:2.8,lt:1.96,ltlt:1.4,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    {name:"2 Twist 1",code:"2Tw1",base:3.1,lt:2.17,ltlt:1.55,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    {name:"2 Twist 2",code:"2Tw2",base:3.4,lt:2.38,ltlt:1.7,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    {name:"2 Twist 3",code:"2Tw3",base:3.8,lt:2.66,ltlt:1.9,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    {name:"2 Twist 4",code:"2Tw4",base:4.2,lt:2.94,ltlt:2.1,goe:{3:0.9,2:0.6,1:0.3,m1:-0.3,m2:-0.6,m3:-0.9}},
+    // 3 Twist
+    {name:"NL 3 Twist",code:"NL3Tw",base:0,lt:0,ltlt:0,goe:_zg},
+    {name:"3 Twist B",code:"3TwB",base:7,lt:4.9,ltlt:4.2,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    {name:"3 Twist 1",code:"3Tw1",base:7.3,lt:5.11,ltlt:4.38,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    {name:"3 Twist 2",code:"3Tw2",base:7.6,lt:5.32,ltlt:4.56,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    {name:"3 Twist 3",code:"3Tw3",base:8,lt:5.6,ltlt:4.8,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    {name:"3 Twist 4",code:"3Tw4",base:8.4,lt:5.88,ltlt:5,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    // NL 4 Twist (has real values per PDF)
+    {name:"NL 4 Twist",code:"NL4Tw",base:8.4,lt:5.6,ltlt:4.8,goe:{3:1.7,2:1.2,1:0.7,m1:-0.7,m2:-1.2,m3:-1.7}},
+    // 4 Twist
+    {name:"4 Twist B",code:"4TwB",base:8.2,lt:6.56,ltlt:4.92,goe:{3:2.1,2:1.4,1:0.7,m1:-0.7,m2:-1.4,m3:-2.1}},
+    {name:"4 Twist 1",code:"4Tw1",base:8.5,lt:6.8,ltlt:5.1,goe:{3:2.1,2:1.4,1:0.7,m1:-0.7,m2:-1.4,m3:-2.1}},
+    {name:"4 Twist 2",code:"4Tw2",base:8.8,lt:7.04,ltlt:5.28,goe:{3:2.1,2:1.4,1:0.7,m1:-0.7,m2:-1.4,m3:-2.1}},
+    {name:"4 Twist 3",code:"4Tw3",base:9.1,lt:7.28,ltlt:5.46,goe:{3:3,2:2,1:1,m1:-1,m2:-2,m3:-3}},
+    {name:"4 Twist 4",code:"4Tw4",base:9.6,lt:7.68,ltlt:5.76,goe:{3:3,2:2,1:1,m1:-1,m2:-2,m3:-3}},
+  ];
+
+  // ============================================================
+  //  ELEMENT TYPE DEFINITIONS 2027
+  // ============================================================
+  const ELEMENT_TYPES_FREE_2027 = [
+    { code:"CoJ", label:"Combination Jump", data:JUMPS_2027, isCombo:true, hasRotation:true },
+    { code:"SJu", label:"Solo Jump",        data:JUMPS_2027, isCombo:false, hasRotation:true },
+    { code:"CSp", label:"Combination Spin",  data:COMBO_SPINS_2027, isCombo:true, hasRotation:false },
+    { code:"SSp", label:"Solo Spin",         data:SOLO_SPINS_2027, isCombo:false, hasRotation:false },
+    { code:"FoSq",label:"Footwork Sequence", data:STEP_SEQUENCES_2027, isCombo:false, hasRotation:false },
+    { code:"ChSt",label:"Choreo Step Seq.",  data:CHOREO_STEPS_FREE_2027, isCombo:false, hasRotation:false },
+  ];
+
+  const ELEMENT_TYPES_PAIRS_2027 = [
+    { code:"CoJ", label:"Combination Jump",  data:JUMPS_2027, isCombo:true, hasRotation:true },
+    { code:"SJu", label:"Solo Jump",         data:JUMPS_2027, isCombo:false, hasRotation:true },
+    { code:"CSp", label:"Combination Spin",   data:COMBO_SPINS_2027, isCombo:true, hasRotation:false },
+    { code:"SSp", label:"Solo Spin",          data:SOLO_SPINS_2027, isCombo:false, hasRotation:false },
+    { code:"FoSq",label:"Footwork Sequence",  data:STEP_SEQUENCES_2027, isCombo:false, hasRotation:false },
+    { code:"ChSt",label:"Choreo Step Seq.",   data:CHOREO_STEPS_PAIRS_2027, isCombo:false, hasRotation:false },
+    { code:"CLi", label:"Combination Lift",   data:ALL_LIFTS_2027, isCombo:true, hasRotation:false },
+    { code:"SLi", label:"Solo Lift",          data:ALL_LIFTS_2027, isCombo:false, hasRotation:false },
+    { code:"CtSp",label:"Contact Spin",       data:CONTACT_SPINS_2027, isCombo:true, hasRotation:false },
+    { code:"DS",  label:"Death Spiral",       data:DEATH_SPIRALS_2027, isCombo:false, hasRotation:false },
+    { code:"CS",  label:"Camel Spiral",       data:CAMEL_SPIRALS_2027, isCombo:false, hasRotation:false },
+    { code:"Tw",  label:"Twist",              data:TWIST_LUTZ_2027, isCombo:false, hasRotation:true },
+    { code:"Tj",  label:"Throw Jump",         data:THROW_JUMPS_2027, isCombo:false, hasRotation:true },
+  ];
+
+  // Season helper: get correct types array for a given season
+  function getSeasonTypes(season, isPairs) {
+    if (season === "2027") return isPairs ? ELEMENT_TYPES_PAIRS_2027 : ELEMENT_TYPES_FREE_2027;
+    return isPairs ? ELEMENT_TYPES_PAIRS : ELEMENT_TYPES_FREE;
+  }
+
+  // ============================================================
   //  ELEMENT TYPE DEFINITIONS (match official Content Sheet)
   // ============================================================
   const ELEMENT_TYPES_FREE = [
@@ -2767,7 +2910,7 @@
     );
   }
 
-  function TrainingSimulator({importData,onImportDone,disziplin}){
+  function TrainingSimulator({importData,onImportDone,disziplin,season}){
     const screen=useScreen();
     const [kategorie,setKategorie]=useState("senior");
     const [segment,setSegment]=useState("senior_fp");
@@ -2780,7 +2923,7 @@
 
     const isPairs=segment.startsWith("pairs_");
     const segDef=SEGMENT_DEFS[segment];
-    const types=isPairs?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE;
+    const types=getSeasonTypes(season||"2026",isPairs);
     const pcsFactor=getPcsFactor(segment,geschlecht);
 
     const emptyRow=()=>({typeCode:"",elCode:"",judgeGoe:[0,0,0,0,0],rotation:"normal",comboEls:[],nv:false,dg:false,bonuses:[],_id:Math.random().toString(36).slice(2)});
@@ -2823,7 +2966,7 @@
       if(importData.deductions!==undefined)setDeductions(importData.deductions);
       if(importData.extraPoints!==undefined)setExtraPoints(importData.extraPoints);
       const filled=imported.filter(r=>{
-        const td=(importData.segment.startsWith("pairs_")?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE).find(t=>t.code===r.typeCode);
+        const td=getSeasonTypes(season||"2026",importData.segment.startsWith("pairs_")).find(t=>t.code===r.typeCode);
         if(td?.isCombo)return(r.comboEls||[]).some(s=>s.code);
         return!!r.elCode;
       }).length;
@@ -2959,7 +3102,7 @@
             <input type="file" accept=".pdf,.txt" onChange={e=>{
               // Reuse the same upload logic by simulating through a hidden content sheet
               const file=e.target.files?.[0];if(!file)return;e.target.value="";
-              const typeMap={};const curTypes=isPairs?ELEMENT_TYPES_PAIRS:ELEMENT_TYPES_FREE;
+              const typeMap={};const curTypes=getSeasonTypes(season||"2026",isPairs);
               curTypes.forEach(t=>{typeMap[t.code.toLowerCase()]=t.code;});
               const fuzzy={...typeMap,col:"CoJ",c0j:"CoJ",siu:"SJu",fosg:"FoSq",fos:"FoSq",cli:"CLi",sli:"SLi",ctsp:"CtSp",tlj:"Tj",twlz:"Tw"};
               if(file.name.toLowerCase().endsWith(".pdf")){
@@ -3395,7 +3538,9 @@
   // ============================================================
   //  WERTETABELLE PAGE
   // ============================================================
-  function WertetabellePage() {
+  function WertetabellePage({season}) {
+    const s=season||"2026";
+    const is27=s==="2027";
     const [wTab,setWTab]=React.useState("einzel");
     const [search,setSearch]=React.useState("");
     const [openCat,setOpenCat]=React.useState(null);
@@ -3409,20 +3554,33 @@
     const fmtV=v=>v===0?"–":v===undefined?"–":v.toFixed(2);
     const q=search.trim().toLowerCase();
 
+    const jumpsData=is27?JUMPS_2027:JUMPS;
+    const soloData=is27?SOLO_SPINS_2027:SOLO_SPINS;
+    const comboData=is27?COMBO_SPINS_2027:COMBO_SPINS;
+    const stepsData=is27?STEP_SEQUENCES_2027:STEP_SEQUENCES;
+    const choreoFree=is27?CHOREO_STEPS_FREE_2027:CHOREO_STEPS_FREE;
+    const choreoPairs=is27?CHOREO_STEPS_PAIRS_2027:CHOREO_STEPS_PAIRS;
+    const liftsData=is27?ALL_LIFTS_2027:ALL_LIFTS;
+    const throwsData=is27?THROW_JUMPS_2027:THROW_JUMPS;
+    const contactData=is27?CONTACT_SPINS_2027:CONTACT_SPINS;
+    const deathData=is27?DEATH_SPIRALS_2027:DEATH_SPIRALS;
+    const camelData=is27?CAMEL_SPIRALS_2027:CAMEL_SPIRALS;
+    const twistData=is27?TWIST_LUTZ_2027:TWIST_LUTZ;
+
     const sharedCats=[
-      {key:"jumps",label:"Sprünge (Solo)",data:JUMPS,cols:["base","lt","ltlt","combo","comboLt","comboLtLt"],heads:["Base","LT","LTLT","Combo","Combo LT","Combo LTLT"]},
-      {key:"solo_spins",label:"Solo Spins (SSp)",data:SOLO_SPINS,cols:["base"],heads:["Base"]},
-      {key:"combo_spins",label:"Combo Spins (CSp)",data:COMBO_SPINS,cols:["base"],heads:["Base"]},
-      {key:"steps",label:"Schrittfolgen (FoSq)",data:STEP_SEQUENCES,cols:["base"],heads:["Base"]},
-      {key:"choreo",label:"Choreographische Schritte (ChSt)",data:wTab==="einzel"?CHOREO_STEPS_FREE:CHOREO_STEPS_PAIRS,cols:["base"],heads:["Base"]},
+      {key:"jumps",label:"Sprünge (Solo)",data:jumpsData,cols:["base","lt","ltlt","combo","comboLt","comboLtLt"],heads:["Base","LT","LTLT","Combo","Combo LT","Combo LTLT"]},
+      {key:"solo_spins",label:"Solo Spins (SSp)",data:soloData,cols:["base"],heads:["Base"]},
+      {key:"combo_spins",label:is27?"Combo Spins (CSp) — nur Basis-Pirouetten":"Combo Spins (CSp)",data:comboData,cols:["base"],heads:["Base"]},
+      {key:"steps",label:"Schrittfolgen (FoSq)",data:stepsData,cols:["base"],heads:["Base"]},
+      {key:"choreo",label:"Choreographische Schritte (ChSt)",data:wTab==="einzel"?choreoFree:choreoPairs,cols:["base"],heads:["Base"]},
     ];
     const pairsCats=[
-      {key:"lifts",label:"Hebungen (CLi / SLi)",data:ALL_LIFTS,cols:["base"],heads:["Base"]},
-      {key:"throws",label:"Wurfsprünge (Tj)",data:THROW_JUMPS,cols:["base","lt","ltlt"],heads:["Base","LT","LTLT"]},
-      {key:"contact",label:"Kontaktpirouetten (CtSp)",data:CONTACT_SPINS,cols:["base"],heads:["Base"]},
-      {key:"death",label:"Todesspirale (DS)",data:DEATH_SPIRALS,cols:["base"],heads:["Base"]},
-      {key:"camel",label:"Kamelspirale (CS)",data:CAMEL_SPIRALS,cols:["base"],heads:["Base"]},
-      {key:"twist",label:"Twist (Tw)",data:TWIST_LUTZ,cols:["base"],heads:["Base"]},
+      {key:"lifts",label:"Hebungen (CLi / SLi)",data:liftsData,cols:["base"],heads:["Base"]},
+      {key:"throws",label:"Wurfsprünge (Tj)",data:throwsData,cols:["base","lt","ltlt"],heads:["Base","LT","LTLT"]},
+      {key:"contact",label:"Kontaktpirouetten (CtSp)",data:contactData,cols:["base"],heads:["Base"]},
+      {key:"death",label:"Todesspirale (DS)",data:deathData,cols:["base"],heads:["Base"]},
+      {key:"camel",label:"Kamelspirale (CS)",data:camelData,cols:["base"],heads:["Base"]},
+      {key:"twist",label:"Twist (Tw)",data:twistData,cols:is27?["base","lt","ltlt"]:["base"],heads:is27?["Base","LT","LTLT"]:["Base"]},
     ];
     const bonusCats=[
       {key:"b_jump",label:"Sprung-Boni",data:JUMP_BONUSES},
@@ -3496,7 +3654,8 @@
         {/* Header */}
         <div style={{...cardS,display:"flex",flexWrap:"wrap",alignItems:"center",gap:12}}>
           <h3 style={{margin:0,fontSize:18,fontWeight:800,color:"#22221C",flex:"1 1 auto"}}>
-            Wertetabelle – World Skate 2026
+            Wertetabelle – World Skate {s}
+            {is27&&<span style={{fontSize:11,fontWeight:600,color:"white",background:"#E10716",padding:"2px 8px",borderRadius:10,marginLeft:8,verticalAlign:"middle"}}>NEU</span>}
           </h3>
           <div style={{display:"flex",gap:4,background:"#f3f4f6",borderRadius:20,padding:3}}>
             {[{k:"einzel",l:"Einzel"},{k:"paarlauf",l:"Paarlauf"}].map(t=>(
@@ -5790,6 +5949,7 @@
     const [uploadMsg, setUploadMsg] = useState("");
     const [judgeCount, setJudgeCount] = useState(3);
     const [geschlecht, setGeschlecht] = useState("damen");
+    const [season, setSeason] = useState("2026");
 
     // Program Components: each component has scores for up to 5 judges
     const emptyPcs = () => ({
@@ -5825,7 +5985,7 @@
 
     const isPairs = segment.startsWith("pairs_");
     const segDef = SEGMENT_DEFS[segment];
-    const types = isPairs ? ELEMENT_TYPES_PAIRS : ELEMENT_TYPES_FREE;
+    const types = getSeasonTypes(season, isPairs);
 
     // Filtered categories based on selected disziplin
     const filteredCategories = disziplin==="pairs" ? PAIRS_CATEGORIES : disziplin==="einzel" ? SINGLES_CATEGORIES : Object.entries(CATEGORY_DEFS);
@@ -5903,7 +6063,7 @@
             const newRows = Array.from({length: SEGMENT_DEFS[targetSeg].rows}, emptyRow);
             // Compute correct types locally to avoid stale closure (types depends on previous segment)
             const importIsPairs = targetSeg.startsWith("pairs_");
-            const importTypes = importIsPairs ? ELEMENT_TYPES_PAIRS : ELEMENT_TYPES_FREE;
+            const importTypes = getSeasonTypes(season, importIsPairs);
             if (officialImport.sections && officialImport.sections.length > 0) {
               const elementsFromSection = officialImport.sections[secIdx]?.elements || [];
               // Known type codes sorted by length (longest first for matching)
@@ -6742,6 +6902,15 @@
                       )}
                     </div>
                     {authCtx?.user?.role==="admin"&&<button onClick={()=>setPage("admin")} style={tabStyle(page==="admin")}>⚙ Admin</button>}
+                    {/* Season Toggle */}
+                    <div style={{marginLeft:"auto",display:"flex",alignItems:"center",gap:0,background:"#f3f4f6",borderRadius:16,padding:2,flexShrink:0}}>
+                      {["2026","2027"].map(s=>(
+                        <button key={s} onClick={()=>setSeason(s)} style={{
+                          padding:"3px 10px",borderRadius:14,border:"none",fontSize:11,fontWeight:700,cursor:"pointer",
+                          background:season===s?"#22221C":"transparent",color:season===s?"#fff":"#6B7280",transition:"all .2s",
+                        }}>{s}</button>
+                      ))}
+                    </div>
                   </div>
                 );
               })()}
@@ -6808,7 +6977,7 @@
         {/* TRAINING SIMULATOR PAGE */}
         {page==="anleitung"&&<AnleitungPage/>}
         {page==="dashboard"&&<DashboardPage/>}
-        {page==="training"&&<TrainingSimulator importData={simImport} onImportDone={handleSimImportDone} disziplin={disziplin}/>}
+        {page==="training"&&<TrainingSimulator importData={simImport} onImportDone={handleSimImportDone} disziplin={disziplin} season={season}/>}
         {page==="tagebuch"&&<TrainingDiary/>}
         {page==="kalender"&&<CompetitionCalendar/>}
 
@@ -6822,7 +6991,7 @@
         {page==="profile"&&<ProfileScreen onClose={()=>setPage("content")}/>}
 
         {/* WERTETABELLE PAGE */}
-        {page==="werte"&&<WertetabellePage/>}
+        {page==="werte"&&<WertetabellePage season={season}/>}
 
         {/* GLOSSAR & REGELN PAGE */}
         {page==="glossar"&&<div style={{padding:"16px 20px",maxWidth:1200,margin:"0 auto"}}>
